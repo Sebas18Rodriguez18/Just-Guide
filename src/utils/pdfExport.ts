@@ -92,8 +92,8 @@ const characterMap: Record<string, string> = {
   '›': '>',
   
   // Legal symbols
-  '§': 'section',
-  '¶': 'paragraph',
+  '§': 'Section',
+  '¶': '',
   '©': '(c)',
   '®': '(R)',
   '™': '(TM)',
@@ -115,7 +115,7 @@ const characterMap: Record<string, string> = {
  * Normalizes text by replacing accented and special characters with ASCII equivalents
  * This prevents encoding issues in PDF exports
  */
-function normalizeText(text: string): string {
+export function normalizeText(text: string): string {
   if (!text || typeof text !== 'string') {
     return '';
   }
