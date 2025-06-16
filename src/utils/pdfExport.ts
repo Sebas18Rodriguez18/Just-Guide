@@ -58,11 +58,7 @@ const characterMap: Record<string, string> = {
   'Ÿ': 'Y',
   
   // German characters
-  'ä': 'ae',
-  'ö': 'oe',
   'ß': 'ss',
-  'Ä': 'AE',
-  'Ö': 'OE',
   
   // Portuguese characters
   'ã': 'a',
@@ -95,6 +91,13 @@ const characterMap: Record<string, string> = {
   '‹': '<',
   '›': '>',
   
+  // Legal symbols
+  '§': 'section',
+  '¶': 'paragraph',
+  '©': '(c)',
+  '®': '(R)',
+  '™': '(TM)',
+  
   // Problematic characters that cause encoding issues
   'Ø': 'O',
   'ø': 'o',
@@ -117,8 +120,8 @@ function normalizeText(text: string): string {
     return '';
   }
   
-  // Replace characters using the character map
-  let normalized = text.replace(/[ñÑüÜ¿¡€£–—''""áéíóúÁÉÍÓÚàâäçèêëîïôöùûÿÀÂÄÇÈÊËÎÏÔÖÙÛŸäöößÄÖãõÃÕØøÆæŒœÐðÞþ]/g, (char) => {
+  // Replace characters using the character map with comprehensive regex
+  let normalized = text.replace(/[ñÑüÜ¿¡€£¥₹¢₽–—''""…«»‚„‹›áéíóúÁÉÍÓÚàâäçèêëîïôöùûÿÀÂÄÇÈÊËÎÏÔÖÙÛŸßãõÃÕØøÆæŒœÐðÞþ§¶©®™]/g, (char) => {
     return characterMap[char] || char;
   });
   
