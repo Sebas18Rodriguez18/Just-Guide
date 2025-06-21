@@ -24,8 +24,60 @@ interface SimplifyResponse {
   jurisdiction_note?: string;
 }
 
-// Jurisdiction-specific legal term translations and simplifications
+// Enhanced jurisdiction-specific legal term translations and simplifications
 const jurisdictionTerms: Record<string, Record<string, string>> = {
+  'Colombia': {
+    'arrendador': 'la persona que da en arriendo (propietario)',
+    'arrendatario': 'la persona que recibe en arriendo (inquilino)',
+    'canon de arrendamiento': 'valor mensual que se paga por el arriendo',
+    'ley 820 de 2003': 'ley que regula los contratos de arrendamiento en Colombia',
+    'código civil colombiano': 'conjunto de normas que regulan las relaciones civiles en Colombia',
+    'ipc': 'índice de precios al consumidor para ajustar arriendos',
+    'dane': 'entidad que certifica la inflación en Colombia',
+    'artículo 22': 'sección de la ley que establece las causales de terminación',
+    'incumplimiento': 'no cumplir con las obligaciones del contrato',
+    'terminación': 'finalización del contrato de arriendo',
+    'restitución': 'devolución del inmueble al propietario',
+    'depósito en dinero': 'dinero que se entrega como garantía',
+    'cláusula': 'condición específica del contrato',
+    'reparaciones locativas': 'arreglos menores que debe hacer el inquilino',
+    'reparaciones mayores': 'arreglos grandes que debe hacer el propietario',
+    'cédula de ciudadanía': 'documento de identidad colombiano',
+    'mayor de edad': 'persona de 18 años o más',
+    'domiciliado': 'que vive en un lugar específico',
+    'inmueble': 'propiedad como casa o apartamento',
+    'vivienda urbana': 'casa o apartamento en la ciudad',
+    'canon': 'precio del arriendo',
+    'moneda corriente': 'pesos colombianos',
+    'pagaderos': 'que se deben pagar',
+    'reajuste': 'aumento del precio según la inflación',
+    'anualmente': 'cada año',
+    'porcentaje': 'parte de cien',
+    'certificado': 'confirmado oficialmente',
+    'habitabilidad': 'condiciones para vivir bien',
+    'pacífico': 'sin problemas o molestias',
+    'disposiciones': 'reglas establecidas',
+    'puntualmente': 'a tiempo',
+    'destinación': 'uso para el que está hecho',
+    'conservar': 'mantener en buen estado',
+    'subarrendar': 'dar en arriendo a otra persona',
+    'autorización escrita': 'permiso por escrito',
+    'vencimiento':   'cuando se acaba el tiempo',
+    'mutuo acuerdo': 'cuando ambas partes están de acuerdo',
+    'causales': 'razones legales',
+    'establecidas': 'definidas en la ley',
+    'constancia': 'prueba o evidencia'
+  },
+  'Mexico': {
+    'demandante': 'la persona que presenta la demanda',
+    'demandado': 'la persona contra quien se presenta la demanda',
+    'juicio': 'proceso legal ante un juez',
+    'sentencia': 'decisión final del juez',
+    'apelación': 'pedir que otro juez revise la decisión',
+    'notificación': 'aviso oficial',
+    'embargo': 'retener bienes por deudas',
+    'fianza': 'dinero que se deja como garantía'
+  },
   'USA': {
     'plaintiff': 'the person who is suing',
     'defendant': 'the person being sued',
@@ -39,20 +91,6 @@ const jurisdictionTerms: Record<string, Record<string, string>> = {
     'statute of limitations': 'time limit for filing a lawsuit',
     'due process': 'fair treatment under the law',
     'jurisdiction': 'the court\'s authority to hear a case',
-  },
-  'Mexico': {
-    'demandante': 'la persona que presenta la demanda',
-    'demandado': 'la persona contra quien se presenta la demanda',
-    'juicio': 'proceso legal ante un juez',
-    'sentencia': 'decisión final del juez',
-    'apelación': 'pedir que otro juez revise la decisión',
-    'notificación': 'aviso oficial',
-    'embargo': 'retener bienes por deudas',
-    'fianza': 'dinero que se deja como garantía',
-    'escritura pública': 'documento firmado ante notario',
-    'código civil': 'leyes sobre relaciones entre personas',
-    'amparo': 'protección constitucional de derechos',
-    'prescripción': 'perder un derecho por no usarlo a tiempo',
   },
   'Spain': {
     'demandante': 'la persona que presenta la demanda',
@@ -84,7 +122,7 @@ const jurisdictionTerms: Record<string, Record<string, string>> = {
   }
 };
 
-// Legal system explanations
+// Enhanced legal system explanations
 const legalSystemExplanations: Record<string, Record<string, string>> = {
   'en': {
     'common_law': 'This jurisdiction follows common law, where court decisions create legal precedents that guide future cases.',
@@ -110,6 +148,7 @@ const legalSystemExplanations: Record<string, Record<string, string>> = {
 };
 
 function getJurisdictionKey(country: string, region?: string): string {
+  if (country === 'Colombia') return 'Colombia';
   if (country === 'USA') return 'USA';
   if (country === 'Mexico') return 'Mexico';
   if (country === 'Spain') return 'Spain';
@@ -164,7 +203,15 @@ function adjustForLiteracyLevel(text: string, level: string, language: string): 
         .replace(/por consiguiente/gi, 'por eso')
         .replace(/asimismo/gi, 'también')
         .replace(/en virtud de/gi, 'por')
-        .replace(/con el fin de/gi, 'para');
+        .replace(/con el fin de/gi, 'para')
+        .replace(/a efectos de/gi, 'para')
+        .replace(/en caso de que/gi, 'si')
+        .replace(/con anterioridad/gi, 'antes')
+        .replace(/posteriormente/gi, 'después')
+        .replace(/adicionalmente/gi, 'además')
+        .replace(/consecuentemente/gi, 'por eso')
+        .replace(/específicamente/gi, 'en especial')
+        .replace(/particularmente/gi, 'en especial');
     } else {
       adjusted = adjusted
         .replace(/nevertheless/gi, 'but')
@@ -172,11 +219,51 @@ function adjustForLiteracyLevel(text: string, level: string, language: string): 
         .replace(/therefore/gi, 'so')
         .replace(/furthermore/gi, 'also')
         .replace(/pursuant to/gi, 'according to')
-        .replace(/in order to/gi, 'to');
+        .replace(/in order to/gi, 'to')
+        .replace(/subsequently/gi, 'later')
+        .replace(/additionally/gi, 'also')
+        .replace(/consequently/gi, 'so')
+        .replace(/specifically/gi, 'especially')
+        .replace(/particularly/gi, 'especially');
     }
   }
   
   return adjusted;
+}
+
+// Enhanced Colombian legal text simplification
+function simplifyColombianLegalText(text: string, language: string): string {
+  let simplified = text;
+  
+  if (language === 'es') {
+    // Add section organization based on Colombian legal structure
+    simplified = simplified
+      .replace(/(PRIMERA?|PRIMERO|1\.?\s*[-:]?\s*)/gi, '\n## 1. Información de las personas\n')
+      .replace(/(SEGUNDA?|SEGUNDO|2\.?\s*[-:]?\s*)/gi, '\n## 2. Qué se está arrendando\n')
+      .replace(/(TERCERA?|TERCERO|3\.?\s*[-:]?\s*)/gi, '\n## 3. Tiempo del contrato\n')
+      .replace(/(CUARTA?|CUARTO|4\.?\s*[-:]?\s*)/gi, '\n## 4. Dinero y pagos\n')
+      .replace(/(QUINTA?|QUINTO|5\.?\s*[-:]?\s*)/gi, '\n## 5. Reajuste del canon\n')
+      .replace(/(SEXTA?|SEXTO|6\.?\s*[-:]?\s*)/gi, '\n## 6. Depósito de garantía\n')
+      .replace(/(SÉPTIMA?|SEPTIMO|7\.?\s*[-:]?\s*)/gi, '\n## 7. Obligaciones del arrendador\n')
+      .replace(/(OCTAVA?|OCTAVO|8\.?\s*[-:]?\s*)/gi, '\n## 8. Obligaciones del arrendatario\n')
+      .replace(/(NOVENA?|NOVENO|9\.?\s*[-:]?\s*)/gi, '\n## 9. Cómo termina el contrato\n');
+    
+    // Add explanatory context for Colombian legal concepts
+    simplified = simplified
+      .replace(/Ley 820 de 2003/gi, 'Ley 820 de 2003 (ley que regula los arriendos en Colombia)')
+      .replace(/Código Civil Colombiano/gi, 'Código Civil Colombiano (leyes civiles de Colombia)')
+      .replace(/IPC/gi, 'IPC (índice que mide la inflación)')
+      .replace(/DANE/gi, 'DANE (entidad que calcula la inflación en Colombia)')
+      .replace(/artículo 22/gi, 'artículo 22 (sección que explica cuándo se puede terminar el contrato)')
+      .replace(/cédula de ciudadanía/gi, 'cédula de ciudadanía (documento de identidad)')
+      .replace(/mayor de edad/gi, 'mayor de edad (18 años o más)')
+      .replace(/canon de arrendamiento/gi, 'canon de arrendamiento (precio mensual del arriendo)')
+      .replace(/depósito en dinero/gi, 'depósito en dinero (garantía que se devuelve)')
+      .replace(/reparaciones locativas/gi, 'reparaciones locativas (arreglos menores)')
+      .replace(/vivienda urbana/gi, 'vivienda urbana (casa o apartamento en la ciudad)');
+  }
+  
+  return simplified;
 }
 
 function simplifyLegalText(request: SimplifyRequest): string {
@@ -203,47 +290,19 @@ function simplifyLegalText(request: SimplifyRequest): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   
-  // Step 2: Replace jurisdiction-specific legal terms
+  // Step 2: Apply Colombian-specific simplification if applicable
+  if (country === 'Colombia' && language === 'es') {
+    simplified = simplifyColombianLegalText(simplified, language);
+  }
+  
+  // Step 3: Replace jurisdiction-specific legal terms
   simplified = simplifyLegalTerms(simplified, country, region);
   
-  // Step 3: Adjust for literacy level
+  // Step 4: Adjust for literacy level
   simplified = adjustForLiteracyLevel(simplified, legal_literacy_level, language);
   
-  // Step 4: Add jurisdiction context
+  // Step 5: Add jurisdiction context
   simplified = addJurisdictionContext(simplified, country, region, legal_system_type, language);
-  
-  // Step 5: Add section organization based on language
-  if (language === 'es') {
-    simplified = simplified
-      .replace(/(PRIMERA?|PRIMERO|1\.?\s*[-:]?\s*)/gi, '\n## 1. Información de las personas\n')
-      .replace(/(SEGUNDA?|SEGUNDO|2\.?\s*[-:]?\s*)/gi, '\n## 2. Qué se acuerda\n')
-      .replace(/(TERCERA?|TERCERO|3\.?\s*[-:]?\s*)/gi, '\n## 3. Tiempo del acuerdo\n')
-      .replace(/(CUARTA?|CUARTO|4\.?\s*[-:]?\s*)/gi, '\n## 4. Dinero y pagos\n')
-      .replace(/(QUINTA?|QUINTO|5\.?\s*[-:]?\s*)/gi, '\n## 5. Garantías\n')
-      .replace(/(SEXTA?|SEXTO|6\.?\s*[-:]?\s*)/gi, '\n## 6. Obligaciones de una parte\n')
-      .replace(/(SÉPTIMA?|SEPTIMO|7\.?\s*[-:]?\s*)/gi, '\n## 7. Obligaciones de la otra parte\n')
-      .replace(/(OCTAVA?|OCTAVO|8\.?\s*[-:]?\s*)/gi, '\n## 8. Cómo termina el acuerdo\n');
-  } else if (language === 'fr') {
-    simplified = simplified
-      .replace(/(PREMIÈRE?|PREMIER|1\.?\s*[-:]?\s*)/gi, '\n## 1. Informations des personnes\n')
-      .replace(/(DEUXIÈME?|SECOND|2\.?\s*[-:]?\s*)/gi, '\n## 2. Ce qui est convenu\n')
-      .replace(/(TROISIÈME?|TROISIÈME|3\.?\s*[-:]?\s*)/gi, '\n## 3. Durée de l\'accord\n')
-      .replace(/(QUATRIÈME?|QUATRIÈME|4\.?\s*[-:]?\s*)/gi, '\n## 4. Argent et paiements\n')
-      .replace(/(CINQUIÈME?|CINQUIÈME|5\.?\s*[-:]?\s*)/gi, '\n## 5. Garanties\n')
-      .replace(/(SIXIÈME?|SIXIÈME|6\.?\s*[-:]?\s*)/gi, '\n## 6. Obligations d\'une partie\n')
-      .replace(/(SEPTIÈME?|SEPTIÈME|7\.?\s*[-:]?\s*)/gi, '\n## 7. Obligations de l\'autre partie\n')
-      .replace(/(HUITIÈME?|HUITIÈME|8\.?\s*[-:]?\s*)/gi, '\n## 8. Comment se termine l\'accord\n');
-  } else {
-    simplified = simplified
-      .replace(/(FIRST|1\.?\s*[-:]?\s*)/gi, '\n## 1. Personal Information\n')
-      .replace(/(SECOND|2\.?\s*[-:]?\s*)/gi, '\n## 2. What is Agreed\n')
-      .replace(/(THIRD|3\.?\s*[-:]?\s*)/gi, '\n## 3. Agreement Duration\n')
-      .replace(/(FOURTH|4\.?\s*[-:]?\s*)/gi, '\n## 4. Money and Payments\n')
-      .replace(/(FIFTH|5\.?\s*[-:]?\s*)/gi, '\n## 5. Guarantees\n')
-      .replace(/(SIXTH|6\.?\s*[-:]?\s*)/gi, '\n## 6. Obligations of One Party\n')
-      .replace(/(SEVENTH|7\.?\s*[-:]?\s*)/gi, '\n## 7. Obligations of Other Party\n')
-      .replace(/(EIGHTH|8\.?\s*[-:]?\s*)/gi, '\n## 8. How the Agreement Ends\n');
-  }
   
   // Step 6: Clean up formatting
   simplified = simplified

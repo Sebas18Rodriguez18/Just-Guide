@@ -17,8 +17,32 @@ export interface JurisdictionContext {
   literacy_level: string;
 }
 
-// Comprehensive legal frameworks database
+// Enhanced legal frameworks database with better Colombian support
 export const legalFrameworks: LegalFramework[] = [
+  // Colombia - Enhanced
+  {
+    id: 'colombia-nacional',
+    country: 'Colombia',
+    region: 'Nacional',
+    legal_system_type: 'civil_law',
+    supported_document_types: ['contrato', 'arrendamiento', 'testamento', 'poder_notarial', 'demanda_civil', 'contrato_laboral'],
+    legal_notes: 'Derecho civil colombiano regido por el Código Civil y leyes especiales como la Ley 820 de 2003 para arrendamientos.',
+    official_sources: ['https://www.funcionpublica.gov.co', 'https://www.corteconstitucional.gov.co'],
+    terminology: {
+      'arrendador': 'la persona que da en arriendo (propietario)',
+      'arrendatario': 'la persona que recibe en arriendo (inquilino)',
+      'canon de arrendamiento': 'valor mensual que se paga por el arriendo',
+      'ley 820 de 2003': 'ley que regula los contratos de arrendamiento en Colombia',
+      'código civil': 'conjunto de normas que regulan las relaciones civiles',
+      'ipc': 'índice de precios al consumidor para ajustar arriendos',
+      'artículo': 'sección específica de una ley',
+      'incumplimiento': 'no cumplir con las obligaciones del contrato',
+      'terminación': 'finalización del contrato de arriendo',
+      'restitución': 'devolución del inmueble al propietario',
+      'depósito': 'dinero que se entrega como garantía',
+      'cláusula': 'condición específica del contrato'
+    }
+  },
   // USA
   {
     id: 'usa-federal',
@@ -39,22 +63,6 @@ export const legalFrameworks: LegalFramework[] = [
       'liability': 'legal responsibility for something',
       'breach of contract': 'breaking the terms of an agreement',
       'statute of limitations': 'time limit for filing a lawsuit'
-    }
-  },
-  {
-    id: 'usa-california',
-    country: 'USA',
-    region: 'California',
-    legal_system_type: 'common_law',
-    supported_document_types: ['contract', 'lease', 'will', 'power_of_attorney', 'civil_complaint', 'employment_agreement', 'tenant_rights'],
-    legal_notes: 'California has strong tenant protection laws and specific employment regulations.',
-    official_sources: ['https://leginfo.legislature.ca.gov', 'https://www.courts.ca.gov'],
-    terminology: {
-      'tenant': 'renter with strong protection rights',
-      'landlord': 'property owner with specific obligations',
-      'security deposit': 'refundable money (max 2 months rent)',
-      'eviction': 'removal process with strict legal requirements',
-      'at-will employment': 'employment that can be terminated by either party'
     }
   },
   // Mexico
@@ -112,93 +120,91 @@ export const legalFrameworks: LegalFramework[] = [
       'chambers': 'a barrister\'s office',
       'statutory': 'required by law'
     }
-  },
-  // China
-  {
-    id: 'china-national',
-    country: 'China',
-    region: 'National',
-    legal_system_type: 'civil_law',
-    supported_document_types: ['合同', '租赁', '遗嘱', '委托书', '民事诉讼', '劳动合同'],
-    legal_notes: '中国民法典体系，具有社会主义特色。',
-    official_sources: ['http://www.npc.gov.cn', 'http://www.court.gov.cn'],
-    terminology: {
-      '合同': '双方约定的法律文件',
-      '当事人': '合同中的参与方',
-      '违约': '不履行合同义务',
-      '仲裁': '第三方解决争议',
-      '诉讼': '法院审理案件',
-      '判决': '法院的最终决定'
-    }
-  },
-  // India
-  {
-    id: 'india-federal',
-    country: 'India',
-    region: 'Federal',
-    legal_system_type: 'common_law',
-    supported_document_types: ['contract', 'lease', 'will', 'power_of_attorney', 'civil_suit', 'employment_agreement'],
-    legal_notes: 'Common law system with Indian statutory modifications. State laws may vary.',
-    official_sources: ['https://legislative.gov.in', 'https://main.sci.gov.in'],
-    terminology: {
-      'petitioner': 'the person filing a case',
-      'respondent': 'the person responding to a case',
-      'advocate': 'a lawyer representing clients',
-      'magistrate': 'a judicial officer',
-      'bail': 'temporary release from custody',
-      'cognizable offense': 'serious crime where police can arrest without warrant'
-    }
-  },
-  // UAE
-  {
-    id: 'uae-federal',
-    country: 'UAE',
-    region: 'Federal',
-    legal_system_type: 'civil_law',
-    supported_document_types: ['عقد', 'إيجار', 'وصية', 'وكالة', 'دعوى_مدنية', 'عقد_عمل'],
-    legal_notes: 'نظام القانون المدني مع تأثيرات الشريعة الإسلامية.',
-    official_sources: ['https://www.moj.gov.ae', 'https://www.adjd.gov.ae'],
-    terminology: {
-      'المدعي': 'الشخص الذي يقدم الدعوى',
-      'المدعى عليه': 'الشخص المقاضى',
-      'العقد': 'اتفاق قانوني بين الأطراف',
-      'الإخلال': 'عدم الوفاء بالالتزامات',
-      'التحكيم': 'حل النزاعات خارج المحكمة',
-      'الحكم': 'قرار المحكمة النهائي'
-    }
   }
 ];
 
+// Enhanced jurisdiction detection with Colombian legal patterns
 export function detectJurisdiction(text: string, userCountry?: string): LegalFramework {
-  // Try to detect jurisdiction from document content
   const lowerText = text.toLowerCase();
   
-  // Check for specific legal terms or patterns
-  if (lowerText.includes('plaintiff') || lowerText.includes('defendant') || lowerText.includes('discovery')) {
-    if (userCountry === 'USA') {
-      return legalFrameworks.find(f => f.id === 'usa-federal') || legalFrameworks[0];
-    }
-    return legalFrameworks.find(f => f.country === 'United Kingdom') || legalFrameworks[0];
+  // Colombian legal indicators
+  if (lowerText.includes('ley 820') || 
+      lowerText.includes('código civil colombiano') ||
+      lowerText.includes('bogotá d.c') ||
+      lowerText.includes('bogotá dc') ||
+      lowerText.includes('medellín') ||
+      lowerText.includes('cali') ||
+      lowerText.includes('barranquilla') ||
+      lowerText.includes('cartagena') ||
+      lowerText.includes('bucaramanga') ||
+      lowerText.includes('pereira') ||
+      lowerText.includes('manizales') ||
+      lowerText.includes('pesos colombianos') ||
+      lowerText.includes('cop') ||
+      lowerText.includes('arrendador') ||
+      lowerText.includes('arrendatario') ||
+      lowerText.includes('canon de arrendamiento') ||
+      lowerText.includes('ipc') ||
+      lowerText.includes('colombia') ||
+      lowerText.includes('colombiano')) {
+    return legalFrameworks.find(f => f.id === 'colombia-nacional') || legalFrameworks[0];
   }
   
-  if (lowerText.includes('demandante') || lowerText.includes('demandado')) {
-    if (userCountry === 'Mexico') {
-      return legalFrameworks.find(f => f.id === 'mexico-federal') || legalFrameworks[0];
-    }
-    return legalFrameworks.find(f => f.country === 'Spain') || legalFrameworks[0];
+  // Mexican legal indicators
+  if (lowerText.includes('ciudad de méxico') ||
+      lowerText.includes('cdmx') ||
+      lowerText.includes('guadalajara') ||
+      lowerText.includes('monterrey') ||
+      lowerText.includes('puebla') ||
+      lowerText.includes('tijuana') ||
+      lowerText.includes('pesos mexicanos') ||
+      lowerText.includes('mxn') ||
+      lowerText.includes('méxico') ||
+      lowerText.includes('mexicano')) {
+    return legalFrameworks.find(f => f.id === 'mexico-federal') || legalFrameworks[0];
   }
   
-  if (lowerText.includes('合同') || lowerText.includes('当事人')) {
-    return legalFrameworks.find(f => f.country === 'China') || legalFrameworks[0];
+  // Spanish legal indicators
+  if (lowerText.includes('madrid') ||
+      lowerText.includes('barcelona') ||
+      lowerText.includes('valencia') ||
+      lowerText.includes('sevilla') ||
+      lowerText.includes('bilbao') ||
+      lowerText.includes('euros') ||
+      lowerText.includes('eur') ||
+      lowerText.includes('españa') ||
+      lowerText.includes('español')) {
+    return legalFrameworks.find(f => f.id === 'spain-national') || legalFrameworks[0];
   }
   
-  if (lowerText.includes('المدعي') || lowerText.includes('العقد')) {
-    return legalFrameworks.find(f => f.country === 'UAE') || legalFrameworks[0];
+  // US legal indicators
+  if (lowerText.includes('plaintiff') || 
+      lowerText.includes('defendant') || 
+      lowerText.includes('discovery') ||
+      lowerText.includes('new york') ||
+      lowerText.includes('california') ||
+      lowerText.includes('texas') ||
+      lowerText.includes('florida') ||
+      lowerText.includes('dollars') ||
+      lowerText.includes('usd')) {
+    return legalFrameworks.find(f => f.id === 'usa-federal') || legalFrameworks[0];
+  }
+  
+  // UK legal indicators
+  if (lowerText.includes('claimant') ||
+      lowerText.includes('solicitor') ||
+      lowerText.includes('barrister') ||
+      lowerText.includes('london') ||
+      lowerText.includes('manchester') ||
+      lowerText.includes('birmingham') ||
+      lowerText.includes('pounds') ||
+      lowerText.includes('gbp')) {
+    return legalFrameworks.find(f => f.id === 'uk-england-wales') || legalFrameworks[0];
   }
   
   // Fallback to user's country or default
   if (userCountry) {
-    const countryFramework = legalFrameworks.find(f => f.country === userCountry);
+    const countryFramework = legalFrameworks.find(f => f.country.toLowerCase() === userCountry.toLowerCase());
     if (countryFramework) return countryFramework;
   }
   
@@ -215,10 +221,98 @@ export function detectJurisdiction(text: string, userCountry?: string): LegalFra
   };
 }
 
+// Enhanced language detection
+export function detectLanguage(text: string): string {
+  const cleanText = text.toLowerCase().trim();
+  
+  // Colombian/Spanish indicators
+  const spanishWords = ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'con', 'para', 'una', 'del', 'los', 'las', 'este', 'esta', 'como', 'pero', 'sus', 'fue', 'ser', 'tiene', 'todo', 'más', 'muy', 'puede', 'hacer', 'tiempo', 'año', 'años', 'estado', 'gobierno', 'nacional', 'trabajo', 'día', 'grupo', 'caso', 'parte', 'lugar', 'forma', 'manera', 'vida', 'mundo', 'casa', 'país', 'ejemplo', 'nombre', 'número', 'agua', 'historia', 'derecho', 'ley', 'legal', 'tribunal', 'juez', 'demanda', 'contrato', 'documento', 'firma', 'fecha', 'artículo', 'código', 'civil', 'penal', 'administrativo', 'arrendador', 'arrendatario', 'canon', 'arriendo', 'colombia', 'colombiano', 'bogotá', 'medellín', 'cali', 'pesos'];
+  
+  // English indicators
+  const englishWords = ['the', 'of', 'and', 'to', 'a', 'in', 'is', 'it', 'you', 'that', 'he', 'was', 'for', 'on', 'are', 'as', 'with', 'his', 'they', 'i', 'at', 'be', 'this', 'have', 'from', 'or', 'one', 'had', 'by', 'word', 'but', 'not', 'what', 'all', 'were', 'we', 'when', 'your', 'can', 'said', 'there', 'each', 'which', 'she', 'do', 'how', 'their', 'if', 'will', 'up', 'other', 'about', 'out', 'many', 'then', 'them', 'these', 'so', 'some', 'her', 'would', 'make', 'like', 'into', 'him', 'has', 'two', 'more', 'very', 'what', 'know', 'just', 'first', 'get', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'life', 'only', 'new', 'way', 'may', 'say', 'great', 'where', 'much', 'through', 'well', 'me', 'right', 'legal', 'court', 'law', 'contract', 'document', 'agreement', 'plaintiff', 'defendant', 'judge', 'attorney', 'lawsuit', 'claim', 'evidence', 'witness', 'trial', 'verdict', 'settlement', 'damages', 'liability', 'breach', 'terms', 'conditions', 'signature', 'date', 'article', 'section', 'clause', 'provision', 'statute', 'regulation', 'civil', 'criminal', 'administrative'];
+  
+  // French indicators
+  const frenchWords = ['le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir', 'que', 'pour', 'dans', 'ce', 'son', 'une', 'sur', 'avec', 'ne', 'se', 'pas', 'tout', 'plus', 'par', 'grand', 'en', 'une', 'être', 'et', 'en', 'avoir', 'que', 'pour', 'droit', 'loi', 'tribunal', 'juge', 'contrat', 'document', 'signature', 'date', 'article', 'code', 'civil', 'pénal', 'administratif'];
+  
+  const words = cleanText.split(/\s+/).slice(0, 100); // Check first 100 words
+  
+  let spanishScore = 0;
+  let englishScore = 0;
+  let frenchScore = 0;
+  
+  words.forEach(word => {
+    if (spanishWords.includes(word)) spanishScore++;
+    if (englishWords.includes(word)) englishScore++;
+    if (frenchWords.includes(word)) frenchScore++;
+  });
+  
+  // Determine language based on highest score
+  if (spanishScore > englishScore && spanishScore > frenchScore) {
+    return 'es';
+  } else if (frenchScore > englishScore && frenchScore > spanishScore) {
+    return 'fr';
+  } else {
+    return 'en'; // Default to English
+  }
+}
+
+// Extract real information from document text
+export function extractDocumentInfo(text: string, jurisdiction: LegalFramework): any {
+  const info: any = {
+    names: [],
+    dates: [],
+    addresses: [],
+    amounts: [],
+    laws: [],
+    articles: [],
+    duration: null,
+    obligations: [],
+    penalties: []
+  };
+  
+  // Extract names (capitalized words that appear to be names)
+  const namePattern = /([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)/g;
+  const names = text.match(namePattern) || [];
+  info.names = [...new Set(names.filter(name => 
+    name.length > 3 && 
+    !['PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA', 'SEXTA', 'SÉPTIMA', 'OCTAVA'].includes(name)
+  ))];
+  
+  // Extract dates
+  const datePattern = /(\d{1,2}\s+de\s+\w+\s+de\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2})/g;
+  info.dates = text.match(datePattern) || [];
+  
+  // Extract addresses (Colombian cities and addresses)
+  const addressPattern = /(Bogotá\s+D\.?C\.?|Medellín|Cali|Barranquilla|Cartagena|Bucaramanga|Pereira|Manizales|Calle\s+\w+\s+\d+|Carrera\s+\d+|Avenida\s+\w+)/gi;
+  info.addresses = text.match(addressPattern) || [];
+  
+  // Extract monetary amounts
+  const amountPattern = /(\$[\d,]+(?:\.\d{2})?|\d+\s*pesos)/gi;
+  info.amounts = text.match(amountPattern) || [];
+  
+  // Extract Colombian laws
+  const lawPattern = /(Ley\s+\d+\s+de\s+\d{4}|Código\s+Civil|Decreto\s+\d+)/gi;
+  info.laws = text.match(lawPattern) || [];
+  
+  // Extract articles
+  const articlePattern = /(artículo\s+\d+|Art\.\s*\d+)/gi;
+  info.articles = text.match(articlePattern) || [];
+  
+  // Extract contract duration
+  const durationPattern = /(\d+\s*(?:meses?|años?|días?))/gi;
+  const durations = text.match(durationPattern) || [];
+  if (durations.length > 0) {
+    info.duration = durations[0];
+  }
+  
+  return info;
+}
+
 export function adaptContentForJurisdiction(
   content: string, 
   framework: LegalFramework, 
-  language: string
+  language: string,
+  documentInfo?: any
 ): string {
   let adaptedContent = content;
   
@@ -232,6 +326,29 @@ export function adaptContentForJurisdiction(
   const jurisdictionNote = getJurisdictionNote(framework, language);
   if (jurisdictionNote) {
     adaptedContent += `\n\n${jurisdictionNote}`;
+  }
+  
+  // Add document-specific information if available
+  if (documentInfo) {
+    let specificInfo = '';
+    
+    if (language === 'es') {
+      if (documentInfo.laws && documentInfo.laws.length > 0) {
+        specificInfo += `\n\n**Marco Legal:** Este documento está regido por ${documentInfo.laws.join(', ')}.`;
+      }
+      if (documentInfo.articles && documentInfo.articles.length > 0) {
+        specificInfo += `\n\n**Artículos Relevantes:** ${documentInfo.articles.join(', ')}.`;
+      }
+    } else {
+      if (documentInfo.laws && documentInfo.laws.length > 0) {
+        specificInfo += `\n\n**Legal Framework:** This document is governed by ${documentInfo.laws.join(', ')}.`;
+      }
+      if (documentInfo.articles && documentInfo.articles.length > 0) {
+        specificInfo += `\n\n**Relevant Articles:** ${documentInfo.articles.join(', ')}.`;
+      }
+    }
+    
+    adaptedContent += specificInfo;
   }
   
   return adaptedContent;
@@ -259,20 +376,6 @@ function getJurisdictionNote(framework: LegalFramework, language: string): strin
       'islamic_law': 'Cette juridiction incorpore les principes de la loi islamique (Charia).',
       'hybrid': 'Cette juridiction combine des éléments de différents systèmes juridiques.',
       'international': 'Ceci suit les principes juridiques internationaux généraux.'
-    },
-    'ar': {
-      'common_law': 'تتبع هذه الولاية القضائية القانون العام، حيث تخلق القرارات القضائية سوابق قانونية.',
-      'civil_law': 'تتبع هذه الولاية القضائية القانون المدني، حيث تكون القوانين المكتوبة أساسية.',
-      'islamic_law': 'تدمج هذه الولاية القضائية مبادئ الشريعة الإسلامية.',
-      'hybrid': 'تجمع هذه الولاية القضائية عناصر من أنظمة قانونية مختلفة.',
-      'international': 'يتبع هذا المبادئ القانونية الدولية العامة.'
-    },
-    'zh': {
-      'common_law': '该司法管辖区遵循普通法，法院判决创造法律先例。',
-      'civil_law': '该司法管辖区遵循民法，成文法典是主要依据。',
-      'islamic_law': '该司法管辖区融入了伊斯兰法（伊斯兰教法）原则。',
-      'hybrid': '该司法管辖区结合了不同法律体系的要素。',
-      'international': '这遵循一般国际法律原则。'
     }
   };
   
@@ -283,10 +386,6 @@ function getJurisdictionNote(framework: LegalFramework, language: string): strin
     return `**Nota Jurisdiccional:** ${framework.country} (${framework.region || 'Nacional'}) - ${systemExplanation}`;
   } else if (language === 'fr') {
     return `**Note Juridictionnelle:** ${framework.country} (${framework.region || 'National'}) - ${systemExplanation}`;
-  } else if (language === 'ar') {
-    return `**ملاحظة قضائية:** ${framework.country} (${framework.region || 'وطني'}) - ${systemExplanation}`;
-  } else if (language === 'zh') {
-    return `**司法管辖区说明:** ${framework.country} (${framework.region || '全国'}) - ${systemExplanation}`;
   } else {
     return `**Jurisdiction Note:** ${framework.country} (${framework.region || 'National'}) - ${systemExplanation}`;
   }

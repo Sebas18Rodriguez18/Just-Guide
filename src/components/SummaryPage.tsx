@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
+import { detectJurisdiction, detectLanguage, extractDocumentInfo, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
 
 interface SummaryPageProps {
   onNavigateBack: () => void;
@@ -17,6 +18,8 @@ interface Document {
   language: string;
   extracted_text: string;
   upload_date: string;
+  jurisdiction?: LegalFramework;
+  documentInfo?: any;
 }
 
 interface SimplifiedGuide {
@@ -51,287 +54,152 @@ export default function SummaryPage({
       // Simulate fetching document data
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const mockDocument: Document = {
-        id: docId,
-        title: language === 'es' ? "Contrato de Arrendamiento" 
-          : language === 'fr' ? "Contrat de Location"
-          : language === 'de' ? "Mietvertrag"
-          : language === 'pt' ? "Contrato de Aluguel"
-          : language === 'ar' ? "عقد إيجار"
-          : language === 'zh' ? "租赁合同"
-          : language === 'hi' ? "किराया समझौता"
-          : "Rental Agreement",
-        document_type: language === 'es' ? "Contrato de Renta" 
-          : language === 'fr' ? "Contrat de Location"
-          : language === 'de' ? "Mietvertrag"
-          : language === 'pt' ? "Contrato de Aluguel"
-          : language === 'ar' ? "عقد إيجار"
-          : language === 'zh' ? "租赁协议"
-          : language === 'hi' ? "किराया समझौता"
-          : "Rental Agreement",
-        language: language,
-        extracted_text: language === 'es' ? `CONTRATO DE ARRENDAMIENTO
+      // Sample Colombian rental contract text
+      const colombianContractText = `CONTRATO DE ARRENDAMIENTO DE VIVIENDA URBANA
 
 PRIMERA: IDENTIFICACIÓN DE LAS PARTES
-Arrendador: Juan Pérez García, mayor de edad, con domicilio en Calle Principal 123, Ciudad de México.
-Arrendatario: María López Rodríguez, mayor de edad, con domicilio en Avenida Secundaria 456, Ciudad de México.
+Arrendador: Carlos Eduardo Ramírez Gómez, mayor de edad, identificado con cédula de ciudadanía No. 80.123.456 de Bogotá D.C., domiciliado en la Carrera 15 No. 93-47, Bogotá D.C.
+
+Arrendatario: Ana María Rodríguez López, mayor de edad, identificada con cédula de ciudadanía No. 52.987.654 de Medellín, domiciliada en la Calle 72 No. 10-34, Bogotá D.C.
 
 SEGUNDA: OBJETO DEL CONTRATO
-El arrendador da en arrendamiento al arrendatario el inmueble ubicado en Calle Ejemplo 789, Colonia Centro, Ciudad de México, para uso habitacional.
+El arrendador da en arriendo al arrendatario el inmueble ubicado en la Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C., destinado exclusivamente para vivienda urbana.
 
 TERCERA: PLAZO
-El presente contrato tendrá una duración de 12 meses, iniciando el 1 de enero de 2024 y terminando el 31 de diciembre de 2024.
+El presente contrato tendrá una duración de doce (12) meses, contados a partir del 1 de febrero de 2024 hasta el 31 de enero de 2025.
 
-CUARTA: RENTA
-La renta mensual será de $15,000.00 (quince mil pesos mexicanos), pagadera los primeros cinco días de cada mes.
+CUARTA: CANON DE ARRENDAMIENTO
+El canon mensual de arrendamiento será de DOS MILLONES QUINIENTOS MIL PESOS ($2.500.000) moneda corriente, pagaderos dentro de los primeros cinco (5) días de cada mes.
 
-QUINTA: DEPÓSITO
-El arrendatario entregará un depósito equivalente a dos meses de renta como garantía del cumplimiento de sus obligaciones.
+QUINTA: REAJUSTE DEL CANON
+El canon de arrendamiento se reajustará anualmente en un porcentaje igual al IPC certificado por el DANE para el año inmediatamente anterior.
 
-SEXTA: OBLIGACIONES DEL ARRENDADOR
-- Entregar el inmueble en condiciones habitables
-- Realizar reparaciones mayores
-- Respetar el uso pacífico del inmueble
+SEXTA: DEPÓSITO EN DINERO
+El arrendatario entregará al arrendador la suma de CINCO MILLONES DE PESOS ($5.000.000) como depósito en dinero, equivalente a dos (2) meses de canon.
 
-SÉPTIMA: OBLIGACIONES DEL ARRENDATARIO
-- Pagar la renta puntualmente
-- Usar el inmueble conforme a su destino
+SÉPTIMA: OBLIGACIONES DEL ARRENDADOR
+- Entregar el inmueble en condiciones de habitabilidad
+- Realizar las reparaciones locativas mayores
+- Respetar el uso pacífico del inmueble por parte del arrendatario
+- Cumplir con las disposiciones de la Ley 820 de 2003
+
+OCTAVA: OBLIGACIONES DEL ARRENDATARIO
+- Pagar puntualmente el canon de arrendamiento
+- Usar el inmueble conforme a su destinación
 - Conservar el inmueble en buen estado
-- No subarrendar sin autorización
+- No subarrendar sin autorización escrita del arrendador
+- Cumplir con las disposiciones del Código Civil Colombiano
 
-OCTAVA: TERMINACIÓN
-El contrato podrá terminarse por vencimiento del plazo o por incumplimiento de cualquiera de las partes.
+NOVENA: TERMINACIÓN
+El contrato podrá terminarse por vencimiento del plazo, mutuo acuerdo, o por las causales establecidas en el artículo 22 de la Ley 820 de 2003.
 
-Firmas:
-_________________                    _________________
-Juan Pérez García                    María López Rodríguez
-Arrendador                          Arrendatario
+En constancia de lo anterior, las partes firman en Bogotá D.C., a los quince (15) días del mes de enero de 2024.
 
-Fecha: 15 de diciembre de 2023`
-        : language === 'fr' ? `CONTRAT DE LOCATION
+_____________________________          _____________________________
+Carlos Eduardo Ramírez Gómez           Ana María Rodríguez López
+Arrendador                             Arrendatario
+C.C. 80.123.456                       C.C. 52.987.654`;
 
-PREMIÈRE: IDENTIFICATION DES PARTIES
-Bailleur: Juan Pérez García, majeur, domicilié Calle Principal 123, Mexico.
-Locataire: María López Rodríguez, majeure, domiciliée Avenida Secundaria 456, Mexico.
+      // Detect jurisdiction and language from the document
+      const detectedJurisdiction = detectJurisdiction(colombianContractText);
+      const detectedLanguage = detectLanguage(colombianContractText);
+      const documentInfo = extractDocumentInfo(colombianContractText, detectedJurisdiction);
 
-DEUXIÈME: OBJET DU CONTRAT
-Le bailleur loue au locataire le bien immobilier situé Calle Ejemplo 789, Colonia Centro, Mexico, à usage d'habitation.
-
-TROISIÈME: DURÉE
-Le présent contrat aura une durée de 12 mois, commençant le 1er janvier 2024 et se terminant le 31 décembre 2024.
-
-QUATRIÈME: LOYER
-Le loyer mensuel sera de 15 000,00 $ (quinze mille pesos mexicains), payable dans les cinq premiers jours de chaque mois.
-
-CINQUIÈME: DÉPÔT
-Le locataire versera un dépôt équivalent à deux mois de loyer comme garantie de l'exécution de ses obligations.
-
-SIXIÈME: OBLIGATIONS DU BAILLEUR
-- Livrer le bien en conditions habitables
-- Effectuer les réparations majeures
-- Respecter l'usage paisible du bien
-
-SEPTIÈME: OBLIGATIONS DU LOCATAIRE
-- Payer le loyer ponctuellement
-- Utiliser le bien conformément à sa destination
-- Conserver le bien en bon état
-- Ne pas sous-louer sans autorisation
-
-HUITIÈME: RÉSILIATION
-Le contrat pourra être résilié par expiration du délai ou par manquement de l'une des parties.
-
-Signatures:
-_________________                    _________________
-Juan Pérez García                    María López Rodríguez
-Bailleur                            Locataire
-
-Date: 15 décembre 2023`
-        : `RENTAL AGREEMENT
-
-FIRST: IDENTIFICATION OF PARTIES
-Landlord: Juan Pérez García, of legal age, residing at 123 Main Street, Mexico City.
-Tenant: María López Rodríguez, of legal age, residing at 456 Second Avenue, Mexico City.
-
-SECOND: SUBJECT OF CONTRACT
-The landlord rents to the tenant the property located at 789 Example Street, Downtown, Mexico City, for residential use.
-
-THIRD: TERM
-This contract shall have a duration of 12 months, starting January 1, 2024 and ending December 31, 2024.
-
-FOURTH: RENT
-The monthly rent shall be $15,000.00 (fifteen thousand Mexican pesos), payable within the first five days of each month.
-
-FIFTH: DEPOSIT
-The tenant shall provide a deposit equivalent to two months' rent as guarantee for compliance with obligations.
-
-SIXTH: LANDLORD OBLIGATIONS
-- Deliver the property in habitable conditions
-- Perform major repairs
-- Respect peaceful use of the property
-
-SEVENTH: TENANT OBLIGATIONS
-- Pay rent punctually
-- Use property according to its intended purpose
-- Maintain property in good condition
-- Not sublease without authorization
-
-EIGHTH: TERMINATION
-The contract may be terminated by expiration of term or breach by either party.
-
-Signatures:
-_________________                    _________________
-Juan Pérez García                    María López Rodríguez
-Landlord                           Tenant
-
-Date: December 15, 2023`,
-        upload_date: new Date().toISOString()
+      const mockDocument: Document = {
+        id: docId,
+        title: "Contrato de Arrendamiento de Vivienda Urbana",
+        document_type: "Contrato de Arrendamiento",
+        language: detectedLanguage,
+        extracted_text: colombianContractText,
+        upload_date: new Date().toISOString(),
+        jurisdiction: detectedJurisdiction,
+        documentInfo: documentInfo
       };
 
       setDocument(mockDocument);
       
       // Auto-generate simplified summary
-      await generateSimplifiedSummary(mockDocument.extracted_text);
+      await generateSimplifiedSummary(mockDocument);
       
     } catch (err) {
       setError(language === 'es' ? 'Error al cargar el documento. Por favor intenta de nuevo.'
         : language === 'fr' ? 'Échec du chargement du document. Veuillez réessayer.'
-        : language === 'de' ? 'Fehler beim Laden des Dokuments. Bitte versuchen Sie es erneut.'
-        : language === 'pt' ? 'Falha ao carregar documento. Por favor, tente novamente.'
-        : language === 'ar' ? 'فشل في تحميل الوثيقة. يرجى المحاولة مرة أخرى.'
-        : language === 'zh' ? '加载文档失败。请重试。'
-        : language === 'hi' ? 'दस्तावेज़ लोड करने में विफल। कृपया पुनः प्रयास करें।'
         : 'Failed to load document. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateSimplifiedSummary = async (extractedText: string) => {
+  const generateSimplifiedSummary = async (doc: Document) => {
     try {
       setIsSimplifying(true);
       
-      // Simulate calling legal-simplifier function with language parameter
+      // Simulate calling legal-simplifier function
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Generate content based on actual document information
+      const { names, amounts, addresses, laws, articles, duration } = doc.documentInfo || {};
+      
+      const landlordName = names && names.length > 0 ? names[0] : 'Carlos Eduardo Ramírez Gómez';
+      const tenantName = names && names.length > 1 ? names[1] : 'Ana María Rodríguez López';
+      const propertyAddress = addresses && addresses.length > 0 ? addresses[0] : 'Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C.';
+      const monthlyRent = amounts && amounts.length > 0 ? amounts[0] : '$2.500.000';
+      const contractDuration = duration || '12 meses';
+      const relevantLaws = laws && laws.length > 0 ? laws.join(', ') : 'Ley 820 de 2003';
+      const relevantArticles = articles && articles.length > 0 ? articles.join(', ') : 'artículo 22';
+
       const mockSimplifiedGuide: SimplifiedGuide = {
         id: 'guide-' + Date.now(),
-        summary: language === 'es' ? `## 1. Información de las personas
+        summary: `## 1. Información de las personas
 
-**Propietario:** Juan Pérez García vive en Calle Principal 123, Ciudad de México.
-**Inquilino:** María López Rodríguez vive en Avenida Secundaria 456, Ciudad de México.
+**Arrendador (Propietario):** ${landlordName} vive en Bogotá D.C.
+**Arrendatario (Inquilino):** ${tenantName} vive en Bogotá D.C.
 
 ## 2. Qué se acuerda
 
-Juan le renta a María una casa ubicada en Calle Ejemplo 789, Colonia Centro, Ciudad de México. Esta casa es solo para vivir, no para negocio.
+${landlordName} le arrienda a ${tenantName} un apartamento ubicado en ${propertyAddress}. Este inmueble es exclusivamente para vivienda.
 
 ## 3. Tiempo del acuerdo
 
-El contrato dura 12 meses completos. Empieza el 1 de enero de 2024 y termina el 31 de diciembre de 2024.
+El contrato dura ${contractDuration} completos. Empieza el 1 de febrero de 2024 y termina el 31 de enero de 2025.
 
 ## 4. Dinero y pagos
 
-María debe pagar $15,000 pesos cada mes. Tiene que pagar en los primeros 5 días de cada mes.
+${tenantName} debe pagar ${monthlyRent} pesos cada mes. Tiene que pagar en los primeros 5 días de cada mes.
 
-## 5. Garantías
+## 5. Reajuste del canon
 
-María debe dar $30,000 pesos (equivalente a 2 meses de renta) como garantía. Este dinero se devuelve al final si no hay daños.
+El valor del arriendo se ajusta cada año según el IPC (Índice de Precios al Consumidor) que certifica el DANE.
 
-## 6. Obligaciones del propietario (Juan)
+## 6. Depósito de garantía
 
-- Entregar la casa en buenas condiciones para vivir
-- Arreglar problemas grandes de la casa
-- No molestar a María mientras vive ahí
+${tenantName} debe dar $5.000.000 pesos (equivalente a 2 meses de arriendo) como depósito de garantía. Este dinero se devuelve al final si no hay daños.
 
-## 7. Obligaciones del inquilino (María)
+## 7. Obligaciones del arrendador (${landlordName})
 
-- Pagar la renta a tiempo cada mes
-- Usar la casa solo para vivir
-- Cuidar bien la casa
-- No rentar la casa a otras personas sin permiso
+- Entregar el apartamento en buenas condiciones para vivir
+- Hacer reparaciones grandes cuando sea necesario
+- No molestar a ${tenantName} mientras vive ahí
+- Cumplir con la ${relevantLaws}
 
-## 8. Cómo termina el acuerdo
+## 8. Obligaciones del arrendatario (${tenantName})
+
+- Pagar el arriendo a tiempo cada mes
+- Usar el apartamento solo para vivir
+- Cuidar bien el apartamento
+- No arrendar a otras personas sin permiso escrito
+- Cumplir con el Código Civil Colombiano
+
+## 9. Cómo termina el acuerdo
 
 El contrato termina cuando:
-- Se acaba el tiempo (31 de diciembre de 2024)
-- Una de las dos personas no cumple lo acordado`
-        : language === 'fr' ? `## 1. Informations des personnes
+- Se acaba el tiempo (31 de enero de 2025)
+- Las dos personas están de acuerdo en terminarlo
+- Se cumple alguna de las causales del ${relevantArticles} de la ${relevantLaws}
 
-**Propriétaire:** Juan Pérez García vit à Calle Principal 123, Mexico.
-**Locataire:** María López Rodríguez vit à Avenida Secundaria 456, Mexico.
+**Marco Legal:** Este contrato está regido por la ${relevantLaws} y el Código Civil Colombiano.
 
-## 2. Ce qui est convenu
-
-Juan loue à María une maison située à Calle Ejemplo 789, Colonia Centro, Mexico. Cette maison est uniquement pour habiter, pas pour les affaires.
-
-## 3. Durée de l'accord
-
-Le contrat dure 12 mois complets. Il commence le 1er janvier 2024 et se termine le 31 décembre 2024.
-
-## 4. Argent et paiements
-
-María doit payer 15 000 pesos chaque mois. Elle doit payer dans les 5 premiers jours de chaque mois.
-
-## 5. Garanties
-
-María doit donner 30 000 pesos (équivalent à 2 mois de loyer) comme garantie. Cet argent est rendu à la fin s'il n'y a pas de dommages.
-
-## 6. Obligations du propriétaire (Juan)
-
-- Livrer la maison en bonnes conditions pour vivre
-- Réparer les gros problèmes de la maison
-- Ne pas déranger María pendant qu'elle y vit
-
-## 7. Obligations du locataire (María)
-
-- Payer le loyer à temps chaque mois
-- Utiliser la maison uniquement pour vivre
-- Bien prendre soin de la maison
-- Ne pas louer la maison à d'autres personnes sans permission
-
-## 8. Comment se termine l'accord
-
-Le contrat se termine quand:
-- Le temps est écoulé (31 décembre 2024)
-- Une des deux personnes ne respecte pas ce qui est convenu`
-        : `## 1. Personal Information
-
-**Landlord:** Juan Pérez García lives at Calle Principal 123, Mexico City.
-**Tenant:** María López Rodríguez lives at Avenida Secundaria 456, Mexico City.
-
-## 2. What is agreed
-
-Juan rents to María a house located at Calle Ejemplo 789, Colonia Centro, Mexico City. This house is only for living, not for business.
-
-## 3. Agreement duration
-
-The contract lasts 12 complete months. It starts January 1, 2024 and ends December 31, 2024.
-
-## 4. Money and payments
-
-María must pay $15,000 pesos each month. She has to pay within the first 5 days of each month.
-
-## 5. Guarantees
-
-María must give $30,000 pesos (equivalent to 2 months rent) as guarantee. This money is returned at the end if there are no damages.
-
-## 6. Landlord obligations (Juan)
-
-- Deliver the house in good conditions for living
-- Fix major problems with the house
-- Not disturb María while she lives there
-
-## 7. Tenant obligations (María)
-
-- Pay rent on time each month
-- Use the house only for living
-- Take good care of the house
-- Not rent the house to other people without permission
-
-## 8. How the agreement ends
-
-The contract ends when:
-- The time is up (December 31, 2024)
-- One of the two people doesn't comply with what was agreed`,
+**Nota Jurisdiccional:** Colombia (Nacional) - Esta jurisdicción sigue el derecho civil, donde los códigos escritos son primarios.`,
         reading_level: 'B1'
       };
 
@@ -339,12 +207,6 @@ The contract ends when:
       
     } catch (err) {
       setError(language === 'es' ? 'Error al generar el resumen simplificado. Por favor intenta de nuevo.'
-        : language === 'fr' ? 'Échec de la génération du résumé simplifié. Veuillez réessayer.'
-        : language === 'de' ? 'Fehler beim Erstellen der vereinfachten Zusammenfassung. Bitte versuchen Sie es erneut.'
-        : language === 'pt' ? 'Falha ao gerar resumo simplificado. Por favor, tente novamente.'
-        : language === 'ar' ? 'فشل في إنشاء الملخص المبسط. يرجى المحاولة مرة أخرى.'
-        : language === 'zh' ? '生成简化摘要失败。请重试。'
-        : language === 'hi' ? 'सरलीकृत सारांश बनाने में विफल। कृपया पुनः प्रयास करें।'
         : 'Failed to generate simplified summary. Please try again.');
     } finally {
       setIsSimplifying(false);
@@ -361,24 +223,10 @@ The contract ends when:
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
           <Loader2 className="w-12 h-12 text-just-moss animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-            {language === 'es' ? 'Cargando Documento'
-              : language === 'fr' ? 'Chargement du Document'
-              : language === 'de' ? 'Dokument Laden'
-              : language === 'pt' ? 'Carregando Documento'
-              : language === 'ar' ? 'تحميل الوثيقة'
-              : language === 'zh' ? '加载文档'
-              : language === 'hi' ? 'दस्तावेज़ लोड कर रहे हैं'
-              : 'Loading Document'
-            }
+            {language === 'es' ? 'Cargando Documento' : 'Loading Document'}
           </h2>
           <p className="text-just-gray dark:text-gray-400">
             {language === 'es' ? 'Por favor espera mientras preparamos el resumen de tu documento...'
-              : language === 'fr' ? 'Veuillez patienter pendant que nous préparons le résumé de votre document...'
-              : language === 'de' ? 'Bitte warten Sie, während wir die Zusammenfassung Ihres Dokuments vorbereiten...'
-              : language === 'pt' ? 'Por favor, aguarde enquanto preparamos o resumo do seu documento...'
-              : language === 'ar' ? 'يرجى الانتظار بينما نحضر ملخص وثيقتك...'
-              : language === 'zh' ? '请稍候，我们正在准备您的文档摘要...'
-              : language === 'hi' ? 'कृपया प्रतीक्षा करें जबकि हम आपके दस्तावेज़ का सारांश तैयार करते हैं...'
               : 'Please wait while we prepare your document summary...'
             }
           </p>
@@ -425,9 +273,17 @@ The contract ends when:
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{document?.title}</h1>
-                <p className="text-just-gray dark:text-gray-400">
-                  {document?.document_type} • {language === 'es' ? 'Subido' : language === 'fr' ? 'Téléchargé' : language === 'de' ? 'Hochgeladen' : language === 'pt' ? 'Enviado' : language === 'ar' ? 'تم التحميل' : language === 'zh' ? '已上传' : language === 'hi' ? 'अपलोड किया गया' : 'Uploaded'} {new Date(document?.upload_date || '').toLocaleDateString()}
-                </p>
+                <div className="flex items-center space-x-4 text-just-gray dark:text-gray-400">
+                  <span>{document?.document_type}</span>
+                  <span>•</span>
+                  <span>{language === 'es' ? 'Subido' : 'Uploaded'} {new Date(document?.upload_date || '').toLocaleDateString()}</span>
+                  {document?.jurisdiction && (
+                    <>
+                      <span>•</span>
+                      <span className="text-just-moss">{document.jurisdiction.country} ({document.jurisdiction.region})</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -455,12 +311,6 @@ The contract ends when:
               </h2>
               <p className="text-just-gray dark:text-gray-400 text-sm mt-1">
                 {language === 'es' ? 'Texto extraído de tu documento subido'
-                  : language === 'fr' ? 'Texte extrait de votre document téléchargé'
-                  : language === 'de' ? 'Aus Ihrem hochgeladenen Dokument extrahierter Text'
-                  : language === 'pt' ? 'Texto extraído do seu documento enviado'
-                  : language === 'ar' ? 'النص المستخرج من وثيقتك المحملة'
-                  : language === 'zh' ? '从您上传的文档中提取的文本'
-                  : language === 'hi' ? 'आपके अपलोड किए गए दस्तावेज़ से निकाला गया टेक्स्ट'
                   : 'Extracted text from your uploaded document'
                 }
               </p>
@@ -483,12 +333,6 @@ The contract ends when:
               </h2>
               <p className="text-just-gray dark:text-gray-400 text-sm mt-1">
                 {language === 'es' ? 'Explicación en español claro a nivel B1'
-                  : language === 'fr' ? 'Explication en français clair au niveau B1'
-                  : language === 'de' ? 'Erklärung in klarem Deutsch auf B1-Niveau'
-                  : language === 'pt' ? 'Explicação em português claro no nível B1'
-                  : language === 'ar' ? 'شرح بالعربية الواضحة في المستوى B1'
-                  : language === 'zh' ? 'B1级别的清晰中文解释'
-                  : language === 'hi' ? 'B1 स्तर पर स्पष्ट हिंदी में व्याख्या'
                   : 'Plain language explanation at B1 reading level'
                 }
               </p>
@@ -499,12 +343,6 @@ The contract ends when:
                   <Loader2 className="w-8 h-8 text-just-moss animate-spin mx-auto mb-4" />
                   <p className="text-just-gray dark:text-gray-400">
                     {language === 'es' ? 'Generando resumen simplificado...'
-                      : language === 'fr' ? 'Génération du résumé simplifié...'
-                      : language === 'de' ? 'Erstelle vereinfachte Zusammenfassung...'
-                      : language === 'pt' ? 'Gerando resumo simplificado...'
-                      : language === 'ar' ? 'إنشاء ملخص مبسط...'
-                      : language === 'zh' ? '生成简化摘要...'
-                      : language === 'hi' ? 'सरलीकृत सारांश बना रहे हैं...'
                       : 'Generating simplified summary...'
                     }
                   </p>
@@ -529,12 +367,6 @@ The contract ends when:
                   <AlertCircle className="w-8 h-8 text-just-gray dark:text-gray-400 mx-auto mb-4" />
                   <p className="text-just-gray dark:text-gray-400">
                     {language === 'es' ? 'No hay resumen simplificado disponible'
-                      : language === 'fr' ? 'Aucun résumé simplifié disponible'
-                      : language === 'de' ? 'Keine vereinfachte Zusammenfassung verfügbar'
-                      : language === 'pt' ? 'Nenhum resumo simplificado disponível'
-                      : language === 'ar' ? 'لا يوجد ملخص مبسط متاح'
-                      : language === 'zh' ? '没有可用的简化摘要'
-                      : language === 'hi' ? 'कोई सरलीकृत सारांश उपलब्ध नहीं'
                       : 'No simplified summary available'
                     }
                   </p>
@@ -552,14 +384,8 @@ The contract ends when:
               <BookOpen className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-4">
-              {language === 'es' ? 'Obtén una guía detallada paso a paso que te guíe a través de cada sección de tu documento.'
-                : language === 'fr' ? 'Obtenez un guide détaillé étape par étape qui vous guide à travers chaque section de votre document.'
-                : language === 'de' ? 'Erhalten Sie eine detaillierte Schritt-für-Schritt-Anleitung, die Sie durch jeden Abschnitt Ihres Dokuments führt.'
-                : language === 'pt' ? 'Obtenha um guia detalhado passo a passo que o orienta através de cada seção do seu documento.'
-                : language === 'ar' ? 'احصل على دليل مفصل خطوة بخطوة يرشدك عبر كل قسم من وثيقتك.'
-                : language === 'zh' ? '获取详细的逐步指南，引导您完成文档的每个部分。'
-                : language === 'hi' ? 'एक विस्तृत चरणबद्ध गाइड प्राप्त करें जो आपके दस्तावेज़ के प्रत्येक अनुभाग के माध्यम से आपका मार्गदर्शन करती है।'
-                : 'Get a detailed step-by-step guide that walks you through each section of your document.'
+              {language === 'es' ? 'Obtén una guía detallada paso a paso que te guíe a través de cada sección de tu contrato de arrendamiento colombiano.'
+                : 'Get a detailed step-by-step guide that walks you through each section of your Colombian rental contract.'
               }
             </p>
             <button 
@@ -576,19 +402,13 @@ The contract ends when:
               <Sparkles className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-4">
-              {language === 'es' ? 'Nuestra IA ha traducido el lenguaje legal complejo en español claro que puedes entender.'
-                : language === 'fr' ? 'Notre IA a traduit le langage juridique complexe en français clair que vous pouvez comprendre.'
-                : language === 'de' ? 'Unsere KI hat komplexe Rechtssprache in klares Deutsch übersetzt, das Sie verstehen können.'
-                : language === 'pt' ? 'Nossa IA traduziu linguagem jurídica complexa em português claro que você pode entender.'
-                : language === 'ar' ? 'لقد ترجم الذكاء الاصطناعي لدينا اللغة القانونية المعقدة إلى عربية واضحة يمكنك فهمها.'
-                : language === 'zh' ? '我们的AI已将复杂的法律语言翻译成您可以理解的清晰中文。'
-                : language === 'hi' ? 'हमारे AI ने जटिल कानूनी भाषा को स्पष्ट हिंदी में अनुवाद किया है जिसे आप समझ सकते हैं।'
-                : 'Our AI has translated complex legal language into plain language you can understand.'
+              {language === 'es' ? 'Nuestra IA ha traducido el lenguaje legal complejo en español claro basado en la legislación colombiana.'
+                : 'Our AI has translated complex legal language into plain language based on Colombian legislation.'
               }
             </p>
             <div className="bg-just-white/20 px-3 py-2 rounded-lg">
               <span className="text-sm font-medium">
-                {language === 'es' ? 'Nivel de Lectura: ' : language === 'fr' ? 'Niveau de Lecture: ' : language === 'de' ? 'Leseniveau: ' : language === 'pt' ? 'Nível de Leitura: ' : language === 'ar' ? 'مستوى القراءة: ' : language === 'zh' ? '阅读水平: ' : language === 'hi' ? 'पठन स्तर: ' : 'Reading Level: '}{simplifiedGuide?.reading_level || 'B1'}
+                {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{simplifiedGuide?.reading_level || 'B1'}
               </span>
             </div>
           </div>

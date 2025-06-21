@@ -32,7 +32,7 @@ export const exportGuideToPDF = (
   const maxWidth = pageWidth - (margin * 2);
   let yPosition = margin;
 
-  // Color scheme
+  // JustGuide color scheme
   type RGB = [number, number, number];
 
   const colors: { [key: string]: RGB } = {
@@ -46,7 +46,6 @@ export const exportGuideToPDF = (
 
   // Helper function to add text with word wrapping
   const addText = (text: string, fontSize: number = 12, isBold: boolean = false, color: number[] = colors.text) => {
-    // Normalize text to prevent encoding issues
     const cleanText = normalizeText(text);
     
     pdf.setFontSize(fontSize);
@@ -88,11 +87,11 @@ export const exportGuideToPDF = (
     yPosition += 25;
   };
 
-  // Header with logo and branding
+  // Professional header with JustGuide branding
   pdf.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
   pdf.rect(0, 0, pageWidth, 50, 'F');
   
-  // Logo placeholder
+  // JustGuide logo (stylized)
   pdf.setFillColor(colors.white[0], colors.white[1], colors.white[2]);
   pdf.circle(margin + 15, 25, 12, 'F');
   pdf.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
@@ -113,19 +112,19 @@ export const exportGuideToPDF = (
   yPosition = 70;
 
   // Document metadata section
-  addSectionHeader(`📄 ${normalizeText(documentTitle)}`, colors.primary);
+  addSectionHeader(`${normalizeText(documentTitle)}`, colors.primary);
   
-  const currentDate = new Date().toLocaleDateString();
+  const currentDate = new Date().toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US');
   const metadata = [
-    `${t.createdOn}: ${currentDate}`,
+    `${getLocalizedLabel('createdOn', language)}: ${currentDate}`,
     `${getLocalizedLabel('user', language)}: ${normalizeText(userName)}`,
-    `${getLocalizedLabel('language', language)}: ${language.toUpperCase()}`,
+    `${getLocalizedLabel('language', language)}: ${getLanguageName(language)}`,
     `${getLocalizedLabel('totalSteps', language)}: ${steps.length}`
   ];
 
   // Add jurisdiction info if available
   if (jurisdiction) {
-    metadata.push(`${getLocalizedLabel('jurisdiction', language)}: ${normalizeText(jurisdiction.country)} (${normalizeText(jurisdiction.region || 'National')})`);
+    metadata.push(`${getLocalizedLabel('jurisdiction', language)}: ${normalizeText(jurisdiction.country)} (${normalizeText(jurisdiction.region || 'Nacional')})`);
     metadata.push(`${getLocalizedLabel('legalSystem', language)}: ${getLocalizedLabel(jurisdiction.legal_system_type, language)}`);
   }
 
@@ -136,32 +135,34 @@ export const exportGuideToPDF = (
   yPosition += 10;
 
   // Introduction
-  const intro = getLocalizedIntroduction(language);
+  const intro = getLocalizedIntroduction(language, jurisdiction);
   addText(intro, 12, false, colors.text);
   yPosition += 15;
 
   // Steps
   steps.forEach((step, index) => {
     // Step header with number and title
-    const stepTitle = `${t.step} ${index + 1}: ${step.title}`;
+    const stepTitle = `${getLocalizedLabel('step', language)} ${index + 1}: ${step.title}`;
     addSectionHeader(stepTitle, colors.secondary);
 
-    // Step content
+    // Step content - clean and format properly
     const cleanContent = normalizeText(step.content)
       .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
       .replace(/## /g, '') // Remove heading markdown
       .replace(/\n\n/g, '\n') // Normalize line breaks
-      .replace(/^#+ /gm, ''); // Remove any remaining markdown headers
+      .replace(/^#+ /gm, '') // Remove any remaining markdown headers
+      .replace(/\*\*Marco Legal:\*\*/g, 'Marco Legal:') // Clean legal framework headers
+      .replace(/\*\*Nota Jurisdiccional:\*\*/g, 'Nota Jurisdiccional:'); // Clean jurisdiction notes
 
     addText(cleanContent, 11, false, colors.text);
     yPosition += 8;
 
-    // Completion checkbox
-    const checkboxText = step.completed 
-      ? `✅ ${t.completed}`
+    // Completion status
+    const statusText = step.completed 
+      ? `✓ ${getLocalizedLabel('completed', language)}`
       : `☐ ${getLocalizedLabel('pending', language)}`;
     
-    addText(checkboxText, 10, true, step.completed ? [34, 197, 94] : colors.text);
+    addText(statusText, 10, true, step.completed ? [34, 197, 94] : colors.text);
     yPosition += 5;
 
     // Tips section
@@ -175,7 +176,7 @@ export const exportGuideToPDF = (
       pdf.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
       pdf.rect(margin - 5, yPosition - 5, maxWidth + 10, 15, 'F');
       
-      addText(`💡 ${t.tips}:`, 12, true, colors.primary);
+      addText(`💡 ${getLocalizedLabel('tips', language)}:`, 12, true, colors.primary);
       yPosition += 5;
       
       step.tips.forEach(tip => {
@@ -188,6 +189,13 @@ export const exportGuideToPDF = (
     // Add space between steps
     yPosition += 15;
   });
+
+  // Add jurisdiction disclaimer if available
+  if (jurisdiction && jurisdiction.notes) {
+    yPosition += 10;
+    addSectionHeader(getLocalizedLabel('legalDisclaimer', language), colors.accent);
+    addText(normalizeText(jurisdiction.notes), 10, false, colors.text);
+  }
 
   // Footer on all pages
   const totalPages = pdf.getNumberOfPages();
@@ -203,7 +211,7 @@ export const exportGuideToPDF = (
     pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
     
     const footerLeft = normalizeText(`${t.generatedBy} • ${currentDate}`);
-    const footerCenter = normalizeText(`${t.pageOf} ${i} ${getLocalizedLabel('of', language)} ${totalPages}`);
+    const footerCenter = normalizeText(`${getLocalizedLabel('page', language)} ${i} ${getLocalizedLabel('of', language)} ${totalPages}`);
     const footerRight = normalizeText(t.forMoreInfo);
     
     pdf.text(footerLeft, margin, pageHeight - 10);
@@ -225,7 +233,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'Jurisdiction',
       legalSystem: 'Legal System',
       pending: 'Pending',
+      completed: 'Completed',
       of: 'of',
+      page: 'Page',
+      step: 'Step',
+      tips: 'Tips',
+      createdOn: 'Created on',
+      legalDisclaimer: 'Legal Disclaimer',
       common_law: 'Common Law',
       civil_law: 'Civil Law',
       islamic_law: 'Islamic Law',
@@ -239,7 +253,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'Jurisdicción',
       legalSystem: 'Sistema Legal',
       pending: 'Pendiente',
+      completed: 'Completado',
       of: 'de',
+      page: 'Página',
+      step: 'Paso',
+      tips: 'Consejos',
+      createdOn: 'Creado el',
+      legalDisclaimer: 'Aviso Legal',
       common_law: 'Derecho Anglosajón',
       civil_law: 'Derecho Civil',
       islamic_law: 'Derecho Islámico',
@@ -253,7 +273,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'Juridiction',
       legalSystem: 'Système Juridique',
       pending: 'En Attente',
+      completed: 'Terminé',
       of: 'de',
+      page: 'Page',
+      step: 'Étape',
+      tips: 'Conseils',
+      createdOn: 'Créé le',
+      legalDisclaimer: 'Avis Juridique',
       common_law: 'Common Law',
       civil_law: 'Droit Civil',
       islamic_law: 'Droit Islamique',
@@ -267,7 +293,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'Jurisdição',
       legalSystem: 'Sistema Legal',
       pending: 'Pendente',
+      completed: 'Concluído',
       of: 'de',
+      page: 'Página',
+      step: 'Passo',
+      tips: 'Dicas',
+      createdOn: 'Criado em',
+      legalDisclaimer: 'Aviso Legal',
       common_law: 'Common Law',
       civil_law: 'Direito Civil',
       islamic_law: 'Direito Islâmico',
@@ -281,7 +313,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'Gerichtsbarkeit',
       legalSystem: 'Rechtssystem',
       pending: 'Ausstehend',
+      completed: 'Abgeschlossen',
       of: 'von',
+      page: 'Seite',
+      step: 'Schritt',
+      tips: 'Tipps',
+      createdOn: 'Erstellt am',
+      legalDisclaimer: 'Rechtlicher Hinweis',
       common_law: 'Common Law',
       civil_law: 'Zivilrecht',
       islamic_law: 'Islamisches Recht',
@@ -295,7 +333,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'الولاية القضائية',
       legalSystem: 'النظام القانوني',
       pending: 'معلق',
+      completed: 'مكتمل',
       of: 'من',
+      page: 'صفحة',
+      step: 'خطوة',
+      tips: 'نصائح',
+      createdOn: 'تم إنشاؤه في',
+      legalDisclaimer: 'إخلاء مسؤولية قانونية',
       common_law: 'القانون العام',
       civil_law: 'القانون المدني',
       islamic_law: 'الشريعة الإسلامية',
@@ -309,7 +353,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: '司法管辖区',
       legalSystem: '法律体系',
       pending: '待处理',
+      completed: '已完成',
       of: '共',
+      page: '页',
+      step: '步骤',
+      tips: '提示',
+      createdOn: '创建于',
+      legalDisclaimer: '法律免责声明',
       common_law: '普通法',
       civil_law: '民法',
       islamic_law: '伊斯兰法',
@@ -323,7 +373,13 @@ function getLocalizedLabel(key: string, language: Language): string {
       jurisdiction: 'न्यायाधिकार क्षेत्र',
       legalSystem: 'कानूनी प्रणाली',
       pending: 'लंबित',
+      completed: 'पूर्ण',
       of: 'का',
+      page: 'पृष्ठ',
+      step: 'चरण',
+      tips: 'सुझाव',
+      createdOn: 'बनाया गया',
+      legalDisclaimer: 'कानूनी अस्वीकरण',
       common_law: 'सामान्य कानून',
       civil_law: 'नागरिक कानून',
       islamic_law: 'इस्लामी कानून',
@@ -335,19 +391,42 @@ function getLocalizedLabel(key: string, language: Language): string {
   return labels[language]?.[key] || labels['en'][key] || key;
 }
 
-function getLocalizedIntroduction(language: Language): string {
+function getLanguageName(language: Language): string {
+  const names: Record<Language, string> = {
+    en: 'English',
+    es: 'Español',
+    fr: 'Français',
+    pt: 'Português',
+    de: 'Deutsch',
+    ar: 'العربية',
+    zh: '中文',
+    hi: 'हिन्दी'
+  };
+  return names[language] || 'English';
+}
+
+function getLocalizedIntroduction(language: Language, jurisdiction?: JurisdictionInfo): string {
   const introductions: Record<Language, string> = {
-    en: 'This guide will help you understand your legal document step by step. Each section includes clear explanations and helpful tips to complete the process correctly.',
-    es: 'Esta guía te ayudará a entender tu documento legal paso a paso. Cada sección incluye explicaciones claras y consejos útiles para completar el proceso correctamente.',
-    fr: 'Ce guide vous aidera à comprendre votre document juridique étape par étape. Chaque section comprend des explications claires et des conseils utiles pour compléter le processus correctement.',
-    pt: 'Este guia o ajudará a entender seu documento legal passo a passo. Cada seção inclui explicações claras e dicas úteis para completar o processo corretamente.',
-    de: 'Diese Anleitung hilft Ihnen dabei, Ihr Rechtsdokument Schritt für Schritt zu verstehen. Jeder Abschnitt enthält klare Erklärungen und hilfreiche Tipps zur ordnungsgemäßen Durchführung des Prozesses.',
-    ar: 'سيساعدك هذا الدليل على فهم وثيقتك القانونية خطوة بخطوة. يتضمن كل قسم تفسيرات واضحة ونصائح مفيدة لإكمال العملية بشكل صحيح.',
-    zh: '本指南将帮助您逐步理解您的法律文档。每个部分都包含清晰的解释和有用的提示，以正确完成流程。',
-    hi: 'यह गाइड आपको अपने कानूनी दस्तावेज़ को चरणबद्ध तरीके से समझने में मदद करेगी। प्रत्येक अनुभाग में स्पष्ट स्पष्टीकरण और प्रक्रिया को सही तरीके से पूरा करने के लिए उपयोगी सुझाव शामिल हैं।'
+    en: 'This personalized guide will help you understand your legal document step by step. Each section includes clear explanations based on your jurisdiction and helpful tips to complete the process correctly.',
+    es: 'Esta guía personalizada te ayudará a entender tu documento legal paso a paso. Cada sección incluye explicaciones claras basadas en tu jurisdicción y consejos útiles para completar el proceso correctamente.',
+    fr: 'Ce guide personnalisé vous aidera à comprendre votre document juridique étape par étape. Chaque section comprend des explications claires basées sur votre juridiction et des conseils utiles pour compléter le processus correctement.',
+    pt: 'Este guia personalizado o ajudará a entender seu documento legal passo a passo. Cada seção inclui explicações claras baseadas em sua jurisdição e dicas úteis para completar o processo corretamente.',
+    de: 'Diese personalisierte Anleitung hilft Ihnen dabei, Ihr Rechtsdokument Schritt für Schritt zu verstehen. Jeder Abschnitt enthält klare Erklärungen basierend auf Ihrer Gerichtsbarkeit und hilfreiche Tipps zur ordnungsgemäßen Durchführung des Prozesses.',
+    ar: 'سيساعدك هذا الدليل الشخصي على فهم وثيقتك القانونية خطوة بخطوة. يتضمن كل قسم تفسيرات واضحة بناءً على ولايتك القضائية ونصائح مفيدة لإكمال العملية بشكل صحيح.',
+    zh: '本个性化指南将帮助您逐步理解您的法律文档。每个部分都包含基于您的司法管辖区的清晰解释和有用的提示，以正确完成流程。',
+    hi: 'यह व्यक्तिगत गाइड आपको अपने कानूनी दस्तावेज़ को चरणबद्ध तरीके से समझने में मदद करेगी। प्रत्येक अनुभाग में आपके न्यायाधिकार क्षेत्र के आधार पर स्पष्ट स्पष्टीकरण और प्रक्रिया को सही तरीके से पूरा करने के लिए उपयोगी सुझाव शामिल हैं।'
   };
 
-  return introductions[language] || introductions['en'];
+  let intro = introductions[language] || introductions['en'];
+  
+  if (jurisdiction) {
+    const jurisdictionText = language === 'es' 
+      ? ` Este documento está regido por las leyes de ${jurisdiction.country}.`
+      : ` This document is governed by the laws of ${jurisdiction.country}.`;
+    intro += jurisdictionText;
+  }
+
+  return intro;
 }
 
 function getLocalizedFileName(documentTitle: string, language: Language): string {

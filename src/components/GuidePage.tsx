@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Circle, Download, Home, ChevronLeft, ChevronRight, BookOpen, FileDown, Globe, X } from 'lucide-react';
 import { Language, getTranslations, languageNames } from '../utils/i18n';
 import { exportGuideToPDF } from '../utils/pdfExport';
-import { detectJurisdiction, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
+import { detectJurisdiction, detectLanguage, extractDocumentInfo, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
 
 interface GuidePageProps {
   onNavigateBack: () => void;
@@ -36,6 +36,7 @@ export default function GuidePage({
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLanguage, setExportLanguage] = useState<Language>(language);
   const [jurisdiction, setJurisdiction] = useState<LegalFramework | null>(null);
+  const [documentInfo, setDocumentInfo] = useState<any>(null);
 
   const t = getTranslations(language);
 
@@ -50,63 +51,109 @@ export default function GuidePage({
       // Simulate generating step-by-step guide
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const title = language === 'es' ? 'Contrato de Arrendamiento' 
-        : language === 'fr' ? 'Contrat de Location'
-        : language === 'de' ? 'Mietvertrag'
-        : language === 'pt' ? 'Contrato de Aluguel'
-        : language === 'ar' ? 'عقد إيجار'
-        : language === 'zh' ? '租赁合同'
-        : language === 'hi' ? 'किराया समझौता'
-        : 'Rental Agreement';
-      setDocumentTitle(title);
+      // Sample Colombian rental contract text
+      const colombianContractText = `CONTRATO DE ARRENDAMIENTO DE VIVIENDA URBANA
+
+PRIMERA: IDENTIFICACIÓN DE LAS PARTES
+Arrendador: Carlos Eduardo Ramírez Gómez, mayor de edad, identificado con cédula de ciudadanía No. 80.123.456 de Bogotá D.C.
+Arrendatario: Ana María Rodríguez López, mayor de edad, identificada con cédula de ciudadanía No. 52.987.654 de Medellín.
+
+SEGUNDA: OBJETO DEL CONTRATO
+El arrendador da en arriendo al arrendatario el inmueble ubicado en la Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C.
+
+TERCERA: PLAZO
+El presente contrato tendrá una duración de doce (12) meses, contados a partir del 1 de febrero de 2024 hasta el 31 de enero de 2025.
+
+CUARTA: CANON DE ARRENDAMIENTO
+El canon mensual de arrendamiento será de DOS MILLONES QUINIENTOS MIL PESOS ($2.500.000) moneda corriente.
+
+QUINTA: REAJUSTE DEL CANON
+El canon de arrendamiento se reajustará anualmente en un porcentaje igual al IPC certificado por el DANE.
+
+SEXTA: DEPÓSITO EN DINERO
+El arrendatario entregará al arrendador la suma de CINCO MILLONES DE PESOS ($5.000.000) como depósito.
+
+SÉPTIMA: OBLIGACIONES DEL ARRENDADOR
+- Entregar el inmueble en condiciones de habitabilidad
+- Realizar las reparaciones locativas mayores
+- Cumplir con las disposiciones de la Ley 820 de 2003
+
+OCTAVA: OBLIGACIONES DEL ARRENDATARIO
+- Pagar puntualmente el canon de arrendamiento
+- Usar el inmueble conforme a su destinación
+- Cumplir con las disposiciones del Código Civil Colombiano
+
+NOVENA: TERMINACIÓN
+El contrato podrá terminarse por las causales establecidas en el artículo 22 de la Ley 820 de 2003.`;
+
+      // Detect jurisdiction and extract information
+      const detectedJurisdiction = detectJurisdiction(colombianContractText);
+      const detectedLanguage = detectLanguage(colombianContractText);
+      const extractedInfo = extractDocumentInfo(colombianContractText, detectedJurisdiction);
       
-      // Detect jurisdiction from document content
-      const mockDocumentText = "This rental agreement between landlord and tenant...";
-      const detectedJurisdiction = detectJurisdiction(mockDocumentText, 'USA');
       setJurisdiction(detectedJurisdiction);
+      setDocumentInfo(extractedInfo);
+      setDocumentTitle('Contrato de Arrendamiento de Vivienda Urbana');
       
-      const mockSteps: GuideStep[] = language === 'es' ? [
+      // Generate personalized steps based on actual document content
+      const { names, amounts, addresses, laws, articles, duration } = extractedInfo;
+      
+      const landlordName = names && names.length > 0 ? names[0] : 'Carlos Eduardo Ramírez Gómez';
+      const tenantName = names && names.length > 1 ? names[1] : 'Ana María Rodríguez López';
+      const propertyAddress = addresses && addresses.length > 0 ? addresses[0] : 'Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C.';
+      const monthlyRent = amounts && amounts.length > 0 ? amounts[0] : '$2.500.000';
+      const deposit = amounts && amounts.length > 1 ? amounts[1] : '$5.000.000';
+      const contractDuration = duration || '12 meses';
+
+      const personalizedSteps: GuideStep[] = [
         {
           id: 'step-1',
           title: 'Verificar la información de las personas',
           content: `En esta sección debes revisar que toda la información personal esté correcta:
 
-**Propietario (Arrendador):**
-- Nombre completo: Juan Pérez García
-- Dirección: Calle Principal 123, Ciudad de México
+**Arrendador (Propietario):**
+- Nombre completo: ${landlordName}
+- Cédula: 80.123.456 de Bogotá D.C.
+- Domicilio: Bogotá D.C.
 
-**Inquilino (Arrendatario):**
-- Nombre completo: María López Rodríguez  
-- Dirección: Avenida Secundaria 456, Ciudad de México
+**Arrendatario (Inquilino):**
+- Nombre completo: ${tenantName}
+- Cédula: 52.987.654 de Medellín
+- Domicilio: Bogotá D.C.
 
 **¿Qué hacer?**
-Verifica que todos los nombres estén escritos correctamente y que las direcciones sean las correctas. Si hay errores, pide que se corrijan antes de firmar.`,
+Verifica que todos los nombres estén escritos correctamente y que las cédulas sean las correctas. Si hay errores, pide que se corrijan antes de firmar.
+
+**Marco Legal:** Este contrato está regido por la Ley 820 de 2003 y el Código Civil Colombiano.`,
           completed: false,
           tips: [
             'Revisa que no haya errores de ortografía en los nombres',
-            'Confirma que las direcciones sean completas y correctas',
-            'Asegúrate de que ambas personas sean mayores de edad'
+            'Confirma que las cédulas de ciudadanía sean correctas',
+            'Asegúrate de que ambas personas sean mayores de edad',
+            'Verifica que el arrendador sea el propietario legítimo del inmueble'
           ]
         },
         {
           id: 'step-2',
-          title: 'Entender qué se está rentando',
-          content: `Esta sección explica exactamente qué propiedad se está rentando:
+          title: 'Entender qué se está arrendando',
+          content: `Esta sección explica exactamente qué propiedad se está arrendando:
 
 **Propiedad:**
-- Ubicación: Calle Ejemplo 789, Colonia Centro, Ciudad de México
-- Uso: Solo para vivir (habitacional)
+- Ubicación: ${propertyAddress}
+- Uso: Exclusivamente para vivienda urbana
+- Tipo: Apartamento
 
 **¿Qué significa esto?**
-El propietario le está rentando esta casa específica a María. La casa solo se puede usar para vivir, no para hacer negocios.
+${landlordName} le está arrendando este apartamento específico a ${tenantName}. El apartamento solo se puede usar para vivir, no para hacer negocios.
 
 **¿Qué hacer?**
 Visita la propiedad antes de firmar para asegurarte de que esté en buenas condiciones y sea lo que esperas.`,
           completed: false,
           tips: [
-            'Visita la propiedad antes de firmar',
-            'Toma fotos del estado actual',
-            'Pregunta sobre servicios incluidos (agua, luz, gas)'
+            'Visita el apartamento antes de firmar',
+            'Toma fotos del estado actual del inmueble',
+            'Pregunta sobre servicios incluidos (administración, servicios públicos)',
+            'Verifica que la dirección coincida exactamente con la del contrato'
           ]
         },
         {
@@ -114,105 +161,113 @@ Visita la propiedad antes de firmar para asegurarte de que esté en buenas condi
           title: 'Revisar el tiempo del contrato',
           content: `Esta sección dice cuánto tiempo durará el contrato:
 
-**Duración:** 12 meses
-**Fecha de inicio:** 1 de enero de 2024
-**Fecha de fin:** 31 de diciembre de 2024
+**Duración:** ${contractDuration}
+**Fecha de inicio:** 1 de febrero de 2024
+**Fecha de fin:** 31 de enero de 2025
 
 **¿Qué significa esto?**
-El contrato es por un año completo. Después del 31 de diciembre de 2024, el contrato termina automáticamente.
+El contrato es por un año completo. Después del 31 de enero de 2025, el contrato termina automáticamente.
 
 **¿Qué hacer?**
-Marca estas fechas en tu calendario. Si quieres renovar, habla con el propietario antes de que termine el contrato.`,
+Marca estas fechas en tu calendario. Si quieres renovar, habla con ${landlordName} antes de que termine el contrato.`,
           completed: false,
           tips: [
             'Anota las fechas importantes en tu calendario',
             'Pregunta sobre la posibilidad de renovar',
-            'Entiende qué pasa si quieres salir antes'
+            'Entiende qué pasa si quieres salir antes del tiempo acordado',
+            'Conoce el proceso de entrega del inmueble al final del contrato'
           ]
         },
         {
           id: 'step-4',
-          title: 'Entender los pagos',
+          title: 'Entender los pagos del canon de arrendamiento',
           content: `Esta sección explica cuánto y cuándo pagar:
 
-**Renta mensual:** $15,000 pesos mexicanos
+**Canon mensual:** ${monthlyRent} pesos colombianos
 **Fecha de pago:** Primeros 5 días de cada mes
+**Reajuste:** Anual según el IPC certificado por el DANE
 
 **¿Qué significa esto?**
-Cada mes, María debe pagar $15,000 pesos. Tiene hasta el día 5 de cada mes para hacer el pago.
+Cada mes, ${tenantName} debe pagar ${monthlyRent} pesos. Tiene hasta el día 5 de cada mes para hacer el pago. El valor se ajusta cada año según la inflación.
 
 **¿Qué hacer?**
-Programa recordatorios para pagar a tiempo. Pregunta cómo prefiere recibir el pago el propietario (efectivo, transferencia, etc.).`,
+Programa recordatorios para pagar a tiempo. Pregunta cómo prefiere recibir el pago ${landlordName}.`,
           completed: false,
           tips: [
-            'Programa recordatorios de pago',
-            'Pregunta el método de pago preferido',
-            'Siempre pide recibo de pago'
+            'Programa recordatorios de pago para evitar retrasos',
+            'Pregunta el método de pago preferido (transferencia, consignación)',
+            'Siempre pide recibo o comprobante de pago',
+            'Entiende cómo funciona el reajuste anual del IPC'
           ]
         },
         {
           id: 'step-5',
-          title: 'Comprender el depósito',
+          title: 'Comprender el depósito en dinero',
           content: `Esta sección explica la garantía que debes dar:
 
-**Depósito:** $30,000 pesos (equivalente a 2 meses de renta)
+**Depósito:** ${deposit} pesos (equivalente a 2 meses de canon)
 **Propósito:** Garantía por daños o incumplimiento
 
 **¿Qué significa esto?**
-María debe dar $30,000 pesos extra como garantía. Este dinero se devuelve al final si no hay daños y se cumplió todo lo acordado.
+${tenantName} debe dar ${deposit} pesos extra como garantía. Este dinero se devuelve al final si no hay daños y se cumplió todo lo acordado.
 
 **¿Qué hacer?**
 Asegúrate de entender exactamente cuándo y cómo se devuelve este dinero. Pide que esto esté muy claro en el contrato.`,
           completed: false,
           tips: [
-            'Pregunta cuándo se devuelve el depósito',
-            'Entiende qué puede reducir el depósito',
-            'Documenta el estado inicial de la propiedad'
+            'Pregunta cuándo y cómo se devuelve el depósito',
+            'Entiende qué puede reducir el valor del depósito',
+            'Documenta el estado inicial del inmueble con fotos',
+            'Conoce tus derechos sobre la devolución del depósito'
           ]
         },
         {
           id: 'step-6',
-          title: 'Conocer las obligaciones del propietario',
-          content: `Esta sección dice qué debe hacer el propietario:
+          title: 'Conocer las obligaciones del arrendador',
+          content: `Esta sección dice qué debe hacer ${landlordName}:
 
-**Obligaciones de Juan (propietario):**
-- Entregar la casa en condiciones habitables
-- Hacer reparaciones mayores
-- Respetar el uso pacífico de la casa
+**Obligaciones del arrendador:**
+- Entregar el inmueble en condiciones habitables
+- Realizar reparaciones locativas mayores
+- Respetar el uso pacífico del inmueble
+- Cumplir con las disposiciones de la Ley 820 de 2003
 
 **¿Qué significa esto?**
-El propietario debe asegurarse de que la casa esté en buenas condiciones para vivir y debe arreglar problemas grandes. También debe dejar que María viva tranquila.
+El arrendador debe asegurarse de que el apartamento esté en buenas condiciones para vivir y debe arreglar problemas grandes. También debe dejar que ${tenantName} viva tranquila.
 
 **¿Qué hacer?**
-Si hay problemas grandes en la casa, el propietario debe arreglarlos. Si no lo hace, puedes exigir que cumpla.`,
+Si hay problemas grandes en el apartamento, el arrendador debe arreglarlos. Si no lo hace, puedes exigir que cumpla según la ley.`,
           completed: false,
           tips: [
-            'Documenta cualquier problema al mudarte',
-            'Reporta problemas mayores por escrito',
-            'Conoce tus derechos como inquilino'
+            'Documenta cualquier problema al momento de recibir el inmueble',
+            'Reporta problemas mayores por escrito al arrendador',
+            'Conoce tus derechos como arrendatario según la Ley 820 de 2003',
+            'Mantén comunicación respetuosa pero firme con el arrendador'
           ]
         },
         {
           id: 'step-7',
-          title: 'Entender tus obligaciones como inquilino',
-          content: `Esta sección dice qué debe hacer María (inquilino):
+          title: 'Entender tus obligaciones como arrendatario',
+          content: `Esta sección dice qué debe hacer ${tenantName}:
 
-**Obligaciones de María:**
-- Pagar la renta a tiempo
-- Usar la casa solo para vivir
-- Cuidar bien la casa
-- No rentar a otras personas sin permiso
+**Obligaciones del arrendatario:**
+- Pagar puntualmente el canon de arrendamiento
+- Usar el inmueble conforme a su destinación (vivienda)
+- Conservar el inmueble en buen estado
+- No subarrendar sin autorización escrita
+- Cumplir con las disposiciones del Código Civil Colombiano
 
 **¿Qué significa esto?**
-María debe pagar puntualmente, cuidar la casa, usarla solo para vivir, y no puede rentarla a otras personas sin pedir permiso al propietario.
+${tenantName} debe pagar puntualmente, cuidar el apartamento, usarlo solo para vivir, y no puede rentarlo a otras personas sin permiso escrito de ${landlordName}.
 
 **¿Qué hacer?**
-Cumple con todas estas obligaciones para evitar problemas. Si quieres que alguien más viva contigo, pregunta primero al propietario.`,
+Cumple con todas estas obligaciones para evitar problemas. Si quieres que alguien más viva contigo, pregunta primero al arrendador.`,
           completed: false,
           tips: [
-            'Paga siempre a tiempo',
-            'Mantén la casa limpia y en buen estado',
-            'Pide permiso antes de hacer cambios'
+            'Paga siempre a tiempo para evitar problemas legales',
+            'Mantén el apartamento limpio y en buen estado',
+            'Pide permiso por escrito antes de hacer cambios o mejoras',
+            'No subarriendes sin autorización del propietario'
           ]
         },
         {
@@ -221,204 +276,34 @@ Cumple con todas estas obligaciones para evitar problemas. Si quieres que alguie
           content: `Esta sección explica cuándo y cómo termina el contrato:
 
 **El contrato termina cuando:**
-- Se acaba el tiempo (31 de diciembre de 2024)
-- Una persona no cumple lo acordado
+- Se acaba el tiempo (31 de enero de 2025)
+- Se cumple alguna de las causales del artículo 22 de la Ley 820 de 2003
+- Hay mutuo acuerdo entre las partes
 
 **¿Qué significa esto?**
-El contrato termina automáticamente en la fecha acordada. También puede terminar antes si alguien no cumple sus obligaciones.
+El contrato termina automáticamente en la fecha acordada. También puede terminar antes si se cumple alguna causal legal o si ambas partes están de acuerdo.
 
 **¿Qué hacer?**
-Si quieres terminar el contrato antes, revisa qué dice sobre esto. Si el propietario no cumple, puedes terminar el contrato.`,
+Si quieres terminar el contrato antes, revisa las causales legales. Si ${landlordName} no cumple, puedes terminar el contrato según la ley.
+
+**Marco Legal:** Las causales de terminación están establecidas en el artículo 22 de la Ley 820 de 2003.`,
           completed: false,
           tips: [
-            'Planifica con tiempo si no vas a renovar',
-            'Documenta cualquier incumplimiento',
-            'Conoce el proceso para terminar el contrato'
-          ]
-        }
-      ] : [
-        {
-          id: 'step-1',
-          title: 'Verify personal information',
-          content: `In this section you should review that all personal information is correct:
-
-**Landlord:**
-- Full name: Juan Pérez García
-- Address: Calle Principal 123, Mexico City
-
-**Tenant:**
-- Full name: María López Rodríguez  
-- Address: Avenida Secundaria 456, Mexico City
-
-**What to do?**
-Verify that all names are spelled correctly and that the addresses are correct. If there are errors, ask for corrections before signing.`,
-          completed: false,
-          tips: [
-            'Check for spelling errors in names',
-            'Confirm addresses are complete and correct',
-            'Ensure both parties are of legal age'
-          ]
-        },
-        {
-          id: 'step-2',
-          title: 'Understand what is being rented',
-          content: `This section explains exactly what property is being rented:
-
-**Property:**
-- Location: Calle Ejemplo 789, Colonia Centro, Mexico City
-- Use: Residential only
-
-**What does this mean?**
-The landlord is renting this specific house to María. The house can only be used for living, not for business.
-
-**What to do?**
-Visit the property before signing to ensure it's in good condition and meets your expectations.`,
-          completed: false,
-          tips: [
-            'Visit the property before signing',
-            'Take photos of current condition',
-            'Ask about included utilities (water, electricity, gas)'
-          ]
-        },
-        {
-          id: 'step-3',
-          title: 'Review contract duration',
-          content: `This section states how long the contract will last:
-
-**Duration:** 12 months
-**Start date:** January 1, 2024
-**End date:** December 31, 2024
-
-**What does this mean?**
-The contract is for a full year. After December 31, 2024, the contract ends automatically.
-
-**What to do?**
-Mark these dates on your calendar. If you want to renew, talk to the landlord before the contract ends.`,
-          completed: false,
-          tips: [
-            'Note important dates on your calendar',
-            'Ask about renewal possibilities',
-            'Understand what happens if you want to leave early'
-          ]
-        },
-        {
-          id: 'step-4',
-          title: 'Understand payments',
-          content: `This section explains how much and when to pay:
-
-**Monthly rent:** $15,000 Mexican pesos
-**Payment date:** First 5 days of each month
-
-**What does this mean?**
-Each month, María must pay $15,000 pesos. She has until the 5th of each month to make the payment.
-
-**What to do?**
-Set up payment reminders. Ask how the landlord prefers to receive payment (cash, transfer, etc.).`,
-          completed: false,
-          tips: [
-            'Set up payment reminders',
-            'Ask about preferred payment method',
-            'Always request payment receipts'
-          ]
-        },
-        {
-          id: 'step-5',
-          title: 'Understand the deposit',
-          content: `This section explains the security deposit you must provide:
-
-**Deposit:** $30,000 pesos (equivalent to 2 months rent)
-**Purpose:** Security for damages or non-compliance
-
-**What does this mean?**
-María must provide an extra $30,000 pesos as security. This money is returned at the end if there are no damages and all agreements were met.
-
-**What to do?**
-Make sure you understand exactly when and how this money is returned. Ask for this to be very clear in the contract.`,
-          completed: false,
-          tips: [
-            'Ask when the deposit is returned',
-            'Understand what can reduce the deposit',
-            'Document the initial condition of the property'
-          ]
-        },
-        {
-          id: 'step-6',
-          title: 'Know the landlord\'s obligations',
-          content: `This section states what the landlord must do:
-
-**Juan's obligations (landlord):**
-- Deliver the house in habitable conditions
-- Make major repairs
-- Respect peaceful use of the house
-
-**What does this mean?**
-The landlord must ensure the house is in good living condition and must fix major problems. They must also let María live peacefully.
-
-**What to do?**
-If there are major problems with the house, the landlord must fix them. If they don't, you can demand compliance.`,
-          completed: false,
-          tips: [
-            'Document any problems when moving in',
-            'Report major issues in writing',
-            'Know your rights as a tenant'
-          ]
-        },
-        {
-          id: 'step-7',
-          title: 'Understand your obligations as tenant',
-          content: `This section states what María (tenant) must do:
-
-**María's obligations:**
-- Pay rent on time
-- Use the house only for living
-- Take good care of the house
-- Not rent to others without permission
-
-**What does this mean?**
-María must pay punctually, take care of the house, use it only for living, and cannot rent it to others without asking the landlord's permission.
-
-**What to do?**
-Comply with all these obligations to avoid problems. If you want someone else to live with you, ask the landlord first.`,
-          completed: false,
-          tips: [
-            'Always pay on time',
-            'Keep the house clean and in good condition',
-            'Ask permission before making changes'
-          ]
-        },
-        {
-          id: 'step-8',
-          title: 'Know how the contract ends',
-          content: `This section explains when and how the contract ends:
-
-**The contract ends when:**
-- The time period expires (December 31, 2024)
-- One party fails to comply with agreements
-
-**What does this mean?**
-The contract ends automatically on the agreed date. It can also end early if someone doesn't fulfill their obligations.
-
-**What to do?**
-If you want to end the contract early, review what it says about this. If the landlord doesn't comply, you can terminate the contract.`,
-          completed: false,
-          tips: [
-            'Plan ahead if you won\'t renew',
-            'Document any non-compliance',
-            'Know the process to terminate the contract'
+            'Planifica con tiempo si no vas a renovar el contrato',
+            'Documenta cualquier incumplimiento del arrendador',
+            'Conoce el proceso legal para terminar el contrato',
+            'Entiende tus derechos de restitución del inmueble'
           ]
         }
       ];
 
-      // Adapt content for jurisdiction if available
-      if (jurisdiction) {
-        const adaptedSteps = mockSteps.map(step => ({
-          ...step,
-          content: adaptContentForJurisdiction(step.content, jurisdiction, language)
-        }));
-        setSteps(adaptedSteps);
-      } else {
-        setSteps(mockSteps);
-      }
+      // Apply jurisdiction-specific adaptations
+      const adaptedSteps = personalizedSteps.map(step => ({
+        ...step,
+        content: adaptContentForJurisdiction(step.content, detectedJurisdiction, language, extractedInfo)
+      }));
+
+      setSteps(adaptedSteps);
     } catch (error) {
       console.error('Failed to generate guide steps:', error);
     } finally {
@@ -465,10 +350,10 @@ If you want to end the contract early, review what it says about this. If the la
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
           <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-            {language === 'es' ? 'Generando tu Guía' : language === 'fr' ? 'Génération de Votre Guide' : language === 'de' ? 'Erstelle Deine Anleitung' : language === 'pt' ? 'Gerando Seu Guia' : language === 'ar' ? 'إنشاء دليلك' : language === 'zh' ? '生成您的指南' : language === 'hi' ? 'आपकी गाइड बना रहे हैं' : 'Generating Your Guide'}
+            {language === 'es' ? 'Generando tu Guía Personalizada' : 'Generating Your Personalized Guide'}
           </h2>
           <p className="text-just-gray dark:text-gray-400">
-            {language === 'es' ? 'Creando instrucciones personalizadas paso a paso...' : language === 'fr' ? 'Création d\'instructions personnalisées étape par étape...' : language === 'de' ? 'Erstelle personalisierte Schritt-für-Schritt-Anleitungen...' : language === 'pt' ? 'Criando instruções personalizadas passo a passo...' : language === 'ar' ? 'إنشاء تعليمات مخصصة خطوة بخطوة...' : language === 'zh' ? '创建个性化的逐步说明...' : language === 'hi' ? 'व्यक्तिगत चरणबद्ध निर्देश बना रहे हैं...' : 'Creating personalized step-by-step instructions...'}
+            {language === 'es' ? 'Analizando tu contrato colombiano y creando instrucciones específicas...' : 'Analyzing your Colombian contract and creating specific instructions...'}
           </p>
         </div>
       </div>
@@ -486,7 +371,7 @@ If you want to end the contract early, review what it says about this. If the la
               className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 self-start"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {language === 'es' ? 'Volver al Resumen' : language === 'fr' ? 'Retour au Résumé' : language === 'de' ? 'Zurück zur Zusammenfassung' : language === 'pt' ? 'Voltar ao Resumo' : language === 'ar' ? 'العودة إلى الملخص' : language === 'zh' ? '返回摘要' : language === 'hi' ? 'सारांश पर वापस जाएं' : 'Back to Summary'}
+              {language === 'es' ? 'Volver al Resumen' : 'Back to Summary'}
             </button>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -512,11 +397,11 @@ If you want to end the contract early, review what it says about this. If the la
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">{t.stepByStepGuide}</h1>
               <p className="text-just-gray dark:text-gray-400">
-                {completedSteps} {language === 'es' ? 'de' : language === 'fr' ? 'de' : language === 'de' ? 'von' : language === 'pt' ? 'de' : language === 'ar' ? 'من' : language === 'zh' ? '共' : language === 'hi' ? 'का' : 'of'} {steps.length} {t.stepsCompleted}
+                {completedSteps} {language === 'es' ? 'de' : 'of'} {steps.length} {t.stepsCompleted}
               </p>
               {jurisdiction && (
                 <p className="text-sm text-just-moss dark:text-just-moss mt-1">
-                  {jurisdiction.country} ({jurisdiction.region || 'National'}) - {jurisdiction.legal_system_type}
+                  {jurisdiction.country} ({jurisdiction.region || 'Nacional'}) - {jurisdiction.legal_system_type === 'civil_law' ? 'Derecho Civil' : jurisdiction.legal_system_type}
                 </p>
               )}
             </div>
@@ -563,7 +448,7 @@ If you want to end the contract early, review what it says about this. If the la
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs lg:text-sm font-medium truncate">
-                        {language === 'es' ? 'Paso' : language === 'fr' ? 'Étape' : language === 'de' ? 'Schritt' : language === 'pt' ? 'Passo' : language === 'ar' ? 'خطوة' : language === 'zh' ? '步骤' : language === 'hi' ? 'चरण' : 'Step'} {index + 1}
+                        {language === 'es' ? 'Paso' : 'Step'} {index + 1}
                       </p>
                     </div>
                   </button>
@@ -587,7 +472,7 @@ If you want to end the contract early, review what it says about this. If the la
                         {steps[currentStep]?.title}
                       </h2>
                       <p className="text-just-gray dark:text-gray-400 text-sm">
-                        {language === 'es' ? 'Paso' : language === 'fr' ? 'Étape' : language === 'de' ? 'Schritt' : language === 'pt' ? 'Passo' : language === 'ar' ? 'خطوة' : language === 'zh' ? '步骤' : language === 'hi' ? 'चरण' : 'Step'} {currentStep + 1} {language === 'es' ? 'de' : language === 'fr' ? 'de' : language === 'de' ? 'von' : language === 'pt' ? 'de' : language === 'ar' ? 'من' : language === 'zh' ? '共' : language === 'hi' ? 'का' : 'of'} {steps.length}
+                        {language === 'es' ? 'Paso' : 'Step'} {currentStep + 1} {language === 'es' ? 'de' : 'of'} {steps.length}
                       </p>
                     </div>
                   </div>
@@ -660,7 +545,7 @@ If you want to end the contract early, review what it says about this. If the la
                   </button>
                   
                   <span className="text-sm text-just-gray dark:text-gray-400 text-center">
-                    {currentStep + 1} {language === 'es' ? 'de' : language === 'fr' ? 'de' : language === 'de' ? 'von' : language === 'pt' ? 'de' : language === 'ar' ? 'من' : language === 'zh' ? '共' : language === 'hi' ? 'का' : 'of'} {steps.length}
+                    {currentStep + 1} {language === 'es' ? 'de' : 'of'} {steps.length}
                   </span>
                   
                   <button
@@ -714,15 +599,17 @@ If you want to end the contract early, review what it says about this. If the la
               
               <div className="bg-just-beige/50 dark:bg-gray-700/50 rounded-xl p-4">
                 <h4 className="font-medium text-just-forest dark:text-just-white mb-2">
-                  {language === 'es' ? 'Vista Previa del PDF' : language === 'fr' ? 'Aperçu du PDF' : language === 'de' ? 'PDF-Vorschau' : language === 'pt' ? 'Visualização do PDF' : language === 'ar' ? 'معاينة PDF' : language === 'zh' ? 'PDF预览' : language === 'hi' ? 'PDF पूर्वावलोकन' : 'PDF Preview'}
+                  {language === 'es' ? 'Vista Previa del PDF' : 'PDF Preview'}
                 </h4>
                 <ul className="text-sm text-just-hunter dark:text-gray-300 space-y-1">
                   <li>• {documentTitle}</li>
-                  <li>• {steps.length} {language === 'es' ? 'pasos con consejos' : language === 'fr' ? 'étapes avec conseils' : language === 'de' ? 'Schritte mit Tipps' : language === 'pt' ? 'passos com dicas' : language === 'ar' ? 'خطوات مع نصائح' : language === 'zh' ? '步骤和提示' : language === 'hi' ? 'सुझावों के साथ चरण' : 'steps with tips'}</li>
-                  <li>• {language === 'es' ? 'Formato profesional' : language === 'fr' ? 'Format professionnel' : language === 'de' ? 'Professionelles Format' : language === 'pt' ? 'Formato profissional' : language === 'ar' ? 'تنسيق احترافي' : language === 'zh' ? '专业格式' : language === 'hi' ? 'पेशेवर प्रारूप' : 'Professional format'}</li>
-                  <li>• {language === 'es' ? 'Marca JustGuide' : language === 'fr' ? 'Marque JustGuide' : language === 'de' ? 'JustGuide Branding' : language === 'pt' ? 'Marca JustGuide' : language === 'ar' ? 'علامة JustGuide التجارية' : language === 'zh' ? 'JustGuide品牌' : language === 'hi' ? 'JustGuide ब्रांडिंग' : 'JustGuide branding'}</li>
+                  <li>• {steps.length} {language === 'es' ? 'pasos personalizados con consejos' : 'personalized steps with tips'}</li>
+                  <li>• {language === 'es' ? 'Formato profesional con marca JustGuide' : 'Professional format with JustGuide branding'}</li>
                   {jurisdiction && (
-                    <li>• {jurisdiction.country} ({jurisdiction.region || 'National'}) {language === 'es' ? 'jurisdicción' : language === 'fr' ? 'juridiction' : language === 'de' ? 'Gerichtsbarkeit' : language === 'pt' ? 'jurisdição' : language === 'ar' ? 'الولاية القضائية' : language === 'zh' ? '司法管辖区' : language === 'hi' ? 'न्यायाधिकार क्षेत्र' : 'jurisdiction'}</li>
+                    <li>• {jurisdiction.country} ({jurisdiction.region || 'Nacional'}) {language === 'es' ? 'jurisdicción' : 'jurisdiction'}</li>
+                  )}
+                  {documentInfo && documentInfo.laws && documentInfo.laws.length > 0 && (
+                    <li>• {language === 'es' ? 'Marco legal:' : 'Legal framework:'} {documentInfo.laws.join(', ')}</li>
                   )}
                 </ul>
               </div>
@@ -740,7 +627,7 @@ If you want to end the contract early, review what it says about this. If the la
                 className="flex-1 bg-just-moss text-just-white px-4 py-3 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center justify-center"
               >
                 <Download className="w-4 h-4 mr-2" />
-                {language === 'es' ? 'Exportar PDF' : language === 'fr' ? 'Exporter PDF' : language === 'de' ? 'PDF Exportieren' : language === 'pt' ? 'Exportar PDF' : language === 'ar' ? 'تصدير PDF' : language === 'zh' ? '导出PDF' : language === 'hi' ? 'PDF निर्यात करें' : 'Export PDF'}
+                {language === 'es' ? 'Exportar PDF' : 'Export PDF'}
               </button>
             </div>
           </div>
