@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Circle, Download, Home, ChevronLeft, ChevronRight, BookOpen, FileDown, Globe, X } from 'lucide-react';
 import { Language, getTranslations, languageNames } from '../utils/i18n';
 import { exportGuideToPDF } from '../utils/pdfExport';
+import { detectJurisdiction, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
 
 interface GuidePageProps {
   onNavigateBack: () => void;
@@ -34,6 +35,7 @@ export default function GuidePage({
   const [documentTitle, setDocumentTitle] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLanguage, setExportLanguage] = useState<Language>(language);
+  const [jurisdiction, setJurisdiction] = useState<LegalFramework | null>(null);
 
   const t = getTranslations(language);
 
@@ -57,6 +59,11 @@ export default function GuidePage({
         : language === 'hi' ? 'किराया समझौता'
         : 'Rental Agreement';
       setDocumentTitle(title);
+      
+      // Detect jurisdiction from document content
+      const mockDocumentText = "This rental agreement between landlord and tenant...";
+      const detectedJurisdiction = detectJurisdiction(mockDocumentText, 'USA');
+      setJurisdiction(detectedJurisdiction);
       
       const mockSteps: GuideStep[] = language === 'es' ? [
         {
@@ -402,7 +409,16 @@ If you want to end the contract early, review what it says about this. If the la
         }
       ];
 
-      setSteps(mockSteps);
+      // Adapt content for jurisdiction if available
+      if (jurisdiction) {
+        const adaptedSteps = mockSteps.map(step => ({
+          ...step,
+          content: adaptContentForJurisdiction(step.content, jurisdiction, language)
+        }));
+        setSteps(adaptedSteps);
+      } else {
+        setSteps(mockSteps);
+      }
     } catch (error) {
       console.error('Failed to generate guide steps:', error);
     } finally {
@@ -432,15 +448,21 @@ If you want to end the contract early, review what it says about this. If the la
   const progressPercentage = steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
 
   const handleExportPDF = () => {
-    const exportTranslations = getTranslations(exportLanguage);
-    exportGuideToPDF(steps, documentTitle, userName, exportLanguage);
+    const jurisdictionInfo = jurisdiction ? {
+      country: jurisdiction.country,
+      region: jurisdiction.region,
+      legal_system_type: jurisdiction.legal_system_type,
+      notes: jurisdiction.legal_notes
+    } : undefined;
+
+    exportGuideToPDF(steps, documentTitle, userName, exportLanguage, jurisdictionInfo);
     setShowExportModal(false);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
           <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
             {language === 'es' ? 'Generando tu Guía' : language === 'fr' ? 'Génération de Votre Guide' : language === 'de' ? 'Erstelle Deine Anleitung' : language === 'pt' ? 'Gerando Seu Guia' : language === 'ar' ? 'إنشاء دليلك' : language === 'zh' ? '生成您的指南' : language === 'hi' ? 'आपकी गाइड बना रहे हैं' : 'Generating Your Guide'}
@@ -457,17 +479,17 @@ If you want to end the contract early, review what it says about this. If the la
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
       {/* Header */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-4 lg:space-y-0">
             <button
               onClick={onNavigateBack}
-              className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
+              className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 self-start"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               {language === 'es' ? 'Volver al Resumen' : language === 'fr' ? 'Retour au Résumé' : language === 'de' ? 'Zurück zur Zusammenfassung' : language === 'pt' ? 'Voltar ao Resumo' : language === 'ar' ? 'العودة إلى الملخص' : language === 'zh' ? '返回摘要' : language === 'hi' ? 'सारांश पर वापस जाएं' : 'Back to Summary'}
             </button>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
               <button
                 onClick={() => setShowExportModal(true)}
                 className="inline-flex items-center px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
@@ -486,17 +508,22 @@ If you want to end the contract early, review what it says about this. If the la
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{t.stepByStepGuide}</h1>
+              <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">{t.stepByStepGuide}</h1>
               <p className="text-just-gray dark:text-gray-400">
                 {completedSteps} {language === 'es' ? 'de' : language === 'fr' ? 'de' : language === 'de' ? 'von' : language === 'pt' ? 'de' : language === 'ar' ? 'من' : language === 'zh' ? '共' : language === 'hi' ? 'का' : 'of'} {steps.length} {t.stepsCompleted}
               </p>
+              {jurisdiction && (
+                <p className="text-sm text-just-moss dark:text-just-moss mt-1">
+                  {jurisdiction.country} ({jurisdiction.region || 'National'}) - {jurisdiction.legal_system_type}
+                </p>
+              )}
             </div>
             
             {/* Progress Bar */}
             <div className="flex items-center space-x-3">
-              <div className="w-32 bg-just-sand dark:bg-gray-700 rounded-full h-2">
+              <div className="w-32 lg:w-48 bg-just-sand dark:bg-gray-700 rounded-full h-2">
                 <div 
                   className="bg-just-moss h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progressPercentage}%` }}
@@ -510,32 +537,32 @@ If you want to end the contract early, review what it says about this. If the la
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
           {/* Steps Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sticky top-8">
+          <div className="xl:col-span-1">
+            <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 lg:p-6 sticky top-8">
               <h3 className="font-semibold text-just-forest dark:text-just-white mb-4">{t.allSteps}</h3>
-              <div className="space-y-3">
+              <div className="space-y-2 lg:space-y-3">
                 {steps.map((step, index) => (
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
-                    className={`w-full flex items-center p-3 rounded-xl text-left transition-colors duration-200 ${
+                    className={`w-full flex items-center p-2 lg:p-3 rounded-xl text-left transition-all duration-200 hover:scale-105 ${
                       currentStep === index
-                        ? 'bg-just-moss text-just-white'
+                        ? 'bg-just-moss text-just-white shadow-lg'
                         : 'hover:bg-just-sand dark:hover:bg-gray-700 text-just-hunter dark:text-gray-300'
                     }`}
                   >
                     <div className="mr-3">
                       {step.completed ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-4 lg:w-5 h-4 lg:h-5 text-green-500" />
                       ) : (
-                        <Circle className="w-5 h-5" />
+                        <Circle className="w-4 lg:w-5 h-4 lg:h-5" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
+                      <p className="text-xs lg:text-sm font-medium truncate">
                         {language === 'es' ? 'Paso' : language === 'fr' ? 'Étape' : language === 'de' ? 'Schritt' : language === 'pt' ? 'Passo' : language === 'ar' ? 'خطوة' : language === 'zh' ? '步骤' : language === 'hi' ? 'चरण' : 'Step'} {index + 1}
                       </p>
                     </div>
@@ -546,17 +573,17 @@ If you want to end the contract early, review what it says about this. If the la
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className="xl:col-span-3">
             <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
               {/* Step Header */}
-              <div className="p-6 border-b border-just-sand dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-4 lg:p-6 border-b border-just-sand dark:border-gray-700">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-4 lg:space-y-0">
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-just-moss rounded-xl flex items-center justify-center mr-4">
                       <span className="text-just-white font-bold">{currentStep + 1}</span>
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-just-forest dark:text-just-white">
+                      <h2 className="text-lg lg:text-xl font-semibold text-just-forest dark:text-just-white">
                         {steps[currentStep]?.title}
                       </h2>
                       <p className="text-just-gray dark:text-gray-400 text-sm">
@@ -567,7 +594,7 @@ If you want to end the contract early, review what it says about this. If the la
                   
                   <button
                     onClick={() => toggleStepCompletion(currentStep)}
-                    className={`flex items-center px-4 py-2 rounded-xl font-medium transition-colors duration-200 ${
+                    className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all duration-200 hover:scale-105 ${
                       steps[currentStep]?.completed
                         ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
                         : 'bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 hover:bg-just-moss hover:text-just-white dark:hover:bg-gray-600'
@@ -589,7 +616,7 @@ If you want to end the contract early, review what it says about this. If the la
               </div>
 
               {/* Step Content */}
-              <div className="p-6">
+              <div className="p-4 lg:p-6">
                 <div className="prose prose-sm max-w-none mb-6">
                   <div 
                     className="text-just-hunter dark:text-gray-300 leading-relaxed"
@@ -622,24 +649,24 @@ If you want to end the contract early, review what it says about this. If the la
                 )}
 
                 {/* Navigation */}
-                <div className="flex items-center justify-between pt-6 border-t border-just-sand dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-just-sand dark:border-gray-700 space-y-4 sm:space-y-0">
                   <button
                     onClick={prevStep}
                     disabled={currentStep === 0}
-                    className="flex items-center px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     {t.previous}
                   </button>
                   
-                  <span className="text-sm text-just-gray dark:text-gray-400">
+                  <span className="text-sm text-just-gray dark:text-gray-400 text-center">
                     {currentStep + 1} {language === 'es' ? 'de' : language === 'fr' ? 'de' : language === 'de' ? 'von' : language === 'pt' ? 'de' : language === 'ar' ? 'من' : language === 'zh' ? '共' : language === 'hi' ? 'का' : 'of'} {steps.length}
                   </span>
                   
                   <button
                     onClick={nextStep}
                     disabled={currentStep === steps.length - 1}
-                    className="flex items-center px-4 py-2 bg-just-moss text-just-white rounded-xl hover:bg-just-brown transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center px-4 py-2 bg-just-moss text-just-white rounded-xl hover:bg-just-brown transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t.next}
                     <ChevronRight className="w-4 h-4 ml-2" />
@@ -694,6 +721,9 @@ If you want to end the contract early, review what it says about this. If the la
                   <li>• {steps.length} {language === 'es' ? 'pasos con consejos' : language === 'fr' ? 'étapes avec conseils' : language === 'de' ? 'Schritte mit Tipps' : language === 'pt' ? 'passos com dicas' : language === 'ar' ? 'خطوات مع نصائح' : language === 'zh' ? '步骤和提示' : language === 'hi' ? 'सुझावों के साथ चरण' : 'steps with tips'}</li>
                   <li>• {language === 'es' ? 'Formato profesional' : language === 'fr' ? 'Format professionnel' : language === 'de' ? 'Professionelles Format' : language === 'pt' ? 'Formato profissional' : language === 'ar' ? 'تنسيق احترافي' : language === 'zh' ? '专业格式' : language === 'hi' ? 'पेशेवर प्रारूप' : 'Professional format'}</li>
                   <li>• {language === 'es' ? 'Marca JustGuide' : language === 'fr' ? 'Marque JustGuide' : language === 'de' ? 'JustGuide Branding' : language === 'pt' ? 'Marca JustGuide' : language === 'ar' ? 'علامة JustGuide التجارية' : language === 'zh' ? 'JustGuide品牌' : language === 'hi' ? 'JustGuide ब्रांडिंग' : 'JustGuide branding'}</li>
+                  {jurisdiction && (
+                    <li>• {jurisdiction.country} ({jurisdiction.region || 'National'}) {language === 'es' ? 'jurisdicción' : language === 'fr' ? 'juridiction' : language === 'de' ? 'Gerichtsbarkeit' : language === 'pt' ? 'jurisdição' : language === 'ar' ? 'الولاية القضائية' : language === 'zh' ? '司法管辖区' : language === 'hi' ? 'न्यायाधिकार क्षेत्र' : 'jurisdiction'}</li>
+                  )}
                 </ul>
               </div>
             </div>

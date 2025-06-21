@@ -19,7 +19,9 @@ import {
   BookOpen,
   Sparkles,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 import { Language, getTranslations, languageNames } from '../utils/i18n';
 import { Theme } from '../utils/theme';
@@ -53,6 +55,7 @@ export default function DashboardPage({
 }: DashboardPageProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const t = getTranslations(language);
 
@@ -146,21 +149,41 @@ export default function DashboardPage({
       default:
         setActiveTab(itemId);
     }
+    setSidebarOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-just-white dark:bg-gray-800 shadow-lg">
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-50 w-64 bg-just-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Logo */}
-        <div className="p-6 border-b border-just-sand dark:border-gray-700">
-          <div className="flex items-center">
-            <div className="flex items-center justify-center w-10 h-10 bg-just-forest dark:bg-just-moss rounded-xl mr-3">
-              <svg className="w-6 h-6 text-just-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+        <div className="p-4 lg:p-6 border-b border-just-sand dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex items-center justify-center w-10 h-10 bg-just-forest dark:bg-just-moss rounded-xl mr-3">
+                <svg className="w-6 h-6 text-just-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-just-forest dark:text-just-white">JustGuide</h2>
             </div>
-            <h2 className="text-xl font-bold text-just-forest dark:text-just-white">JustGuide</h2>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200"
+            >
+              <X className="w-5 h-5 text-just-hunter dark:text-gray-300" />
+            </button>
           </div>
         </div>
 
@@ -173,9 +196,9 @@ export default function DashboardPage({
                 <li key={item.id}>
                   <button
                     onClick={() => handleSidebarClick(item.id)}
-                    className={`w-full flex items-center px-4 py-3 text-left rounded-xl transition-colors duration-200 ${
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-xl transition-all duration-200 hover:scale-105 ${
                       activeTab === item.id
-                        ? 'bg-just-forest dark:bg-just-moss text-just-white'
+                        ? 'bg-just-forest dark:bg-just-moss text-just-white shadow-lg'
                         : 'text-just-hunter dark:text-gray-300 hover:bg-just-sand dark:hover:bg-gray-700'
                     }`}
                   >
@@ -190,29 +213,38 @@ export default function DashboardPage({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">
-                {t.hello}, {userName}! 👋
-              </h1>
-              <p className="text-just-hunter dark:text-gray-300">{t.readyToSimplify}</p>
+          <div className="px-4 lg:px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200 mr-4"
+              >
+                <Menu className="w-5 h-5 text-just-hunter dark:text-gray-300" />
+              </button>
+              
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">
+                  {t.hello}, {userName}! 👋
+                </h1>
+                <p className="text-sm lg:text-base text-just-hunter dark:text-gray-300">{t.readyToSimplify}</p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
               {/* Language Switcher */}
               <div className="relative">
                 <button
                   onClick={() => setShowLanguageMenu(!showLanguageMenu)}
                   className="flex items-center p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
                 >
-                  <Globe className="w-5 h-5 text-just-hunter dark:text-gray-300 mr-2" />
-                  <span className="text-sm font-medium text-just-hunter dark:text-gray-300">
+                  <Globe className="w-4 lg:w-5 h-4 lg:h-5 text-just-hunter dark:text-gray-300 mr-1 lg:mr-2" />
+                  <span className="hidden sm:block text-sm font-medium text-just-hunter dark:text-gray-300">
                     {languageNames[language]}
                   </span>
-                  <ChevronDown className="w-4 h-4 text-just-hunter dark:text-gray-300 ml-1" />
+                  <ChevronDown className="w-3 lg:w-4 h-3 lg:h-4 text-just-hunter dark:text-gray-300 ml-1" />
                 </button>
                 
                 {showLanguageMenu && (
@@ -244,26 +276,26 @@ export default function DashboardPage({
                 className="p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-5 h-5 text-just-hunter dark:text-gray-300" />
+                  <Sun className="w-4 lg:w-5 h-4 lg:h-5 text-just-hunter dark:text-gray-300" />
                 ) : (
-                  <Moon className="w-5 h-5 text-just-hunter dark:text-gray-300" />
+                  <Moon className="w-4 lg:w-5 h-4 lg:h-5 text-just-hunter dark:text-gray-300" />
                 )}
               </button>
 
               {/* User Menu */}
               <div className="relative">
                 <button className="flex items-center space-x-2 p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200">
-                  <div className="w-8 h-8 bg-just-forest dark:bg-just-moss rounded-lg flex items-center justify-center">
-                    <User className="w-4 h-4 text-just-white" />
+                  <div className="w-6 lg:w-8 h-6 lg:h-8 bg-just-forest dark:bg-just-moss rounded-lg flex items-center justify-center">
+                    <User className="w-3 lg:w-4 h-3 lg:h-4 text-just-white" />
                   </div>
-                  <span className="text-just-forest dark:text-just-white font-medium">{userName}</span>
+                  <span className="hidden sm:block text-just-forest dark:text-just-white font-medium">{userName}</span>
                 </button>
               </div>
 
               {/* Logout */}
               <button
                 onClick={onLogout}
-                className="px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
+                className="hidden lg:block px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
               >
                 {t.logout}
               </button>
@@ -272,56 +304,56 @@ export default function DashboardPage({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-fade-in">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.totalDocuments}</p>
-                      <p className="text-3xl font-bold text-just-forest dark:text-just-white">{stats.totalDocuments}</p>
+                      <p className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white">{stats.totalDocuments}</p>
                     </div>
-                    <div className="w-12 h-12 bg-just-forest/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-just-forest dark:text-just-moss" />
+                    <div className="w-10 lg:w-12 h-10 lg:h-12 bg-just-forest/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
+                      <FileText className="w-5 lg:w-6 h-5 lg:h-6 text-just-forest dark:text-just-moss" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.processedThisMonth}</p>
-                      <p className="text-3xl font-bold text-just-moss dark:text-just-moss">{stats.processedThisMonth}</p>
+                      <p className="text-2xl lg:text-3xl font-bold text-just-moss dark:text-just-moss">{stats.processedThisMonth}</p>
                     </div>
-                    <div className="w-12 h-12 bg-just-moss/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-just-moss" />
+                    <div className="w-10 lg:w-12 h-10 lg:h-12 bg-just-moss/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-5 lg:w-6 h-5 lg:h-6 text-just-moss" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.successRate}</p>
-                      <p className="text-3xl font-bold text-green-600">{stats.successRate}%</p>
+                      <p className="text-2xl lg:text-3xl font-bold text-green-600">{stats.successRate}%</p>
                     </div>
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    <div className="w-10 lg:w-12 h-10 lg:h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
+                      <CheckCircle className="w-5 lg:w-6 h-5 lg:h-6 text-green-600" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Action Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold">{t.uploadNew}</h3>
-                    <Upload className="w-8 h-8" />
+                    <h3 className="text-lg lg:text-xl font-semibold">{t.uploadNew}</h3>
+                    <Upload className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
-                  <p className="text-just-white/80 mb-4">
+                  <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es' 
                       ? 'Comienza subiendo tu documento legal y deja que nuestra IA te guíe a través de él.'
                       : language === 'fr'
@@ -347,12 +379,12 @@ export default function DashboardPage({
                   </button>
                 </div>
 
-                <div className="bg-gradient-to-br from-just-moss to-just-brown rounded-2xl p-6 text-just-white shadow-lg">
+                <div className="bg-gradient-to-br from-just-moss to-just-brown rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold">{t.aiPoweredSimplification}</h3>
-                    <Sparkles className="w-8 h-8" />
+                    <h3 className="text-lg lg:text-xl font-semibold">{t.aiPoweredSimplification}</h3>
+                    <Sparkles className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
-                  <p className="text-just-white/80 mb-4">
+                  <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es'
                       ? 'Nuestra IA convierte el lenguaje legal complejo en español claro que puedes entender.'
                       : language === 'fr'
@@ -378,9 +410,9 @@ export default function DashboardPage({
 
               {/* Recent Documents */}
               <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                <div className="p-6 border-b border-just-sand dark:border-gray-700">
+                <div className="p-4 lg:p-6 border-b border-just-sand dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-just-forest dark:text-just-white">{t.recentDocuments}</h3>
+                    <h3 className="text-lg lg:text-xl font-semibold text-just-forest dark:text-just-white">{t.recentDocuments}</h3>
                     <div className="flex items-center space-x-2">
                       <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200">
                         <Search className="w-4 h-4 text-just-hunter dark:text-gray-400" />
@@ -392,11 +424,11 @@ export default function DashboardPage({
                   </div>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-4 lg:p-6">
                   <div className="space-y-4">
                     {recentDocuments.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 border border-just-sand dark:border-gray-700 rounded-xl hover:bg-just-beige/50 dark:hover:bg-gray-700/50 transition-colors duration-200">
-                        <div className="flex items-center space-x-4">
+                      <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-just-sand dark:border-gray-700 rounded-xl hover:bg-just-beige/50 dark:hover:bg-gray-700/50 transition-all duration-200 hover:scale-105">
+                        <div className="flex items-center space-x-4 mb-3 sm:mb-0">
                           <div className="w-10 h-10 bg-just-forest/10 dark:bg-just-moss/20 rounded-lg flex items-center justify-center">
                             <FileText className="w-5 h-5 text-just-forest dark:text-just-moss" />
                           </div>
@@ -406,8 +438,8 @@ export default function DashboardPage({
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                          <div className="text-left sm:text-right">
                             <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
                               {getStatusIcon(doc.status)}
                               <span className="ml-1 capitalize">{getStatusText(doc.status)}</span>
@@ -415,7 +447,7 @@ export default function DashboardPage({
                             <p className="text-xs text-just-gray dark:text-gray-400 mt-1">{doc.date}</p>
                           </div>
                           
-                          <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200">
+                          <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 self-end sm:self-auto">
                             <MoreVertical className="w-4 h-4 text-just-hunter dark:text-gray-400" />
                           </button>
                         </div>
@@ -429,7 +461,7 @@ export default function DashboardPage({
 
           {/* Other tab content */}
           {activeTab !== 'overview' && (
-            <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center animate-fade-in">
+            <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center animate-fade-in">
               <div className="w-16 h-16 bg-just-sand dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 {activeTab === 'documents' && <FileText className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
                 {activeTab === 'simplified' && <BookOpen className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
