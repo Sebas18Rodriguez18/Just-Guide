@@ -5,7 +5,7 @@
 ---
 
 ## 📌 ¿De qué trata JustGuide?
-<picture> <img align="right" src="[https://github.com/Sebas18Rodriguez18/Sebas18Rodriguez18/blob/main/logoClass.png](https://github.com/Sebas18Rodriguez18/Just-Guide/blob/main/public/ChatGPT%20Image%2021%20jun%202025%2C%2009_36_09%20a.m..png)" width="220px"></picture>
+<picture> <img align="right" src="https://github.com/Sebas18Rodriguez18/Just-Guide/blob/main/public/ChatGPT%20Image%2021%20jun%202025%2C%2009_36_09%20a.m..png" width="220px"></picture>
 
 > 🎯 **JustGuide** es una plataforma inteligente legal desarrollada para facilitar la comprensión de documentos jurídicos complejos mediante Inteligencia Artificial.  
 >  
