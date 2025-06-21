@@ -60,7 +60,7 @@ const characterMap: Record<string, string> = {
   // Punctuation and symbols
   '–': '-', // en dash
   '—': '-', // em dash
-  ''': `'`, // left single quotation mark
+  '’': '`', // left single quotation mark
   ''': `'`, // right single quotation mark
   '"': `"`, // left double quotation mark
   '"': `"`, // right double quotation mark
