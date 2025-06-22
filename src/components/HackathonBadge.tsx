@@ -15,9 +15,9 @@ export default function HackathonBadge({ className = '' }: HackathonBadgeProps) 
         aria-label="World's Largest Hackathon Participant"
       >
         <img
-          src="https://github.com/kickiniteasy/bolt-hackathon-badge/blob/main/src/public/bolt-badge/black_circle_360x360/black_circle_360x360.png"
+          src="https://raw.githubusercontent.com/kickiniteasy/bolt-hackathon-badge/main/src/public/bolt-badge/black_circle_360x360/black_circle_360x360.png"
           alt="World's Largest Hackathon Participant"
-          className="w-16 h-16 md:w-20 md:h-20 drop-shadow-lg"
+          className="w-16 h-16 md:w-20 md:h-20 drop-shadow-lg rounded-full"
           loading="lazy"
         />
       </a>
