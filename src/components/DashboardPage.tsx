@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Language, getTranslations, languageNames } from '../utils/i18n';
 import { Theme } from '../utils/theme';
+import HackathonBadge from './HackathonBadge';
 
 interface DashboardPageProps {
   onLogout: () => void;
@@ -194,7 +195,12 @@ export default function DashboardPage({
   };
 
   return (
-    <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex relative">
+      {/* Hackathon Badge - Fixed position */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <HackathonBadge />
+      </div>
+
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 

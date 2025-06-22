@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Sparkles, Globe, Users, Award } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
+import HackathonBadge from './HackathonBadge';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -47,7 +48,12 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white dark:from-gray-900 dark:to-gray-800 flex">
+    <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white dark:from-gray-900 dark:to-gray-800 flex relative">
+      {/* Hackathon Badge - Fixed position */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <HackathonBadge />
+      </div>
+
       {/* Left Side - Branding & Impact */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-just-forest to-just-hunter p-12 text-just-white flex-col justify-between">
         <div>
