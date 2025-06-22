@@ -243,6 +243,31 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## 🏆 Hackathon Participation
+
+JustGuide is an official participant in the [World’s Largest Hackathon](https://worldslargesthackathon.devpost.com/), organized by Bolt.
+
+<p align="center">
+  <a href="https://worldslargesthackathon.devpost.com/" target="_blank">
+    <img src="https://raw.githubusercontent.com/kickiniteasy/bolt-hackathon-badge/main/src/public/bolt-badge/black_circle_360x360/black_circle_360x360.png" 
+         alt="World's Largest Hackathon Participant" 
+         width="100" 
+         style="border-radius: 9999px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); transition: transform 0.3s;"
+         onmouseover="this.style.transform='scale(1.05)'"
+         onmouseout="this.style.transform='scale(1)'"/>
+  </a>
+</p>
+
+- ✅ **Responsive:** Scales on mobile and desktop
+- ✅ **Theme compatibility:** Looks great in dark and light mode
+- ✅ **Performance:** Loads fast from GitHub raw
+- ✅ **Accessibility:** Includes alt text and semantic HTML
+
+📍 The badge is also live in the app’s bottom-right corner for visibility during demo and usage.
+
+
+---
+
 ## 🌟 Support the Mission
 
 JustGuide is committed to making legal access a human right, not a privilege. 
