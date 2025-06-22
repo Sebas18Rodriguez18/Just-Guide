@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, Loader2, ArrowLeft, Info } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, Loader2, ArrowLeft, Info, Eye } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
+import { parseDocumentWithOCR } from '../utils/ocrService';
 
 interface UploadDocumentPageProps {
   onNavigateBack: () => void;
@@ -14,6 +15,7 @@ interface UploadState {
   progress: number;
   message: string;
   error?: string;
+  ocrProgress?: number;
 }
 
 export default function UploadDocumentPage({ 
@@ -28,6 +30,7 @@ export default function UploadDocumentPage({
     message: ''
   });
   const [dragActive, setDragActive] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = getTranslations(language);
@@ -99,119 +102,6 @@ export default function UploadDocumentPage({
     });
   };
 
-  const parseDocument = async (fileUrl: string, fileType: string): Promise<{ extracted_text: string; detected_language: string }> => {
-    // Simulate calling the document-parser function with language context
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate occasional parsing failures
-        if (Math.random() < 0.1) { // 10% chance of failure
-          reject(new Error('Document unreadable'));
-          return;
-        }
-        
-        // Return content in the selected language
-        const content = language === 'es' ? `CONTRATO DE ARRENDAMIENTO
-
-## 1. Información de las personas
-Arrendador: Juan Pérez García, mayor de edad, con domicilio en Calle Principal 123.
-Arrendatario: María López Rodríguez, mayor de edad, con domicilio en Avenida Secundaria 456.
-
-## 2. Qué se acuerda
-El arrendador da en arrendamiento al arrendatario el inmueble ubicado en Calle Ejemplo 789, para uso habitacional.
-
-## 3. Tiempo del acuerdo
-El presente contrato tendrá una duración de 12 meses, iniciando el 1 de enero de 2024.
-
-## 4. Dinero y pagos
-La renta mensual será de $15,000.00 pesos mexicanos, pagadera los primeros cinco días de cada mes.
-
-## 5. Garantías
-El arrendatario entregará un depósito equivalente a dos meses de renta como garantía.
-
-## 6. Obligaciones del propietario
-- Entregar el inmueble en condiciones habitables
-- Realizar reparaciones mayores
-- Respetar el uso pacífico del inmueble
-
-## 7. Obligaciones del inquilino
-- Pagar la renta puntualmente
-- Usar el inmueble conforme a su destino
-- Conservar el inmueble en buen estado
-- No subarrendar sin autorización
-
-## 8. Cómo termina el acuerdo
-El contrato podrá terminarse por vencimiento del plazo o por incumplimiento de cualquiera de las partes.`
-        : language === 'fr' ? `CONTRAT DE LOCATION
-
-## 1. Informations des personnes
-Bailleur: Juan Pérez García, majeur, domicilié Calle Principal 123.
-Locataire: María López Rodríguez, majeure, domiciliée Avenida Secundaria 456.
-
-## 2. Ce qui est convenu
-Le bailleur loue au locataire le bien immobilier situé Calle Ejemplo 789, à usage d'habitation.
-
-## 3. Durée de l'accord
-Le présent contrat aura une durée de 12 mois, commençant le 1er janvier 2024.
-
-## 4. Argent et paiements
-Le loyer mensuel sera de 15 000,00 pesos mexicains, payable dans les cinq premiers jours de chaque mois.
-
-## 5. Garanties
-Le locataire versera un dépôt équivalent à deux mois de loyer comme garantie.
-
-## 6. Obligations du propriétaire
-- Livrer le bien en conditions habitables
-- Effectuer les réparations majeures
-- Respecter l'usage paisible du bien
-
-## 7. Obligations du locataire
-- Payer le loyer ponctuellement
-- Utiliser le bien conformément à sa destination
-- Conserver le bien en bon état
-- Ne pas sous-louer sans autorisation
-
-## 8. Comment se termine l'accord
-Le contrat pourra se terminer par expiration du délai ou par manquement de l'une des parties.`
-        : `RENTAL AGREEMENT
-
-## 1. Personal Information
-Landlord: Juan Pérez García, of legal age, residing at Calle Principal 123.
-Tenant: María López Rodríguez, of legal age, residing at Avenida Secundaria 456.
-
-## 2. What is agreed
-The landlord rents to the tenant the property located at Calle Ejemplo 789, for residential use.
-
-## 3. Agreement duration
-This contract will have a duration of 12 months, starting January 1, 2024.
-
-## 4. Money and payments
-The monthly rent will be $15,000.00 Mexican pesos, payable within the first five days of each month.
-
-## 5. Guarantees
-The tenant will provide a deposit equivalent to two months' rent as guarantee.
-
-## 6. Landlord obligations
-- Deliver the property in habitable conditions
-- Perform major repairs
-- Respect peaceful use of the property
-
-## 7. Tenant obligations
-- Pay rent punctually
-- Use the property according to its intended purpose
-- Keep the property in good condition
-- Not sublease without authorization
-
-## 8. How the agreement ends
-The contract may be terminated by expiration of the term or by breach by either party.`;
-        
-        resolve({
-          extracted_text: content,
-          detected_language: language
-        });
-      }, 2000);
-    });
-  };
-
   const updateDocumentWithParsedData = async (docId: string, extractedText: string, detectedLanguage: string): Promise<void> => {
     // Simulate updating document with parsed data
     return new Promise((resolve) => {
@@ -259,24 +149,35 @@ The contract may be terminated by expiration of the term or by breach by either 
 
       const docId = await createDocumentRecord(file, fileUrl);
 
-      // Step 3: Parse document
+      // Step 3: Parse document with real OCR
       setUploadState({
         status: 'processing',
-        progress: 75,
-        message: language === 'es' ? 'Extrayendo y analizando texto...'
-          : language === 'fr' ? 'Extraction et analyse du texte...'
-          : language === 'de' ? 'Text extrahieren und analysieren...'
-          : language === 'pt' ? 'Extraindo e analisando texto...'
-          : language === 'ar' ? 'استخراج وتحليل النص...'
-          : language === 'zh' ? '提取和分析文本...'
-          : language === 'hi' ? 'टेक्स्ट निकाल रहे हैं और विश्लेषण कर रहे हैं...'
-          : 'Extracting and analyzing text...'
+        progress: 60,
+        message: language === 'es' ? 'Extrayendo texto con IA...'
+          : language === 'fr' ? 'Extraction de texte avec IA...'
+          : language === 'de' ? 'Text mit KI extrahieren...'
+          : language === 'pt' ? 'Extraindo texto com IA...'
+          : language === 'ar' ? 'استخراج النص بالذكاء الاصطناعي...'
+          : language === 'zh' ? '使用AI提取文本...'
+          : language === 'hi' ? 'AI के साथ टेक्स्ट निकाल रहे हैं...'
+          : 'Extracting text with AI...'
       });
 
-      const fileType = file.type.includes('pdf') ? 'pdf' : 
-                      file.type.includes('word') ? 'docx' : 'image';
-      
-      const { extracted_text, detected_language } = await parseDocument(fileUrl, fileType);
+      const { extracted_text, detected_language, confidence } = await parseDocumentWithOCR(
+        file, 
+        language,
+        (ocrProgress) => {
+          setUploadState(prev => ({
+            ...prev,
+            progress: 60 + (ocrProgress * 20), // OCR takes 20% of total progress
+            ocrProgress: ocrProgress
+          }));
+        }
+      );
+
+      if (confidence < 0.5) {
+        throw new Error('Document text quality too low for reliable processing');
+      }
 
       // Step 4: Update document with parsed data
       setUploadState({
@@ -314,22 +215,16 @@ The contract may be terminated by expiration of the term or by breach by either 
       }, 1500);
 
     } catch (error) {
-      const errorMessage = error instanceof Error && error.message === 'Document unreadable' 
+      const errorMessage = error instanceof Error && error.message.includes('quality too low')
+        ? (language === 'es' ? 'La calidad del texto en el documento es demasiado baja. Por favor, intenta con una imagen más clara o un documento de mejor calidad.'
+          : language === 'fr' ? 'La qualité du texte dans le document est trop faible. Veuillez essayer avec une image plus claire ou un document de meilleure qualité.'
+          : 'Document text quality is too low. Please try with a clearer image or better quality document.')
+        : error instanceof Error && error.message === 'Document unreadable' 
         ? (language === 'es' ? 'Este documento no se pudo leer. Por favor intenta con un archivo diferente o asegúrate de que el documento contenga texto legible.'
           : language === 'fr' ? 'Ce document n\'a pas pu être lu. Veuillez essayer avec un fichier différent ou assurez-vous que le document contient du texte lisible.'
-          : language === 'de' ? 'Dieses Dokument konnte nicht gelesen werden. Bitte versuchen Sie es mit einer anderen Datei oder stellen Sie sicher, dass das Dokument lesbaren Text enthält.'
-          : language === 'pt' ? 'Este documento não pôde ser lido. Por favor, tente com um arquivo diferente ou certifique-se de que o documento contenha texto legível.'
-          : language === 'ar' ? 'لا يمكن قراءة هذه الوثيقة. يرجى المحاولة بملف مختلف أو التأكد من أن الوثيقة تحتوي على نص قابل للقراءة.'
-          : language === 'zh' ? '无法读取此文档。请尝试其他文件或确保文档包含可读文本。'
-          : language === 'hi' ? 'यह दस्तावेज़ पढ़ा नहीं जा सका। कृपया एक अलग फ़ाइल आज़माएं या सुनिश्चित करें कि दस्तावेज़ में पठनीय टेक्स्ट है।'
           : 'This document could not be read. Please try a different file or ensure the document contains readable text.')
         : (language === 'es' ? 'Error al procesar el documento. Por favor intenta de nuevo.'
           : language === 'fr' ? 'Échec du traitement du document. Veuillez réessayer.'
-          : language === 'de' ? 'Fehler beim Verarbeiten des Dokuments. Bitte versuchen Sie es erneut.'
-          : language === 'pt' ? 'Falha ao processar documento. Por favor, tente novamente.'
-          : language === 'ar' ? 'فشل في معالجة الوثيقة. يرجى المحاولة مرة أخرى.'
-          : language === 'zh' ? '处理文档失败。请重试。'
-          : language === 'hi' ? 'दस्तावेज़ प्रसंस्करण विफल। कृपया पुनः प्रयास करें।'
           : 'Failed to process document. Please try again.');
 
       setUploadState({
@@ -400,18 +295,58 @@ The contract may be terminated by expiration of the term or by breach by either 
               {t.uploadTitle}
             </h1>
             <p className="text-just-hunter dark:text-gray-300 text-lg">
-              {t.uploadSubtitle}
+              {language === 'es' ? 'Sube tu documento legal y nuestra IA lo simplificará usando OCR avanzado'
+                : language === 'fr' ? 'Téléchargez votre document juridique et notre IA le simplifiera avec OCR avancé'
+                : 'Upload your legal document and our AI will simplify it using advanced OCR'
+              }
             </p>
           </div>
         </div>
+
+        {/* Welcome Guide */}
+        {showWelcome && uploadState.status === 'idle' && (
+          <div className="bg-gradient-to-r from-just-moss/10 to-just-brown/10 dark:from-just-moss/20 dark:to-just-brown/20 rounded-2xl p-6 mb-6 border border-just-moss/20">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-just-forest dark:text-just-white mb-2 flex items-center">
+                  <Eye className="w-5 h-5 mr-2" />
+                  {language === 'es' ? '¡Bienvenido a JustGuide!' : 'Welcome to JustGuide!'}
+                </h3>
+                <p className="text-just-hunter dark:text-gray-300 text-sm mb-3">
+                  {language === 'es' 
+                    ? 'Estás a punto de experimentar cómo la IA puede transformar documentos legales complejos en guías claras y accionables.'
+                    : 'You\'re about to experience how AI can transform complex legal documents into clear, actionable guides.'
+                  }
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="bg-just-moss/20 text-just-forest dark:text-just-moss px-2 py-1 rounded-lg text-xs font-medium">
+                    {language === 'es' ? 'OCR Inteligente' : 'Smart OCR'}
+                  </span>
+                  <span className="bg-just-brown/20 text-just-forest dark:text-just-brown px-2 py-1 rounded-lg text-xs font-medium">
+                    {language === 'es' ? 'Multiidioma' : 'Multilingual'}
+                  </span>
+                  <span className="bg-just-forest/20 text-just-forest dark:text-just-forest px-2 py-1 rounded-lg text-xs font-medium">
+                    {language === 'es' ? 'Jurisdicción Inteligente' : 'Smart Jurisdiction'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="text-just-gray hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 ml-4"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Upload Area */}
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-6">
           {uploadState.status === 'idle' && (
             <div
-              className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-300 ${
+              className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
                 dragActive 
-                  ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20' 
+                  ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 scale-105' 
                   : 'border-just-sand dark:border-gray-600 hover:border-just-moss hover:bg-just-moss/5 dark:hover:bg-just-moss/10'
               }`}
               onDrop={handleDrop}
@@ -439,7 +374,7 @@ The contract may be terminated by expiration of the term or by breach by either 
               
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
+                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-all duration-300 hover:scale-105"
               >
                 {t.chooseFile}
               </button>
@@ -453,7 +388,9 @@ The contract may be terminated by expiration of the term or by breach by either 
               />
               
               <p className="text-sm text-just-gray dark:text-gray-400 mt-4">
-                {t.supportedFormats}
+                {language === 'es' ? 'Formatos: PDF, DOCX, JPG, PNG, GIF (máx 10MB) • OCR inteligente incluido'
+                  : 'Formats: PDF, DOCX, JPG, PNG, GIF (max 10MB) • Smart OCR included'
+                }
               </p>
             </div>
           )}
@@ -466,31 +403,31 @@ The contract may be terminated by expiration of the term or by breach by either 
               </div>
               
               <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {uploadState.status === 'uploading' ? t.uploading : t.processing}
+                {uploadState.status === 'uploading' ? t.uploading : 
+                 language === 'es' ? 'Procesando con IA' : 'Processing with AI'}
               </h3>
               <p className="text-just-gray dark:text-gray-400 mb-6">
                 {uploadState.message}
               </p>
               
               {/* Progress Bar */}
-              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-2 mb-4">
+              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-4 overflow-hidden">
                 <div 
-                  className="bg-just-moss h-2 rounded-full transition-all duration-500 ease-out"
+                  className="bg-gradient-to-r from-just-moss to-just-brown h-3 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${uploadState.progress}%` }}
                 ></div>
               </div>
               
-              <p className="text-sm text-just-gray dark:text-gray-400">
-                {uploadState.progress}% {language === 'es' ? 'completado' 
-                  : language === 'fr' ? 'terminé'
-                  : language === 'de' ? 'abgeschlossen'
-                  : language === 'pt' ? 'concluído'
-                  : language === 'ar' ? 'مكتمل'
-                  : language === 'zh' ? '完成'
-                  : language === 'hi' ? 'पूर्ण'
-                  : 'complete'
-                }
-              </p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-just-gray dark:text-gray-400">
+                  {uploadState.progress}% {language === 'es' ? 'completado' : 'complete'}
+                </span>
+                {uploadState.ocrProgress !== undefined && (
+                  <span className="text-just-moss font-medium">
+                    OCR: {Math.round(uploadState.ocrProgress * 100)}%
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -507,14 +444,8 @@ The contract may be terminated by expiration of the term or by breach by either 
               <p className="text-just-gray dark:text-gray-400 mb-4">
                 {uploadState.message}
               </p>
-              <p className="text-sm text-just-gray dark:text-gray-400">
+              <p className="text-sm text-just-moss font-medium">
                 {language === 'es' ? 'Redirigiendo al resumen...'
-                  : language === 'fr' ? 'Redirection vers le résumé...'
-                  : language === 'de' ? 'Weiterleitung zur Zusammenfassung...'
-                  : language === 'pt' ? 'Redirecionando para o resumo...'
-                  : language === 'ar' ? 'إعادة التوجيه إلى الملخص...'
-                  : language === 'zh' ? '重定向到摘要...'
-                  : language === 'hi' ? 'सारांश पर रीडायरेक्ट कर रहे हैं...'
                   : 'Redirecting to summary...'
                 }
               </p>
@@ -529,14 +460,8 @@ The contract may be terminated by expiration of the term or by breach by either 
               </div>
               
               <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {language === 'es' ? 'Error en la Subida'
-                  : language === 'fr' ? 'Échec du Téléchargement'
-                  : language === 'de' ? 'Upload Fehlgeschlagen'
-                  : language === 'pt' ? 'Falha no Upload'
-                  : language === 'ar' ? 'فشل التحميل'
-                  : language === 'zh' ? '上传失败'
-                  : language === 'hi' ? 'अपलोड विफल'
-                  : 'Upload Failed'
+                {language === 'es' ? 'Error en el Procesamiento'
+                  : 'Processing Failed'
                 }
               </h3>
               <p className="text-red-600 dark:text-red-400 mb-6">
@@ -553,66 +478,53 @@ The contract may be terminated by expiration of the term or by breach by either 
           )}
         </div>
 
-        {/* Help Section */}
+        {/* Enhanced Help Section */}
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
           <h4 className="font-semibold text-just-forest dark:text-just-white mb-3 flex items-center">
             <Info className="w-5 h-5 mr-2" />
-            {language === 'es' ? '¿Qué pasa después?'
-              : language === 'fr' ? 'Que se passe-t-il ensuite?'
-              : language === 'de' ? 'Was passiert als nächstes?'
-              : language === 'pt' ? 'O que acontece depois?'
-              : language === 'ar' ? 'ماذا يحدث بعد ذلك؟'
-              : language === 'zh' ? '接下来会发生什么？'
-              : language === 'hi' ? 'आगे क्या होता है?'
-              : 'What happens next?'
+            {language === 'es' ? 'Tecnología Avanzada de IA'
+              : 'Advanced AI Technology'
             }
           </h4>
-          <div className="space-y-3">
-            <div className="flex items-start">
-              <div className="w-6 h-6 bg-just-moss/20 dark:bg-just-moss/30 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-medium text-just-moss">1</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
+              <div className="w-8 h-8 bg-just-moss/20 dark:bg-just-moss/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-just-moss font-bold">1</span>
               </div>
-              <p className="text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Extraeremos todo el texto de tu documento usando tecnología OCR avanzada'
-                  : language === 'fr' ? 'Nous extrairons tout le texte de votre document en utilisant une technologie OCR avancée'
-                  : language === 'de' ? 'Wir extrahieren den gesamten Text aus Ihrem Dokument mit fortschrittlicher OCR-Technologie'
-                  : language === 'pt' ? 'Extrairemos todo o texto do seu documento usando tecnologia OCR avançada'
-                  : language === 'ar' ? 'سنستخرج كل النص من وثيقتك باستخدام تقنية OCR المتقدمة'
-                  : language === 'zh' ? '我们将使用先进的OCR技术从您的文档中提取所有文本'
-                  : language === 'hi' ? 'हम उन्नत OCR तकनीक का उपयोग करके आपके दस्तावेज़ से सभी टेक्स्ट निकालेंगे'
-                  : 'We\'ll extract all the text from your document using advanced OCR technology'
+              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
+                {language === 'es' ? 'OCR Inteligente' : 'Smart OCR'}
+              </h5>
+              <p className="text-xs text-just-gray dark:text-gray-400">
+                {language === 'es' ? 'Extrae texto de imágenes y documentos escaneados con precisión'
+                  : 'Extracts text from images and scanned documents with precision'
                 }
               </p>
             </div>
-            <div className="flex items-start">
-              <div className="w-6 h-6 bg-just-moss/20 dark:bg-just-moss/30 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-medium text-just-moss">2</span>
+            
+            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
+              <div className="w-8 h-8 bg-just-brown/20 dark:bg-just-brown/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-just-brown font-bold">2</span>
               </div>
-              <p className="text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Nuestra IA traducirá términos legales complejos a español claro en nivel B1'
-                  : language === 'fr' ? 'Notre IA traduira les termes juridiques complexes en français clair au niveau B1'
-                  : language === 'de' ? 'Unsere KI übersetzt komplexe Rechtsbegriffe in klares Deutsch auf B1-Niveau'
-                  : language === 'pt' ? 'Nossa IA traduzirá termos jurídicos complexos para português claro no nível B1'
-                  : language === 'ar' ? 'سيترجم الذكاء الاصطناعي المصطلحات القانونية المعقدة إلى عربية واضحة في المستوى B1'
-                  : language === 'zh' ? '我们的AI将复杂的法律术语翻译成B1级别的清晰中文'
-                  : language === 'hi' ? 'हमारा AI जटिल कानूनी शब्दों को B1 स्तर की स्पष्ट हिंदी में अनुवाद करेगा'
-                  : 'Our AI will translate complex legal terms into plain language at B1 reading level'
+              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
+                {language === 'es' ? 'IA Legal' : 'Legal AI'}
+              </h5>
+              <p className="text-xs text-just-gray dark:text-gray-400">
+                {language === 'es' ? 'Simplifica términos legales complejos según tu jurisdicción'
+                  : 'Simplifies complex legal terms based on your jurisdiction'
                 }
               </p>
             </div>
-            <div className="flex items-start">
-              <div className="w-6 h-6 bg-just-moss/20 dark:bg-just-moss/30 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                <span className="text-xs font-medium text-just-moss">3</span>
+            
+            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
+              <div className="w-8 h-8 bg-just-forest/20 dark:bg-just-forest/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-just-forest font-bold">3</span>
               </div>
-              <p className="text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Obtendrás un resumen claro y una guía opcional paso a paso para los próximos pasos'
-                  : language === 'fr' ? 'Vous obtiendrez un résumé clair et un guide optionnel étape par étape pour les prochaines étapes'
-                  : language === 'de' ? 'Sie erhalten eine klare Zusammenfassung und eine optionale Schritt-für-Schritt-Anleitung für die nächsten Schritte'
-                  : language === 'pt' ? 'Você receberá um resumo claro e um guia opcional passo a passo para os próximos passos'
-                  : language === 'ar' ? 'ستحصل على ملخص واضح ودليل اختياري خطوة بخطوة للخطوات التالية'
-                  : language === 'zh' ? '您将获得清晰的摘要和可选的后续步骤指南'
-                  : language === 'hi' ? 'आपको एक स्पष्ट सारांश और अगले चरणों के लिए एक वैकल्पिक चरणबद्ध गाइड मिलेगी'
-                  : 'You\'ll get a clear summary and optional step-by-step guidance for next steps'
+              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
+                {language === 'es' ? 'Guía Personalizada' : 'Personal Guide'}
+              </h5>
+              <p className="text-xs text-just-gray dark:text-gray-400">
+                {language === 'es' ? 'Genera pasos específicos basados en tu documento'
+                  : 'Generates specific steps based on your document'
                 }
               </p>
             </div>
@@ -623,62 +535,26 @@ The contract may be terminated by expiration of the term or by breach by either 
         <div className="bg-gradient-to-r from-just-moss/10 to-just-brown/10 dark:from-just-moss/20 dark:to-just-brown/20 rounded-2xl p-6">
           <h4 className="font-semibold text-just-forest dark:text-just-white mb-3">
             💡 {language === 'es' ? 'Consejos para mejores resultados'
-              : language === 'fr' ? 'Conseils pour de meilleurs résultats'
-              : language === 'de' ? 'Tipps für bessere Ergebnisse'
-              : language === 'pt' ? 'Dicas para melhores resultados'
-              : language === 'ar' ? 'نصائح للحصول على أفضل النتائج'
-              : language === 'zh' ? '获得最佳结果的提示'
-              : language === 'hi' ? 'बेहतर परिणामों के लिए सुझाव'
               : 'Tips for best results'
             }
           </h4>
           <ul className="space-y-2 text-just-gray dark:text-gray-400 text-sm">
             <li className="flex items-start">
               <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Asegúrate de que tu documento tenga texto claro y legible'
-                : language === 'fr' ? 'Assurez-vous que votre document a un texte clair et lisible'
-                : language === 'de' ? 'Stellen Sie sicher, dass Ihr Dokument klaren, lesbaren Text hat'
-                : language === 'pt' ? 'Certifique-se de que seu documento tenha texto claro e legível'
-                : language === 'ar' ? 'تأكد من أن وثيقتك تحتوي على نص واضح ومقروء'
-                : language === 'zh' ? '确保您的文档具有清晰可读的文本'
-                : language === 'hi' ? 'सुनिश्चित करें कि आपके दस्तावेज़ में स्पष्ट, पठनीय टेक्स्ट है'
-                : 'Ensure your document has clear, readable text'
+              {language === 'es' ? 'Para imágenes: usa buena iluminación y enfoque nítido'
+                : 'For images: use good lighting and sharp focus'
               }
             </li>
             <li className="flex items-start">
               <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Para imágenes, asegúrate de que el texto no esté borroso o muy pequeño'
-                : language === 'fr' ? 'Pour les images, assurez-vous que le texte n\'est pas flou ou trop petit'
-                : language === 'de' ? 'Stellen Sie bei Bildern sicher, dass der Text nicht unscharf oder zu klein ist'
-                : language === 'pt' ? 'Para imagens, certifique-se de que o texto não esteja desfocado ou muito pequeno'
-                : language === 'ar' ? 'بالنسبة للصور، تأكد من أن النص ليس ضبابيًا أو صغيرًا جدًا'
-                : language === 'zh' ? '对于图像，确保文本不模糊或太小'
-                : language === 'hi' ? 'छवियों के लिए, सुनिश्चित करें कि टेक्स्ट धुंधला या बहुत छोटा नहीं है'
-                : 'For images, make sure the text is not blurry or too small'
+              {language === 'es' ? 'Los documentos en español, inglés, francés y portugués tienen mejor precisión'
+                : 'Documents in Spanish, English, French, and Portuguese have better accuracy'
               }
             </li>
             <li className="flex items-start">
               <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Los archivos PDF y DOCX generalmente proporcionan los mejores resultados'
-                : language === 'fr' ? 'Les fichiers PDF et DOCX fournissent généralement les meilleurs résultats'
-                : language === 'de' ? 'PDF- und DOCX-Dateien liefern in der Regel die besten Ergebnisse'
-                : language === 'pt' ? 'Arquivos PDF e DOCX geralmente fornecem os melhores resultados'
-                : language === 'ar' ? 'ملفات PDF و DOCX عادة ما تعطي أفضل النتائج'
-                : language === 'zh' ? 'PDF和DOCX文件通常提供最佳结果'
-                : language === 'hi' ? 'PDF और DOCX फ़ाइलें आमतौर पर सर्वोत्तम परिणाम प्रदान करती हैं'
-                : 'PDF and DOCX files generally provide the best results'
-              }
-            </li>
-            <li className="flex items-start">
-              <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Los documentos en español se procesarán con mayor precisión'
-                : language === 'fr' ? 'Les documents en français seront traités avec plus de précision'
-                : language === 'de' ? 'Dokumente auf Deutsch werden genauer verarbeitet'
-                : language === 'pt' ? 'Documentos em português serão processados com maior precisão'
-                : language === 'ar' ? 'الوثائق باللغة العربية ستتم معالجتها بدقة أكبر'
-                : language === 'zh' ? '中文文档将得到更准确的处理'
-                : language === 'hi' ? 'हिंदी में दस्तावेज़ अधिक सटीकता से संसाधित होंगे'
-                : 'Documents in your selected language will be processed more accurately'
+              {language === 'es' ? 'Los archivos PDF nativos se procesan más rápido que las imágenes'
+                : 'Native PDF files process faster than images'
               }
             </li>
           </ul>

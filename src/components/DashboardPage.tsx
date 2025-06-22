@@ -21,7 +21,10 @@ import {
   Globe,
   ChevronDown,
   Menu,
-  X
+  X,
+  Users,
+  Award,
+  Zap
 } from 'lucide-react';
 import { Language, getTranslations, languageNames } from '../utils/i18n';
 import { Theme } from '../utils/theme';
@@ -59,12 +62,47 @@ export default function DashboardPage({
   
   const t = getTranslations(language);
 
-  // Mock data
+  // Enhanced stats with global impact
   const stats = {
     totalDocuments: 12,
     processedThisMonth: 8,
-    successRate: 94
+    successRate: 94,
+    globalUsers: 15420,
+    countriesSupported: 25,
+    languagesSupported: 8,
+    avgSatisfaction: 4.8
   };
+
+  const impactStats = [
+    {
+      icon: Users,
+      value: '15.4K+',
+      label: language === 'es' ? 'Usuarios Globales' : 'Global Users',
+      color: 'text-just-moss',
+      bgColor: 'bg-just-moss/10 dark:bg-just-moss/20'
+    },
+    {
+      icon: Globe,
+      value: '25',
+      label: language === 'es' ? 'Países Soportados' : 'Countries Supported',
+      color: 'text-just-brown',
+      bgColor: 'bg-just-brown/10 dark:bg-just-brown/20'
+    },
+    {
+      icon: Award,
+      value: '94%',
+      label: language === 'es' ? 'Tasa de Éxito' : 'Success Rate',
+      color: 'text-green-600',
+      bgColor: 'bg-green-100 dark:bg-green-900'
+    },
+    {
+      icon: Zap,
+      value: '4.8/5',
+      label: language === 'es' ? 'Satisfacción' : 'User Rating',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900'
+    }
+  ];
 
   const recentDocuments = [
     {
@@ -73,7 +111,8 @@ export default function DashboardPage({
       type: language === 'es' ? "Contrato de Renta" : language === 'fr' ? "Contrat de Location" : language === 'de' ? "Mietvertrag" : language === 'pt' ? "Contrato de Aluguel" : language === 'ar' ? "عقد إيجار" : language === 'zh' ? "租赁协议" : language === 'hi' ? "किराया समझौता" : "Rental Agreement",
       status: "completed",
       date: "2024-01-15",
-      progress: 100
+      progress: 100,
+      jurisdiction: "Colombia"
     },
     {
       id: 2,
@@ -81,7 +120,8 @@ export default function DashboardPage({
       type: language === 'es' ? "Demanda Civil" : language === 'fr' ? "Plainte Civile" : language === 'de' ? "Zivilklage" : language === 'pt' ? "Ação Civil" : language === 'ar' ? "دعوى مدنية" : language === 'zh' ? "民事诉讼" : language === 'hi' ? "सिविल मुकदमा" : "Civil Complaint",
       status: "in-progress",
       date: "2024-01-14",
-      progress: 65
+      progress: 65,
+      jurisdiction: "Mexico"
     },
     {
       id: 3,
@@ -89,7 +129,8 @@ export default function DashboardPage({
       type: language === 'es' ? "Testamento" : language === 'fr' ? "Testament" : language === 'de' ? "Testament" : language === 'pt' ? "Testamento" : language === 'ar' ? "وصية" : language === 'zh' ? "遗嘱" : language === 'hi' ? "वसीयत" : "Will",
       status: "pending",
       date: "2024-01-13",
-      progress: 0
+      progress: 0,
+      jurisdiction: "Spain"
     }
   ];
 
@@ -229,7 +270,9 @@ export default function DashboardPage({
                 <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">
                   {t.hello}, {userName}! 👋
                 </h1>
-                <p className="text-sm lg:text-base text-just-hunter dark:text-gray-300">{t.readyToSimplify}</p>
+                <p className="text-sm lg:text-base text-just-hunter dark:text-gray-300">
+                  {language === 'es' ? 'Democratizando el acceso a la justicia con IA' : 'Democratizing access to justice with AI'}
+                </p>
               </div>
             </div>
             
@@ -307,7 +350,40 @@ export default function DashboardPage({
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-fade-in">
-              {/* Stats Cards */}
+              {/* Global Impact Stats */}
+              <div className="bg-gradient-to-r from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold">
+                      {language === 'es' ? 'Impacto Global de JustGuide' : 'JustGuide Global Impact'}
+                    </h2>
+                    <p className="text-just-white/80">
+                      {language === 'es' 
+                        ? 'Democratizando el acceso a la justicia en todo el mundo'
+                        : 'Democratizing access to justice worldwide'
+                      }
+                    </p>
+                  </div>
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {impactStats.map((stat, index) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div key={index} className="text-center">
+                        <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center mx-auto mb-2`}>
+                          <Icon className={`w-6 h-6 ${stat.color}`} />
+                        </div>
+                        <div className="text-2xl font-bold text-just-white">{stat.value}</div>
+                        <div className="text-sm text-just-white/80">{stat.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Personal Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
                 <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
@@ -355,20 +431,8 @@ export default function DashboardPage({
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es' 
-                      ? 'Comienza subiendo tu documento legal y deja que nuestra IA te guíe a través de él.'
-                      : language === 'fr'
-                      ? 'Commencez par télécharger votre document juridique et laissez notre IA vous guider.'
-                      : language === 'de'
-                      ? 'Beginnen Sie mit dem Hochladen Ihres Rechtsdokuments und lassen Sie unsere KI Sie führen.'
-                      : language === 'pt'
-                      ? 'Comece enviando seu documento legal e deixe nossa IA guiá-lo através dele.'
-                      : language === 'ar'
-                      ? 'ابدأ بتحميل وثيقتك القانونية ودع الذكاء الاصطناعي يرشدك خلالها.'
-                      : language === 'zh'
-                      ? '首先上传您的法律文档，让我们的AI指导您完成。'
-                      : language === 'hi'
-                      ? 'अपने कानूनी दस्तावेज़ को अपलोड करके शुरुआत करें और हमारे AI को आपका मार्गदर्शन करने दें।'
-                      : 'Start by uploading your legal document and let our AI guide you through it.'
+                      ? 'Sube tu documento legal y nuestra IA avanzada con OCR lo procesará automáticamente.'
+                      : 'Upload your legal document and our advanced AI with OCR will process it automatically.'
                     }
                   </p>
                   <button 
@@ -386,24 +450,12 @@ export default function DashboardPage({
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es'
-                      ? 'Nuestra IA convierte el lenguaje legal complejo en español claro que puedes entender.'
-                      : language === 'fr'
-                      ? 'Notre IA convertit le langage juridique complexe en français clair que vous pouvez comprendre.'
-                      : language === 'de'
-                      ? 'Unsere KI wandelt komplexe Rechtssprache in klares Deutsch um, das Sie verstehen können.'
-                      : language === 'pt'
-                      ? 'Nossa IA converte linguagem jurídica complexa em português claro que você pode entender.'
-                      : language === 'ar'
-                      ? 'يحول الذكاء الاصطناعي لدينا اللغة القانونية المعقدة إلى عربية واضحة يمكنك فهمها.'
-                      : language === 'zh'
-                      ? '我们的AI将复杂的法律语言转换为您可以理解的清晰中文。'
-                      : language === 'hi'
-                      ? 'हमारा AI जटिल कानूनी भाषा को स्पष्ट हिंदी में बदल देता है जिसे आप समझ सकते हैं।'
-                      : 'Our AI converts complex legal language into plain language you can understand.'
+                      ? 'Tecnología de IA que entiende 25+ jurisdicciones y 8 idiomas para simplificar documentos legales.'
+                      : 'AI technology that understands 25+ jurisdictions and 8 languages to simplify legal documents.'
                     }
                   </p>
                   <button className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200">
-                    {language === 'es' ? 'Aprende Más' : language === 'fr' ? 'En Savoir Plus' : language === 'de' ? 'Mehr Erfahren' : language === 'pt' ? 'Saiba Mais' : language === 'ar' ? 'اعرف أكثر' : language === 'zh' ? '了解更多' : language === 'hi' ? 'और जानें' : 'Learn More'}
+                    {language === 'es' ? 'Aprende Más' : 'Learn More'}
                   </button>
                 </div>
               </div>
@@ -434,7 +486,7 @@ export default function DashboardPage({
                           </div>
                           <div>
                             <h4 className="font-medium text-just-forest dark:text-just-white">{doc.title}</h4>
-                            <p className="text-sm text-just-gray dark:text-gray-400">{doc.type}</p>
+                            <p className="text-sm text-just-gray dark:text-gray-400">{doc.type} • {doc.jurisdiction}</p>
                           </div>
                         </div>
                         
@@ -474,18 +526,6 @@ export default function DashboardPage({
               <p className="text-just-gray dark:text-gray-400 mb-4">
                 {language === 'es' 
                   ? 'Esta sección estará disponible pronto. Estamos trabajando duro para brindarte la mejor experiencia con documentos legales.'
-                  : language === 'fr'
-                  ? 'Cette section sera bientôt disponible. Nous travaillons dur pour vous offrir la meilleure expérience avec les documents juridiques.'
-                  : language === 'de'
-                  ? 'Dieser Bereich wird bald verfügbar sein. Wir arbeiten hart daran, Ihnen die beste Erfahrung mit Rechtsdokumenten zu bieten.'
-                  : language === 'pt'
-                  ? 'Esta seção estará disponível em breve. Estamos trabalhando duro para oferecer a melhor experiência com documentos legais.'
-                  : language === 'ar'
-                  ? 'سيكون هذا القسم متاحًا قريبًا. نحن نعمل بجد لنقدم لك أفضل تجربة مع الوثائق القانونية.'
-                  : language === 'zh'
-                  ? '此部分即将推出。我们正在努力为您提供最佳的法律文档体验。'
-                  : language === 'hi'
-                  ? 'यह अनुभाग जल्द ही उपलब्ध होगा। हम आपको कानूनी दस्तावेजों के साथ सर्वोत्तम अनुभव प्रदान करने के लिए कड़ी मेहनत कर रहे हैं।'
                   : 'This section is coming soon. We\'re working hard to bring you the best legal document experience.'
                 }
               </p>
@@ -494,7 +534,7 @@ export default function DashboardPage({
                   onClick={onNavigateToUpload}
                   className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
                 >
-                  {language === 'es' ? 'Sube tu Primer Documento' : language === 'fr' ? 'Téléchargez Votre Premier Document' : language === 'de' ? 'Laden Sie Ihr Erstes Dokument Hoch' : language === 'pt' ? 'Envie Seu Primeiro Documento' : language === 'ar' ? 'ارفع وثيقتك الأولى' : language === 'zh' ? '上传您的第一个文档' : language === 'hi' ? 'अपना पहला दस्तावेज़ अपलोड करें' : 'Upload Your First Document'}
+                  {language === 'es' ? 'Sube tu Primer Documento' : 'Upload Your First Document'}
                 </button>
               )}
             </div>
