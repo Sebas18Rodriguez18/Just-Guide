@@ -1,66 +1,46 @@
-import React, { useState } from 'react';
-import { 
-  Upload, 
-  FileText, 
-  History, 
-  Settings, 
-  User, 
-  Moon, 
-  Sun,
-  Plus,
-  Eye,
-  Calendar,
-  TrendingUp,
-  CheckCircle,
-  Clock,
-  Search,
-  Filter,
-  MoreVertical,
-  BookOpen,
-  Sparkles,
-  Globe,
-  ChevronDown,
-  Menu,
-  X,
-  Users,
-  Award,
-  Zap
+import { useEffect, useState } from 'react';
+import {
+  Upload, FileText, History, Settings, User, Moon, Sun, TrendingUp, CheckCircle, Clock, Search, Filter, MoreVertical, BookOpen, Sparkles, Globe, ChevronDown, Menu, X, Users, Award, Zap
 } from 'lucide-react';
-import { Language, getTranslations, languageNames } from '../utils/i18n';
-import { Theme } from '../utils/theme';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
+import { supabase } from '../utils/supabaseClient';
+import Swal from 'sweetalert2';
 import HackathonBadge from './HackathonBadge';
 
-interface DashboardPageProps {
-  onLogout: () => void;
-  onNavigateToUpload?: () => void;
-  onNavigateToMyDocuments?: () => void;
-  onNavigateToSimplifiedGuides?: () => void;
-  onNavigateToLegalHistory?: () => void;
-  onNavigateToSettings?: () => void;
-  userName?: string;
-  language: Language;
-  theme: Theme;
-  onLanguageChange: (language: Language) => void;
-  onThemeChange: (theme: Theme) => void;
+// Idiomas soportados
+const languageNames: Record<string, string> = {
+  es: 'Español',
+  en: 'English',
+  fr: 'Français',
+  de: 'Deutsch',
+  pt: 'Português',
+  ar: 'العربية',
+  zh: '中文',
+  hi: 'हिन्दी',
+};
+
+// type Language = keyof typeof languageNames;
+
+interface Document {
+  id: string;
+  title: string;
+  status: string;
+  type?: string;
+  jurisdiction?: string;
+  date?: string;
+  [key: string]: unknown;
 }
 
-export default function DashboardPage({ 
-  onLogout, 
-  onNavigateToUpload,
-  onNavigateToMyDocuments,
-  onNavigateToSimplifiedGuides,
-  onNavigateToLegalHistory,
-  onNavigateToSettings,
-  userName = "María",
-  language,
-  theme,
-  onLanguageChange,
-  onThemeChange
-}: DashboardPageProps) {
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const { user, language, theme, setLanguage, setTheme, setUser, setIsAuthenticated } = useAppContext();
+  const userName = user?.name || 'Usuario';
   const [activeTab, setActiveTab] = useState('overview');
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
   const t = getTranslations(language);
 
   // Enhanced stats with global impact
@@ -105,36 +85,6 @@ export default function DashboardPage({
     }
   ];
 
-  const recentDocuments = [
-    {
-      id: 1,
-      title: language === 'es' ? "Contrato de Arrendamiento" : language === 'fr' ? "Contrat de Location" : language === 'de' ? "Mietvertrag" : language === 'pt' ? "Contrato de Aluguel" : language === 'ar' ? "عقد إيجار" : language === 'zh' ? "租赁合同" : language === 'hi' ? "किराया समझौता" : "Rental Agreement",
-      type: language === 'es' ? "Contrato de Renta" : language === 'fr' ? "Contrat de Location" : language === 'de' ? "Mietvertrag" : language === 'pt' ? "Contrato de Aluguel" : language === 'ar' ? "عقد إيجار" : language === 'zh' ? "租赁协议" : language === 'hi' ? "किराया समझौता" : "Rental Agreement",
-      status: "completed",
-      date: "2024-01-15",
-      progress: 100,
-      jurisdiction: "Colombia"
-    },
-    {
-      id: 2,
-      title: language === 'es' ? "Demanda Civil" : language === 'fr' ? "Plainte Civile" : language === 'de' ? "Zivilklage" : language === 'pt' ? "Ação Civil" : language === 'ar' ? "دعوى مدنية" : language === 'zh' ? "民事诉讼" : language === 'hi' ? "सिविल मुकदमा" : "Civil Complaint",
-      type: language === 'es' ? "Demanda Civil" : language === 'fr' ? "Plainte Civile" : language === 'de' ? "Zivilklage" : language === 'pt' ? "Ação Civil" : language === 'ar' ? "دعوى مدنية" : language === 'zh' ? "民事诉讼" : language === 'hi' ? "सिविल मुकदमा" : "Civil Complaint",
-      status: "in-progress",
-      date: "2024-01-14",
-      progress: 65,
-      jurisdiction: "Mexico"
-    },
-    {
-      id: 3,
-      title: language === 'es' ? "Testamento" : language === 'fr' ? "Testament" : language === 'de' ? "Testament" : language === 'pt' ? "Testamento" : language === 'ar' ? "وصية" : language === 'zh' ? "遗嘱" : language === 'hi' ? "वसीयत" : "Will",
-      type: language === 'es' ? "Testamento" : language === 'fr' ? "Testament" : language === 'de' ? "Testament" : language === 'pt' ? "Testamento" : language === 'ar' ? "وصية" : language === 'zh' ? "遗嘱" : language === 'hi' ? "वसीयत" : "Will",
-      status: "pending",
-      date: "2024-01-13",
-      progress: 0,
-      jurisdiction: "Spain"
-    }
-  ];
-
   const sidebarItems = [
     { id: 'overview', label: t.dashboard, icon: TrendingUp },
     { id: 'upload', label: t.uploadDocument, icon: Upload },
@@ -171,28 +121,60 @@ export default function DashboardPage({
     }
   };
 
+  // Sidebar navigation using React Router
   const handleSidebarClick = (itemId: string) => {
     switch (itemId) {
       case 'upload':
-        onNavigateToUpload?.();
+        navigate('/upload');
         break;
       case 'documents':
-        onNavigateToMyDocuments?.();
+        navigate('/documents');
         break;
       case 'simplified':
-        onNavigateToSimplifiedGuides?.();
+        navigate('/guides');
         break;
       case 'history':
-        onNavigateToLegalHistory?.();
+        navigate('/history');
         break;
       case 'settings':
-        onNavigateToSettings?.();
+        navigate('/settings');
         break;
       default:
         setActiveTab(itemId);
     }
     setSidebarOpen(false);
   };
+
+  // Logout usando contexto
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsAuthenticated(false);
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    async function fetchDocuments() {
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (!error && data) setDocuments(data);
+        if (!error && data && data.length === 0) {
+          Swal.fire({
+            icon: 'info',
+            title: language === 'es' ? 'Sin documentos' : 'No documents',
+            text: language === 'es' ? 'Aún no has subido ningún documento.' : 'You have not uploaded any documents yet.',
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+      }
+    }
+    fetchDocuments();
+  }, [language, user]);
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex relative">
@@ -203,7 +185,7 @@ export default function DashboardPage({
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -271,7 +253,7 @@ export default function DashboardPage({
               >
                 <Menu className="w-5 h-5 text-just-hunter dark:text-gray-300" />
               </button>
-              
+
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">
                   {t.hello}, {userName}! 👋
@@ -281,7 +263,7 @@ export default function DashboardPage({
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 lg:space-x-4">
               {/* Language Switcher */}
               <div className="relative">
@@ -291,18 +273,18 @@ export default function DashboardPage({
                 >
                   <Globe className="w-4 lg:w-5 h-4 lg:h-5 text-just-hunter dark:text-gray-300 mr-1 lg:mr-2" />
                   <span className="hidden sm:block text-sm font-medium text-just-hunter dark:text-gray-300">
-                    {languageNames[language]}
+                    {language}
                   </span>
                   <ChevronDown className="w-3 lg:w-4 h-3 lg:h-4 text-just-hunter dark:text-gray-300 ml-1" />
                 </button>
-                
+
                 {showLanguageMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-just-white dark:bg-gray-800 rounded-xl shadow-lg border border-just-sand dark:border-gray-700 z-50 max-h-64 overflow-y-auto">
                     {Object.entries(languageNames).map(([code, name]) => (
                       <button
                         key={code}
                         onClick={() => {
-                          onLanguageChange(code as Language);
+                          setLanguage(code as any);
                           setShowLanguageMenu(false);
                         }}
                         className={`w-full px-4 py-3 text-left hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl ${
@@ -321,7 +303,7 @@ export default function DashboardPage({
 
               {/* Dark Mode Toggle */}
               <button
-                onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                 className="p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
               >
                 {theme === 'dark' ? (
@@ -343,7 +325,7 @@ export default function DashboardPage({
 
               {/* Logout */}
               <button
-                onClick={onLogout}
+                onClick={handleLogout}
                 className="hidden lg:block px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
               >
                 {t.logout}
@@ -364,7 +346,7 @@ export default function DashboardPage({
                       {language === 'es' ? 'Impacto Global de JustGuide' : 'JustGuide Global Impact'}
                     </h2>
                     <p className="text-just-white/80">
-                      {language === 'es' 
+                      {language === 'es'
                         ? 'Democratizando el acceso a la justicia en todo el mundo'
                         : 'Democratizing access to justice worldwide'
                       }
@@ -372,7 +354,7 @@ export default function DashboardPage({
                   </div>
                   <Sparkles className="w-8 h-8" />
                 </div>
-                
+
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {impactStats.map((stat, index) => {
                     const Icon = stat.icon;
@@ -436,13 +418,13 @@ export default function DashboardPage({
                     <Upload className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
-                    {language === 'es' 
+                    {language === 'es'
                       ? 'Sube tu documento legal y nuestra IA avanzada con OCR lo procesará automáticamente.'
                       : 'Upload your legal document and our advanced AI with OCR will process it automatically.'
                     }
                   </p>
-                  <button 
-                    onClick={onNavigateToUpload}
+                  <button
+                    onClick={() => navigate('/upload')}
                     className="bg-just-white text-just-forest px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200"
                   >
                     {t.uploadDocument}
@@ -481,10 +463,10 @@ export default function DashboardPage({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="p-4 lg:p-6">
                   <div className="space-y-4">
-                    {recentDocuments.map((doc) => (
+                    {documents.map((doc) => (
                       <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-just-sand dark:border-gray-700 rounded-xl hover:bg-just-beige/50 dark:hover:bg-gray-700/50 transition-all duration-200 hover:scale-105">
                         <div className="flex items-center space-x-4 mb-3 sm:mb-0">
                           <div className="w-10 h-10 bg-just-forest/10 dark:bg-just-moss/20 rounded-lg flex items-center justify-center">
@@ -492,19 +474,19 @@ export default function DashboardPage({
                           </div>
                           <div>
                             <h4 className="font-medium text-just-forest dark:text-just-white">{doc.title}</h4>
-                            <p className="text-sm text-just-gray dark:text-gray-400">{doc.type} • {doc.jurisdiction}</p>
+                            <p className="text-sm text-just-gray dark:text-gray-400">{String(doc.type ?? '')} • {String(doc.jurisdiction ?? '')}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                           <div className="text-left sm:text-right">
                             <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
                               {getStatusIcon(doc.status)}
                               <span className="ml-1 capitalize">{getStatusText(doc.status)}</span>
                             </div>
-                            <p className="text-xs text-just-gray dark:text-gray-400 mt-1">{doc.date}</p>
+                            <p className="text-xs text-just-gray dark:text-gray-400 mt-1">{String(doc.date ?? '')}</p>
                           </div>
-                          
+
                           <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 self-end sm:self-auto">
                             <MoreVertical className="w-4 h-4 text-just-hunter dark:text-gray-400" />
                           </button>
@@ -514,6 +496,27 @@ export default function DashboardPage({
                   </div>
                 </div>
               </div>
+
+              {/* Friendly message when no documents */}
+              {documents.length === 0 && (
+                <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-6 lg:p-8 text-center shadow-lg">
+                  <div className="w-16 h-16 bg-just-sand dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-just-hunter dark:text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
+                    {language === 'es' ? 'No se encontraron documentos' : 'No documents found'}
+                  </h3>
+                  <p className="text-just-gray dark:text-gray-400 mb-4">
+                    {language === 'es' ? 'Sube tu primer documento para comenzar' : 'Upload your first document to get started'}
+                  </p>
+                  <button
+                    onClick={() => navigate('/upload')}
+                    className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
+                  >
+                    {language === 'es' ? 'Sube tu Primer Documento' : 'Upload Your First Document'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -530,14 +533,14 @@ export default function DashboardPage({
                 {sidebarItems.find(item => item.id === activeTab)?.label}
               </h3>
               <p className="text-just-gray dark:text-gray-400 mb-4">
-                {language === 'es' 
+                {language === 'es'
                   ? 'Esta sección estará disponible pronto. Estamos trabajando duro para brindarte la mejor experiencia con documentos legales.'
                   : 'This section is coming soon. We\'re working hard to bring you the best legal document experience.'
                 }
               </p>
               {activeTab === 'documents' && (
                 <button
-                  onClick={onNavigateToUpload}
+                  onClick={() => navigate('/upload')}
                   className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
                 >
                   {language === 'es' ? 'Sube tu Primer Documento' : 'Upload Your First Document'}

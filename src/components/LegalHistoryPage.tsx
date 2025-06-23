@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, History, Calendar, CheckCircle, Clock, AlertCircle, FileText, Scale, Building } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
-
-interface LegalHistoryPageProps {
-  onNavigateBack: () => void;
-  userId: string;
-  language: Language;
-}
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
+import { supabase } from '../utils/supabaseClient';
 
 interface LegalHistoryEntry {
   id: string;
@@ -18,80 +15,44 @@ interface LegalHistoryEntry {
   entity?: string;
 }
 
-export default function LegalHistoryPage({ 
-  onNavigateBack, 
-  userId, 
-  language 
-}: LegalHistoryPageProps) {
+export default function LegalHistoryPage() {
+  const navigate = useNavigate();
+  const { user, language } = useAppContext();
+  const userId = user?.id || '';
   const [history, setHistory] = useState<LegalHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
 
   const t = getTranslations(language);
 
-  useEffect(() => {
-    loadHistory();
-  }, [userId]);
-
   const loadHistory = async () => {
     try {
       setIsLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockHistory: LegalHistoryEntry[] = [
-        {
-          id: 'hist-1',
-          procedure_type: language === 'es' ? 'Contrato de Arrendamiento' : 'Rental Agreement',
-          result: language === 'es' ? 'Firmado exitosamente' : 'Successfully signed',
-          date: '2024-01-15T10:30:00Z',
-          status: 'completed',
-          description: language === 'es' 
-            ? 'Contrato de renta firmado para propiedad en Calle Ejemplo 789. Duración: 12 meses.'
-            : 'Rental contract signed for property at Calle Ejemplo 789. Duration: 12 months.',
-          entity: language === 'es' ? 'Notaría Pública No. 15' : 'Public Notary No. 15'
-        },
-        {
-          id: 'hist-2',
-          procedure_type: language === 'es' ? 'Demanda Civil' : 'Civil Complaint',
-          result: language === 'es' ? 'En proceso' : 'In process',
-          date: '2024-01-14T14:20:00Z',
-          status: 'in-progress',
-          description: language === 'es'
-            ? 'Demanda presentada por incumplimiento de contrato. Esperando respuesta de la contraparte.'
-            : 'Complaint filed for breach of contract. Awaiting response from counterpart.',
-          entity: language === 'es' ? 'Juzgado Civil No. 3' : 'Civil Court No. 3'
-        },
-        {
-          id: 'hist-3',
-          procedure_type: language === 'es' ? 'Registro de Testamento' : 'Will Registration',
-          result: language === 'es' ? 'Registrado' : 'Registered',
-          date: '2024-01-10T09:15:00Z',
-          status: 'completed',
-          description: language === 'es'
-            ? 'Testamento registrado ante notario público. Todos los herederos notificados.'
-            : 'Will registered with public notary. All heirs notified.',
-          entity: language === 'es' ? 'Registro Público de la Propiedad' : 'Public Property Registry'
-        },
-        {
-          id: 'hist-4',
-          procedure_type: language === 'es' ? 'Poder Notarial' : 'Power of Attorney',
-          result: language === 'es' ? 'Pendiente de firma' : 'Pending signature',
-          date: '2024-01-08T16:45:00Z',
-          status: 'pending',
-          description: language === 'es'
-            ? 'Poder notarial preparado para representación legal. Falta firma del otorgante.'
-            : 'Power of attorney prepared for legal representation. Grantor signature pending.',
-          entity: language === 'es' ? 'Notaría Pública No. 8' : 'Public Notary No. 8'
-        }
-      ];
-
-      setHistory(mockHistory);
+      const { data, error } = await supabase
+        .from('legal_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      setHistory(data || []);
     } catch (error) {
       console.error('Failed to load history:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const handleDeleteHistory = async (entryId: string) => {
+    try {
+      await supabase.from('legal_history').delete().eq('id', entryId);
+      setHistory((hist) => hist.filter((h) => h.id !== entryId));
+    } catch (error) {
+      console.error('Error deleting history:', error);
     }
   };
 
@@ -160,7 +121,7 @@ export default function LegalHistoryPage({
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
-            onClick={onNavigateBack}
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -220,7 +181,7 @@ export default function LegalHistoryPage({
               {/* Timeline line */}
               <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-just-sand dark:bg-gray-700"></div>
               
-              {sortedHistory.map((entry, index) => (
+              {sortedHistory.map((entry) => (
                 <div key={entry.id} className="relative flex items-start space-x-6 pb-8">
                   {/* Timeline dot */}
                   <div className="relative z-10 flex items-center justify-center w-16 h-16 bg-just-white dark:bg-gray-800 border-4 border-just-sand dark:border-gray-700 rounded-full">
@@ -267,6 +228,19 @@ export default function LegalHistoryPage({
                             <p className="text-sm text-just-hunter dark:text-gray-300">{entry.entity}</p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Delete button */}
+                      <div>
+                        <button
+                          onClick={() => handleDeleteHistory(entry.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 transition-colors duration-300"
+                          aria-label={language === 'es' ? 'Eliminar entrada' : 'Delete entry'}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   </div>

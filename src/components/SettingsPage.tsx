@@ -1,25 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Settings, Globe, Moon, Sun, User, Trash2, RotateCcw, Save, AlertTriangle } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
-import { Theme } from '../utils/theme';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
 
-interface SettingsPageProps {
-  onNavigateBack: () => void;
-  language: Language;
-  theme: Theme;
-  onLanguageChange: (language: Language) => void;
-  onThemeChange: (theme: Theme) => void;
-  userName: string;
-}
-
-export default function SettingsPage({ 
-  onNavigateBack, 
-  language, 
-  theme, 
-  onLanguageChange, 
-  onThemeChange,
-  userName 
-}: SettingsPageProps) {
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const { language, theme, setLanguage, setTheme, user } = useAppContext();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,15 +26,15 @@ export default function SettingsPage({
   };
 
   const handleDeleteAccount = async () => {
-    // In a real app, this would call the API to delete the account
-    alert(language === 'es' ? 'Cuenta eliminada' : 'Account deleted');
     setShowDeleteConfirm(false);
+    // Aquí podrías agregar lógica real de borrado de cuenta
+    alert(language === 'es' ? 'Cuenta eliminada' : 'Account deleted');
   };
 
   const handleResetPreferences = async () => {
     // Reset to defaults
-    onLanguageChange('en');
-    onThemeChange('light');
+    setLanguage('en');
+    setTheme('light');
     setShowResetConfirm(false);
     
     alert(language === 'es' ? 'Preferencias restablecidas' : 'Preferences reset');
@@ -59,7 +46,7 @@ export default function SettingsPage({
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <button
-            onClick={onNavigateBack}
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -99,7 +86,7 @@ export default function SettingsPage({
                 </label>
                 <input
                   type="text"
-                  value={userName}
+                  value={user?.name || ''}
                   readOnly
                   className="w-full px-4 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 bg-just-beige/50 dark:bg-gray-700/50 cursor-not-allowed"
                 />
@@ -111,7 +98,7 @@ export default function SettingsPage({
                 </label>
                 <input
                   type="email"
-                  value="maria@example.com"
+                  value={user && typeof user === 'object' && 'email' in user ? (user as { email?: string }).email || '' : ''}
                   readOnly
                   className="w-full px-4 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 bg-just-beige/50 dark:bg-gray-700/50 cursor-not-allowed"
                 />
@@ -139,7 +126,7 @@ export default function SettingsPage({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => onLanguageChange('en')}
+                    onClick={() => setLanguage('en')}
                     className={`p-4 rounded-xl border-2 transition-colors duration-200 ${
                       language === 'en'
                         ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 text-just-forest dark:text-just-moss'
@@ -153,7 +140,7 @@ export default function SettingsPage({
                   </button>
                   
                   <button
-                    onClick={() => onLanguageChange('es')}
+                    onClick={() => setLanguage('es')}
                     className={`p-4 rounded-xl border-2 transition-colors duration-200 ${
                       language === 'es'
                         ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 text-just-forest dark:text-just-moss'
@@ -182,7 +169,7 @@ export default function SettingsPage({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => onThemeChange('light')}
+                    onClick={() => setTheme('light')}
                     className={`p-4 rounded-xl border-2 transition-colors duration-200 ${
                       theme === 'light'
                         ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 text-just-forest dark:text-just-moss'
@@ -201,7 +188,7 @@ export default function SettingsPage({
                   </button>
                   
                   <button
-                    onClick={() => onThemeChange('dark')}
+                    onClick={() => setTheme('dark')}
                     className={`p-4 rounded-xl border-2 transition-colors duration-200 ${
                       theme === 'dark'
                         ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 text-just-forest dark:text-just-moss'

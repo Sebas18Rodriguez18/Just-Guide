@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { supabase } from '../utils/supabaseClient';
+import Swal from 'sweetalert2';
 
-interface RegisterPageProps {
-  onRegister: () => void;
-  onNavigateToLogin: () => void;
-}
-
-export default function RegisterPage({ onRegister, onNavigateToLogin }: RegisterPageProps) {
+export default function RegisterPage() {
+  const navigate = useNavigate();
+  const { setUser, setIsAuthenticated } = useAppContext();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -28,21 +29,75 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }: Register
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Passwords do not match',
+        text: 'Please make sure both passwords are the same.',
+      });
       return;
     }
     if (!acceptTerms) {
-      alert('Please accept the terms of service');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Términos no aceptados',
+        text: 'Por favor acepta los términos de servicio',
+      });
       return;
     }
-    
     setIsLoading(true);
-    
-    // Simulate registration process
-    setTimeout(() => {
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: { full_name: formData.fullName }
+      }
+    });
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message,
+      });
       setIsLoading(false);
-      onRegister();
-    }, 2000);
+      return;
+    }
+    if (data.user) {
+      const now = new Date().toISOString();
+      const insertResult = await supabase.from('users').insert([
+        {
+          id: data.user.id,
+          name: formData.fullName,
+          email: formData.email,
+          hashed_password: 'supabase_auth',
+          language: 'es',
+          literacy_level: 'basic',
+          uploaded_documents: [],
+          history: {},
+          created_at: now,
+          updated_at: now
+        }
+      ]);
+      if (insertResult.error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: insertResult.error.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+      setUser({ id: data.user.id, name: formData.fullName });
+      setIsAuthenticated(true);
+    }
+    setIsLoading(false);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Registro exitoso!',
+      text: 'Tu cuenta ha sido creada correctamente.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+    navigate('/dashboard');
   };
 
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';
@@ -221,7 +276,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }: Register
             <p className="text-just-gray">
               Already have an account?{' '}
               <button
-                onClick={onNavigateToLogin}
+                onClick={() => navigate('/login')}
                 className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
               >
                 Sign in here

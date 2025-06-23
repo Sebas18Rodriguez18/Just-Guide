@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../utils/supabaseClient';
+import Swal from 'sweetalert2';
 
-interface ForgotPasswordPageProps {
-  onNavigateToLogin: () => void;
-}
-
-export default function ForgotPasswordPage({ onNavigateToLogin }: ForgotPasswordPageProps) {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate sending reset email
-    setTimeout(() => {
-      setIsLoading(false);
-      setEmailSent(true);
-    }, 2000);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    });
+    setIsLoading(false);
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'Could not send reset email.',
+      });
+      return;
+    }
+    setEmailSent(true);
   };
 
   const handleTryAgain = () => {
@@ -124,7 +131,7 @@ export default function ForgotPasswordPage({ onNavigateToLogin }: ForgotPassword
           {/* Back to Login */}
           <div className="mt-6 text-center">
             <button
-              onClick={onNavigateToLogin}
+              onClick={() => navigate('/login')}
               className="inline-flex items-center text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
