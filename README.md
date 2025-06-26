@@ -74,24 +74,6 @@ JustGuide is an **AI-powered legal document simplification platform** that trans
 
 ---
 
-## 📸 Screenshots
-
-### Dashboard - Global Impact View
-![Dashboard showing global statistics and recent documents](public/dashboard-screenshot.png)
-
-### Document Upload with Smart OCR
-![Upload interface with drag-and-drop and OCR progress](public/upload-screenshot.png)
-
-### AI-Powered Simplification
-![Side-by-side view of original legal text and simplified version](public/simplification-screenshot.png)
-
-### Step-by-Step Guide Generation
-![Personalized guide with jurisdiction-specific advice](public/guide-screenshot.png)
-
-### Professional PDF Export
-![Sample exported PDF with JustGuide branding](public/pdf-export-sample.png)
-
----
 
 ## 🚀 Quick Start
 
