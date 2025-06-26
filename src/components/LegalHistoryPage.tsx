@@ -42,46 +42,34 @@ export default function LegalHistoryPage() {
   // Cargar historial y documentos
   useEffect(() => {
     if (userId) {
-      loadHistory();
-      loadDocuments();
+      loadHistoryAndDocuments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Cargar historial existente
-  const loadHistory = async () => {
+  // Cargar historial existente y documentos, luego procesar
+  const loadHistoryAndDocuments = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('legal_history')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
-      if (error) throw error;
-      setHistory(data || []);
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Cargar documentos del usuario
-  const loadDocuments = async () => {
-    try {
-      const { data, error } = await supabase
+      
+      // Cargar documentos del usuario
+      const { data: documentsData, error: docsError } = await supabase
         .from('documents')
         .select('id, title, document_type, extracted_text, upload_date, detected_language')
         .eq('user_id', userId)
         .order('upload_date', { ascending: false });
       
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        setDocuments(data);
+      if (docsError) {
+        console.error('Error loading documents:', docsError);
+        setIsLoading(false);
+        return;
+      }
+
+      if (documentsData && documentsData.length > 0) {
+        setDocuments(documentsData);
         
-        // Extraer información legal de los documentos y crear entradas de historial
-        const newHistoryEntries = await extractLegalHistoryFromDocuments(data);
+        // Procesar documentos y extraer información legal
+        const newHistoryEntries = await extractLegalHistoryFromDocuments(documentsData);
         
         if (newHistoryEntries.length > 0) {
           // Insertar nuevas entradas en la base de datos
@@ -89,23 +77,36 @@ export default function LegalHistoryPage() {
             .from('legal_history')
             .upsert(newHistoryEntries, { 
               onConflict: 'document_id',
-              ignoreDuplicates: true 
+              ignoreDuplicates: false 
             });
           
           if (insertError) {
             console.error('Error inserting legal history:', insertError);
-          } else {
-            // Recargar historial después de insertar nuevas entradas
-            loadHistory();
           }
         }
       }
+
+      // Cargar historial final
+      const { data: historyData, error: historyError } = await supabase
+        .from('legal_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+      
+      if (historyError) {
+        console.error('Error loading history:', historyError);
+      } else {
+        setHistory(historyData || []);
+      }
+      
     } catch (error) {
-      console.error('Failed to load documents:', error);
+      console.error('Failed to load history and documents:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Extraer información legal de los documentos
+  // Extraer información legal de los documentos DOCX
   const extractLegalHistoryFromDocuments = async (docs: Document[]): Promise<any[]> => {
     const newEntries: any[] = [];
     
@@ -125,7 +126,9 @@ export default function LegalHistoryPage() {
       
       // Detectar jurisdicción
       if (text.includes('colombia') || text.includes('bogotá') || text.includes('medellín') || 
-          text.includes('cali') || text.includes('barranquilla') || text.includes('pesos colombianos')) {
+          text.includes('cali') || text.includes('barranquilla') || text.includes('pesos colombianos') ||
+          text.includes('ley 820') || text.includes('código civil colombiano') || text.includes('dane') ||
+          text.includes('ipc') || text.includes('cédula de ciudadanía')) {
         jurisdiction = 'Colombia';
       } else if (text.includes('españa') || text.includes('madrid') || text.includes('barcelona') || 
                 text.includes('sevilla') || text.includes('bilbao') || text.includes('euros')) {
@@ -146,32 +149,34 @@ export default function LegalHistoryPage() {
         if (text.includes('arrendamiento') || text.includes('lease') || text.includes('rental')) {
           procedureType = language === 'es' ? 'Contrato de Arrendamiento' : 'Lease Agreement';
           
-          // Extraer descripción
+          // Extraer descripción específica
           const sentences = doc.extracted_text.split(/(?<=[.!?])\s+/);
           const relevantSentences = sentences.filter(s => 
             s.toLowerCase().includes('arrendamiento') || 
             s.toLowerCase().includes('lease') || 
             s.toLowerCase().includes('rental') ||
             s.toLowerCase().includes('inmueble') ||
-            s.toLowerCase().includes('property')
+            s.toLowerCase().includes('property') ||
+            s.toLowerCase().includes('ubicado') ||
+            s.toLowerCase().includes('located')
           );
           
           if (relevantSentences.length > 0) {
-            description = relevantSentences[0];
+            description = relevantSentences[0].substring(0, 200) + '...';
           } else {
             description = language === 'es' 
-              ? `Contrato de arrendamiento relacionado con ${doc.title}`
-              : `Lease agreement related to ${doc.title}`;
+              ? `Contrato de arrendamiento procesado desde el documento: ${doc.title}`
+              : `Lease agreement processed from document: ${doc.title}`;
           }
           
           // Extraer resultado
-          if (text.includes('firmado') || text.includes('signed')) {
-            result = language === 'es' ? 'Contrato firmado' : 'Contract signed';
+          if (text.includes('firmado') || text.includes('signed') || text.includes('constancia')) {
+            result = language === 'es' ? 'Contrato firmado y registrado' : 'Contract signed and registered';
           } else {
-            result = language === 'es' ? 'Contrato en vigencia' : 'Contract in effect';
+            result = language === 'es' ? 'Contrato de arrendamiento procesado' : 'Lease agreement processed';
           }
           
-          // Extraer entidad
+          // Extraer entidad (arrendador)
           const entityPatterns = [
             /(?:arrendador|landlord):\s*([^,\n.]+)/i,
             /(?:propietario|owner):\s*([^,\n.]+)/i
@@ -184,188 +189,69 @@ export default function LegalHistoryPage() {
               break;
             }
           }
+          
         } else if (text.includes('compraventa') || text.includes('purchase') || text.includes('sale')) {
           procedureType = language === 'es' ? 'Contrato de Compraventa' : 'Purchase Agreement';
           
-          // Extraer descripción
-          const sentences = doc.extracted_text.split(/(?<=[.!?])\s+/);
-          const relevantSentences = sentences.filter(s => 
-            s.toLowerCase().includes('compraventa') || 
-            s.toLowerCase().includes('purchase') || 
-            s.toLowerCase().includes('sale') ||
-            s.toLowerCase().includes('venta') ||
-            s.toLowerCase().includes('compra')
-          );
+          description = language === 'es' 
+            ? `Contrato de compraventa procesado desde: ${doc.title}`
+            : `Purchase agreement processed from: ${doc.title}`;
           
-          if (relevantSentences.length > 0) {
-            description = relevantSentences[0];
-          } else {
-            description = language === 'es' 
-              ? `Contrato de compraventa relacionado con ${doc.title}`
-              : `Purchase agreement related to ${doc.title}`;
-          }
+          result = language === 'es' ? 'Contrato de compraventa registrado' : 'Purchase agreement registered';
           
-          // Extraer resultado
-          if (text.includes('firmado') || text.includes('signed')) {
-            result = language === 'es' ? 'Contrato firmado' : 'Contract signed';
-          } else {
-            result = language === 'es' ? 'Contrato en vigencia' : 'Contract in effect';
-          }
-          
-          // Extraer entidad
-          const entityPatterns = [
-            /(?:vendedor|seller):\s*([^,\n.]+)/i,
-            /(?:comprador|buyer):\s*([^,\n.]+)/i
-          ];
-          
-          for (const pattern of entityPatterns) {
-            const match = doc.extracted_text.match(pattern);
-            if (match && match[1]) {
-              entity = match[1].trim();
-              break;
-            }
-          }
         } else if (text.includes('laboral') || text.includes('employment') || text.includes('trabajo')) {
           procedureType = language === 'es' ? 'Contrato Laboral' : 'Employment Contract';
           
-          // Extraer descripción
-          const sentences = doc.extracted_text.split(/(?<=[.!?])\s+/);
-          const relevantSentences = sentences.filter(s => 
-            s.toLowerCase().includes('laboral') || 
-            s.toLowerCase().includes('employment') || 
-            s.toLowerCase().includes('trabajo') ||
-            s.toLowerCase().includes('work')
-          );
+          description = language === 'es' 
+            ? `Contrato laboral procesado desde: ${doc.title}`
+            : `Employment contract processed from: ${doc.title}`;
           
-          if (relevantSentences.length > 0) {
-            description = relevantSentences[0];
-          } else {
-            description = language === 'es' 
-              ? `Contrato laboral relacionado con ${doc.title}`
-              : `Employment contract related to ${doc.title}`;
-          }
+          result = language === 'es' ? 'Contrato laboral registrado' : 'Employment contract registered';
           
-          // Extraer resultado
-          if (text.includes('firmado') || text.includes('signed')) {
-            result = language === 'es' ? 'Contrato firmado' : 'Contract signed';
-          } else {
-            result = language === 'es' ? 'Contrato en vigencia' : 'Contract in effect';
-          }
-          
-          // Extraer entidad
-          const entityPatterns = [
-            /(?:empleador|employer):\s*([^,\n.]+)/i,
-            /(?:empresa|company):\s*([^,\n.]+)/i
-          ];
-          
-          for (const pattern of entityPatterns) {
-            const match = doc.extracted_text.match(pattern);
-            if (match && match[1]) {
-              entity = match[1].trim();
-              break;
-            }
-          }
         } else {
           procedureType = language === 'es' ? 'Contrato General' : 'General Contract';
           description = language === 'es' 
-            ? `Contrato relacionado con ${doc.title}`
-            : `Contract related to ${doc.title}`;
-          result = language === 'es' ? 'Contrato registrado' : 'Contract registered';
+            ? `Contrato procesado desde el documento: ${doc.title}`
+            : `Contract processed from document: ${doc.title}`;
+          result = language === 'es' ? 'Contrato registrado en el sistema' : 'Contract registered in system';
         }
+        
       } else if (text.includes('demanda') || text.includes('lawsuit') || text.includes('complaint')) {
         procedureType = language === 'es' ? 'Demanda Legal' : 'Legal Complaint';
         
-        // Extraer descripción
-        const sentences = doc.extracted_text.split(/(?<=[.!?])\s+/);
-        const relevantSentences = sentences.filter(s => 
-          s.toLowerCase().includes('demanda') || 
-          s.toLowerCase().includes('lawsuit') || 
-          s.toLowerCase().includes('complaint') ||
-          s.toLowerCase().includes('tribunal') ||
-          s.toLowerCase().includes('court')
-        );
+        description = language === 'es' 
+          ? `Demanda legal procesada desde: ${doc.title}`
+          : `Legal complaint processed from: ${doc.title}`;
         
-        if (relevantSentences.length > 0) {
-          description = relevantSentences[0];
-        } else {
-          description = language === 'es' 
-            ? `Demanda legal relacionada con ${doc.title}`
-            : `Legal complaint related to ${doc.title}`;
-        }
-        
-        // Extraer resultado
         if (text.includes('sentencia') || text.includes('judgment') || text.includes('verdict')) {
           result = language === 'es' ? 'Sentencia emitida' : 'Judgment issued';
           status = 'completed';
-        } else if (text.includes('en curso') || text.includes('ongoing') || text.includes('in progress')) {
-          result = language === 'es' ? 'Proceso en curso' : 'Ongoing process';
-          status = 'in-progress';
         } else {
           result = language === 'es' ? 'Demanda presentada' : 'Complaint filed';
           status = 'in-progress';
         }
         
-        // Extraer entidad
-        const entityPatterns = [
-          /(?:tribunal|court):\s*([^,\n.]+)/i,
-          /(?:juzgado|courthouse):\s*([^,\n.]+)/i,
-          /(?:demandado|defendant):\s*([^,\n.]+)/i
-        ];
-        
-        for (const pattern of entityPatterns) {
-          const match = doc.extracted_text.match(pattern);
-          if (match && match[1]) {
-            entity = match[1].trim();
-            break;
-          }
-        }
       } else if (text.includes('testamento') || text.includes('will') || text.includes('testament')) {
         procedureType = language === 'es' ? 'Testamento' : 'Last Will and Testament';
         description = language === 'es' 
-          ? `Testamento relacionado con ${doc.title}`
-          : `Will related to ${doc.title}`;
+          ? `Testamento procesado desde: ${doc.title}`
+          : `Will processed from: ${doc.title}`;
         result = language === 'es' ? 'Testamento registrado' : 'Will registered';
         
-        // Extraer entidad
-        const entityPatterns = [
-          /(?:notaría|notary):\s*([^,\n.]+)/i,
-          /(?:notario|notary):\s*([^,\n.]+)/i
-        ];
-        
-        for (const pattern of entityPatterns) {
-          const match = doc.extracted_text.match(pattern);
-          if (match && match[1]) {
-            entity = match[1].trim();
-            break;
-          }
-        }
       } else if (text.includes('poder') || text.includes('power of attorney')) {
         procedureType = language === 'es' ? 'Poder Legal' : 'Power of Attorney';
         description = language === 'es' 
-          ? `Poder legal relacionado con ${doc.title}`
-          : `Power of attorney related to ${doc.title}`;
+          ? `Poder legal procesado desde: ${doc.title}`
+          : `Power of attorney processed from: ${doc.title}`;
         result = language === 'es' ? 'Poder otorgado' : 'Power granted';
         
-        // Extraer entidad
-        const entityPatterns = [
-          /(?:apoderado|attorney):\s*([^,\n.]+)/i,
-          /(?:otorgante|grantor):\s*([^,\n.]+)/i
-        ];
-        
-        for (const pattern of entityPatterns) {
-          const match = doc.extracted_text.match(pattern);
-          if (match && match[1]) {
-            entity = match[1].trim();
-            break;
-          }
-        }
       } else {
         // Documento legal genérico
         procedureType = language === 'es' ? 'Documento Legal' : 'Legal Document';
         description = language === 'es' 
-          ? `Documento legal: ${doc.title}`
-          : `Legal document: ${doc.title}`;
-        result = language === 'es' ? 'Documento registrado' : 'Document registered';
+          ? `Documento legal procesado: ${doc.title}`
+          : `Legal document processed: ${doc.title}`;
+        result = language === 'es' ? 'Documento registrado en el sistema' : 'Document registered in system';
       }
       
       // Extraer fecha del documento o usar fecha de subida
@@ -379,7 +265,15 @@ export default function LegalHistoryPage() {
       for (const pattern of datePatterns) {
         const match = doc.extracted_text.match(pattern);
         if (match && match[1]) {
-          date = match[1];
+          // Convertir fecha encontrada a formato ISO
+          try {
+            const foundDate = new Date(match[1]);
+            if (!isNaN(foundDate.getTime())) {
+              date = foundDate.toISOString();
+            }
+          } catch (e) {
+            // Si no se puede convertir, usar fecha de subida
+          }
           break;
         }
       }
@@ -392,10 +286,10 @@ export default function LegalHistoryPage() {
         date: date,
         status: status,
         description: description,
-        entity: entity,
+        entity: entity || 'No especificado',
         document_id: doc.id,
         document_title: doc.title,
-        jurisdiction: jurisdiction
+        jurisdiction: jurisdiction || 'General'
       });
     }
     
@@ -469,7 +363,7 @@ export default function LegalHistoryPage() {
           <History className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.loading, 'title', language)}</h2>
           <p className="text-just-gray dark:text-gray-400">
-            {smartCapitalize(language === 'es' ? 'cargando tu historial legal...' : 'loading your legal history...', 'sentence', language)}
+            {smartCapitalize(language === 'es' ? 'procesando documentos y extrayendo historial legal...' : 'processing documents and extracting legal history...', 'sentence', language)}
           </p>
         </div>
       </div>
@@ -512,8 +406,8 @@ export default function LegalHistoryPage() {
                 <p className="text-just-gray dark:text-gray-400">
                   {smartCapitalize(
                     language === 'es' 
-                      ? `${history.length} procedimientos extraídos de tus documentos`
-                      : `${history.length} procedures extracted from your documents`,
+                      ? `${history.length} procedimientos extraídos de tus documentos DOCX`
+                      : `${history.length} procedures extracted from your DOCX documents`,
                     'sentence',
                     language
                   )}
@@ -547,8 +441,8 @@ export default function LegalHistoryPage() {
             <p className="text-just-gray dark:text-gray-400 mb-6">
               {smartCapitalize(
                 language === 'es' 
-                  ? 'tus procedimientos legales aparecerán aquí una vez que subas documentos DOCX.'
-                  : 'your legal procedures will appear here once you upload DOCX documents.',
+                  ? 'sube documentos DOCX para que se extraiga automáticamente tu historial legal.'
+                  : 'upload DOCX documents to automatically extract your legal history.',
                 'sentence',
                 language
               )}
@@ -557,7 +451,7 @@ export default function LegalHistoryPage() {
               onClick={() => navigate('/upload')}
               className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300 flex items-center mx-auto"
             >
-              <Upload className="w-5 h-5 mr-2" />
+              <FileText className="w-5 h-5 mr-2" />
               {smartCapitalize(t.uploadDocument, 'title', language)}
             </button>
           </div>
@@ -613,7 +507,7 @@ export default function LegalHistoryPage() {
                           </p>
                           <p className="text-sm text-just-hunter dark:text-gray-300">{entry.result}</p>
                         </div>
-                        {entry.entity && (
+                        {entry.entity && entry.entity !== 'No especificado' && (
                           <div>
                             <p className="text-sm font-medium text-just-forest dark:text-just-white">
                               {smartCapitalize(language === 'es' ? 'entidad:' : 'entity:', 'title', language)}
