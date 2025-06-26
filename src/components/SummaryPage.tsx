@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen, MapPin, Scale, Home } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
 import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
+import { ArrowLeft, Home, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen, MapPin, Scale } from 'lucide-react';
+import { Language, getTranslations } from '../utils/i18n';
 import { summarizeDocument } from '../utils/summarizer';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,6 +105,8 @@ export default function SummaryPage({
   const autoFetchOrGenerateGuide = async (docId: string, extractedText: string) => {
     setIsSimplifying(true);
     try {
+      console.log('🔍 Buscando guía existente para documento:', docId);
+      
       // Buscar si ya existe la guía en Supabase
       const { data, error } = await supabase
         .from('simplified_guides')
@@ -113,19 +115,26 @@ export default function SummaryPage({
         .maybeSingle();
       
       if (error) {
-        console.error('Error fetching guide:', error);
+        console.error('❌ Error fetching guide:', error);
       }
       
       if (data) {
+        console.log('✅ Guía existente encontrada:', data);
         setSimplifiedGuide(data);
         setIsSimplifying(false);
         return;
       }
       
+      console.log('📝 No existe guía, generando nueva...');
+      
       // Si no existe y hay texto, generar y guardar una nueva guía
       if (extractedText && extractedText.length > 0) {
         // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
         const guide = await generateStepByStepGuide(extractedText, language);
+        
+        console.log('🤖 Guía generada:', guide);
+        
+        // Guardar en la base de datos
         const { data: insertData, error: insertError } = await supabase
           .from('simplified_guides')
           .insert([
@@ -141,7 +150,9 @@ export default function SummaryPage({
           .maybeSingle();
         
         if (insertError) {
-          console.error('Error inserting guide:', insertError);
+          console.error('❌ Error inserting guide:', insertError);
+        } else {
+          console.log('✅ Guía guardada en base de datos:', insertData);
         }
         
         // Agregar información de jurisdicción al guide
@@ -154,7 +165,7 @@ export default function SummaryPage({
         setSimplifiedGuide(enhancedGuide);
       }
     } catch (err) {
-      console.error('Error in autoFetchOrGenerateGuide:', err);
+      console.error('💥 Error in autoFetchOrGenerateGuide:', err);
     } finally {
       setIsSimplifying(false);
     }

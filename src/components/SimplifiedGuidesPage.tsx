@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash, Home } from 'lucide-react';
+import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash, Home, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -26,6 +26,7 @@ export default function SimplifiedGuidesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('all');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const t = getTranslations(language);
 
@@ -33,48 +34,85 @@ export default function SimplifiedGuidesPage() {
     const loadGuides = async () => {
       try {
         setIsLoading(true);
+        console.log('🔍 Cargando guías para usuario:', userId);
         
-        // Obtener todas las guías del usuario a través de sus documentos
-        const { data, error } = await supabase
-          .from('simplified_guides')
-          .select(`
-            id,
-            document_id,
-            summary,
-            reading_level,
-            created_at,
-            steps,
-            documents!inner (
-              title,
-              document_type,
-              user_id
-            )
-          `)
-          .eq('documents.user_id', userId)
-          .order('created_at', { ascending: false });
+        // Primero, verificar si hay documentos del usuario
+        const { data: userDocuments, error: docsError } = await supabase
+          .from('documents')
+          .select('id, title, document_type')
+          .eq('user_id', userId);
         
-        if (error) {
-          console.error('Error loading guides:', error);
-          setGuides([]);
+        console.log('📄 Documentos del usuario:', userDocuments);
+        
+        if (docsError) {
+          console.error('❌ Error cargando documentos:', docsError);
+          setDebugInfo({ error: 'Error cargando documentos', details: docsError });
           return;
         }
         
-        // Transformar los datos para el componente
-        const userGuides = (data || []).map((g: any) => ({
-          id: g.id,
-          document_id: g.document_id,
-          document_title: g.documents.title,
-          document_type: g.documents.document_type,
-          summary: g.summary,
-          reading_level: g.reading_level,
-          created_at: g.created_at,
-          word_count: g.summary ? g.summary.split(/\s+/).length : 0,
-          steps: g.steps || []
-        }));
+        if (!userDocuments || userDocuments.length === 0) {
+          console.log('📭 No hay documentos para este usuario');
+          setGuides([]);
+          setDebugInfo({ message: 'No hay documentos subidos aún' });
+          return;
+        }
         
-        setGuides(userGuides);
+        // Luego, buscar guías para esos documentos
+        const documentIds = userDocuments.map(doc => doc.id);
+        console.log('🔍 Buscando guías para documentos:', documentIds);
+        
+        const { data: guidesData, error: guidesError } = await supabase
+          .from('simplified_guides')
+          .select('*')
+          .in('document_id', documentIds)
+          .order('created_at', { ascending: false });
+        
+        console.log('📚 Guías encontradas:', guidesData);
+        
+        if (guidesError) {
+          console.error('❌ Error cargando guías:', guidesError);
+          setDebugInfo({ error: 'Error cargando guías', details: guidesError });
+          return;
+        }
+        
+        if (!guidesData || guidesData.length === 0) {
+          console.log('📭 No hay guías generadas aún');
+          setGuides([]);
+          setDebugInfo({ 
+            message: 'No hay guías generadas', 
+            documents: userDocuments.length,
+            suggestion: 'Sube un documento y ve al resumen para generar una guía'
+          });
+          return;
+        }
+        
+        // Combinar datos de guías con información de documentos
+        const enrichedGuides = guidesData.map(guide => {
+          const document = userDocuments.find(doc => doc.id === guide.document_id);
+          return {
+            id: guide.id,
+            document_id: guide.document_id,
+            document_title: document?.title || 'Documento sin título',
+            document_type: document?.document_type || 'Tipo desconocido',
+            summary: guide.summary,
+            reading_level: guide.reading_level,
+            created_at: guide.created_at,
+            word_count: guide.summary ? guide.summary.split(/\s+/).length : 0,
+            steps: guide.steps || []
+          };
+        });
+        
+        console.log('✅ Guías procesadas:', enrichedGuides);
+        setGuides(enrichedGuides);
+        setDebugInfo({ 
+          success: true, 
+          guidesCount: enrichedGuides.length,
+          documentsCount: userDocuments.length 
+        });
+        
       } catch (error) {
-        console.error('Failed to load guides:', error);
+        console.error('💥 Error general:', error);
+        setDebugInfo({ error: 'Error general', details: error });
         setGuides([]);
       } finally {
         setIsLoading(false);
@@ -83,6 +121,9 @@ export default function SimplifiedGuidesPage() {
     
     if (userId) {
       loadGuides();
+    } else {
+      setIsLoading(false);
+      setDebugInfo({ error: 'No hay usuario autenticado' });
     }
   }, [userId]);
 
@@ -199,6 +240,26 @@ export default function SimplifiedGuidesPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Debug Info - Solo mostrar si hay problemas */}
+        {debugInfo && !debugInfo.success && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-6 mb-6">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                  {language === 'es' ? 'Información de diagnóstico' : 'Debug Information'}
+                </h3>
+                <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                  {debugInfo.error && <p><strong>Error:</strong> {debugInfo.error}</p>}
+                  {debugInfo.message && <p><strong>Estado:</strong> {debugInfo.message}</p>}
+                  {debugInfo.documents !== undefined && <p><strong>Documentos:</strong> {debugInfo.documents}</p>}
+                  {debugInfo.suggestion && <p><strong>Sugerencia:</strong> {debugInfo.suggestion}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters and Search */}
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
@@ -237,15 +298,25 @@ export default function SimplifiedGuidesPage() {
             <p className="text-just-gray dark:text-gray-400 mb-6">
               {searchTerm 
                 ? smartCapitalize(language === 'es' ? 'intenta con diferentes términos de búsqueda' : 'try different search terms', 'sentence', language)
-                : smartCapitalize(language === 'es' ? 'sube documentos para generar guías simplificadas automáticamente' : 'upload documents to automatically generate simplified guides', 'sentence', language)
+                : smartCapitalize(language === 'es' ? 'sube documentos DOCX y ve al resumen para generar guías automáticamente' : 'upload DOCX documents and go to summary to automatically generate guides', 'sentence', language)
               }
             </p>
-            <button
-              onClick={() => navigate('/upload')}
-              className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
-            >
-              {smartCapitalize(t.uploadDocument, 'title', language)}
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/upload')}
+                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300 mr-3"
+              >
+                {smartCapitalize(t.uploadDocument, 'title', language)}
+              </button>
+              {debugInfo && debugInfo.documents > 0 && (
+                <p className="text-sm text-just-gray dark:text-gray-400">
+                  {language === 'es' 
+                    ? `Tienes ${debugInfo.documents} documento(s) subido(s). Ve al resumen de algún documento para generar su guía.`
+                    : `You have ${debugInfo.documents} document(s) uploaded. Go to a document summary to generate its guide.`
+                  }
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
