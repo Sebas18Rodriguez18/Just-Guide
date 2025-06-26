@@ -5,7 +5,6 @@ import RegisterPage from './components/RegisterPage';
 import MyDocumentsPage from './components/MyDocumentsPage';
 import UploadDocumentPage from './components/UploadDocumentPage';
 import SimplifiedGuidesPage from './components/SimplifiedGuidesPage';
-import LegalHistoryPage from './components/LegalHistoryPage';
 import SettingsPage from './components/SettingsPage';
 import { AppProvider } from './contexts/AppContext';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
@@ -41,7 +40,6 @@ function RoutedPages() {
       <Route path="/upload" element={<UploadDocumentPage />} />
       <Route path="/guides" element={<SimplifiedGuidesPage />} />
       <Route path="/guides/:docId" element={<GuidePageWrapper />} />
-      <Route path="/history" element={<LegalHistoryPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

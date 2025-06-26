@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Upload, FileText, History, Settings, User, Moon, Sun, TrendingUp, CheckCircle, Clock, Search, Filter, MoreVertical, BookOpen, Sparkles, Globe, ChevronDown, Menu, X, Users, Award, Zap
+  Upload, FileText, Settings, User, Moon, Sun, TrendingUp, CheckCircle, Clock, Search, Filter, MoreVertical, BookOpen, Sparkles, Globe, ChevronDown, Menu, X, Users, Award, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
@@ -83,7 +83,6 @@ export default function DashboardPage() {
     { id: 'upload', label: t.uploadDocument, icon: Upload },
     { id: 'documents', label: t.myDocuments, icon: FileText },
     { id: 'simplified', label: t.simplifiedGuides, icon: BookOpen },
-    { id: 'history', label: t.legalHistory, icon: History },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
@@ -125,9 +124,6 @@ export default function DashboardPage() {
         break;
       case 'simplified':
         navigate('/guides');
-        break;
-      case 'history':
-        navigate('/history');
         break;
       case 'settings':
         navigate('/settings');
@@ -551,7 +547,6 @@ export default function DashboardPage() {
               <div className="w-16 h-16 bg-just-sand dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 {activeTab === 'documents' && <FileText className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
                 {activeTab === 'simplified' && <BookOpen className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
-                {activeTab === 'history' && <History className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
                 {activeTab === 'settings' && <Settings className="w-8 h-8 text-just-hunter dark:text-gray-400" />}
               </div>
               <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
