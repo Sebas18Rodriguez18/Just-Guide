@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, FileText, File } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
-import { parseDocumentWithOCR } from '../utils/ocrService';
+import { parseDocument } from '../utils/documentParser';
 import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
 import Swal from 'sweetalert2';
@@ -13,7 +13,7 @@ interface UploadState {
   progress: number;
   message: string;
   error?: string;
-  ocrProgress?: number;
+  parseProgress?: number;
 }
 
 export default function UploadDocumentPage() {
@@ -30,45 +30,31 @@ export default function UploadDocumentPage() {
 
   const t = getTranslations(language);
 
+  // Solo aceptar PDF y DOCX
   const acceptedTypes = {
     'application/pdf': ['.pdf'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    'image/jpeg': ['.jpg', '.jpeg'],
-    'image/png': ['.png'],
-    'image/gif': ['.gif']
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
   };
 
   const validateFile = (file: File): string | null => {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      return language === 'es' ? 'El archivo debe ser menor a 10MB' 
-        : language === 'fr' ? 'Le fichier doit faire moins de 10 Mo'
-        : language === 'de' ? 'Die Datei muss kleiner als 10 MB sein'
-        : language === 'pt' ? 'O arquivo deve ter menos de 10MB'
-        : language === 'ar' ? 'يجب أن يكون حجم الملف أقل من 10 ميجابايت'
-        : language === 'zh' ? '文件大小必须小于10MB'
-        : language === 'hi' ? 'फ़ाइल का आकार 10MB से कम होना चाहिए'
-        : 'File size must be less than 10MB';
+      return language === 'es' ? 'El archivo debe ser menor a 10MB' : 'File size must be less than 10MB';
     }
 
-    const isValidType = Object.keys(acceptedTypes).includes(file.type) ||
-      file.name.toLowerCase().match(/\.(pdf|docx|jpg|jpeg|png|gif)$/);
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isDOCX = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                   file.name.toLowerCase().endsWith('.docx');
     
-    if (!isValidType) {
-      return language === 'es' ? 'Por favor sube un archivo PDF, DOCX o imagen (JPG, PNG, GIF)'
-        : language === 'fr' ? 'Veuillez télécharger un fichier PDF, DOCX ou image (JPG, PNG, GIF)'
-        : language === 'de' ? 'Bitte laden Sie eine PDF-, DOCX- oder Bilddatei (JPG, PNG, GIF) hoch'
-        : language === 'pt' ? 'Por favor, envie um arquivo PDF, DOCX ou imagem (JPG, PNG, GIF)'
-        : language === 'ar' ? 'يرجى تحميل ملف PDF أو DOCX أو صورة (JPG، PNG، GIF)'
-        : language === 'zh' ? '请上传PDF、DOCX或图像文件（JPG、PNG、GIF）'
-        : language === 'hi' ? 'कृपया PDF, DOCX या छवि फ़ाइल (JPG, PNG, GIF) अपलोड करें'
-        : 'Please upload a PDF, DOCX, or image file (JPG, PNG, GIF)';
+    if (!isPDF && !isDOCX) {
+      return language === 'es' 
+        ? 'Solo se admiten archivos PDF y DOCX' 
+        : 'Only PDF and DOCX files are allowed';
     }
 
     return null;
   };
 
-  // Eliminar referencias a currentUser, usar solo user del contexto
   const uploadToSupabase = async (file: File): Promise<{ publicUrl: string, filePath: string }> => {
     if (!user) {
       throw new Error(language === 'es' ? 'Debes iniciar sesión para subir documentos.' : 'You must be logged in to upload documents.');
@@ -87,7 +73,6 @@ export default function UploadDocumentPage() {
     return { publicUrl, filePath };
   };
 
-  // Reemplazar createDocumentRecord para insertar en Supabase
   type DocumentInsert = {
     title: string;
     document_type: string;
@@ -101,8 +86,7 @@ export default function UploadDocumentPage() {
   const createDocumentRecord = async (file: File, fileUrl: string): Promise<string> => {
     const documentData: DocumentInsert = {
       title: file.name.replace(/\.[^/.]+$/, ''),
-      document_type: file.type.includes('pdf') ? 'PDF' : 
-                    file.type.includes('word') ? 'DOCX' : 'Image',
+      document_type: file.type.includes('pdf') ? 'PDF' : 'DOCX',
       language: language,
       file_url: fileUrl,
       user_id: userId,
@@ -114,13 +98,11 @@ export default function UploadDocumentPage() {
     return data.id;
   };
 
-  // Reemplazar updateDocumentWithParsedData para actualizar en Supabase
   const updateDocumentWithParsedData = async (docId: string, extractedText: string, detectedLanguage: string): Promise<void> => {
     const { error } = await supabase.from('documents').update({
       extracted_text: extractedText,
       detected_language: detectedLanguage,
       status: 'completed',
-      // processed_at eliminado porque no existe en la tabla
     }).eq('id', docId);
     if (error) throw new Error(error.message);
   };
@@ -136,6 +118,7 @@ export default function UploadDocumentPage() {
       });
       return;
     }
+
     try {
       if (!user) {
         setUploadState({
@@ -146,95 +129,59 @@ export default function UploadDocumentPage() {
         });
         return;
       }
-      // Step 2: Upload file
+
+      // Paso 1: Subir archivo
       setUploadState({
         status: 'uploading',
         progress: 25,
         message: t.uploading
       });
       const { publicUrl } = await uploadToSupabase(file);
-      // Step 3: Create document record
+
+      // Paso 2: Crear registro del documento
       setUploadState({
         status: 'uploading',
-        progress: 50,
-        message: language === 'es' ? 'Creando registro del documento...' 
-          : language === 'fr' ? 'Création de l\'enregistrement du document...'
-          : language === 'de' ? 'Erstelle Dokumenteneintrag...'
-          : language === 'pt' ? 'Criando registro do documento...'
-          : language === 'ar' ? 'إنشاء سجل الوثيقة...'
-          : language === 'zh' ? '创建文档记录...'
-          : language === 'hi' ? 'दस्तावेज़ रिकॉर्ड बना रहे हैं...'
-          : 'Creating document record...'
+        progress: 40,
+        message: language === 'es' ? 'Creando registro del documento...' : 'Creating document record...'
       });
       const docId = await createDocumentRecord(file, publicUrl);
-      // Step 4: Parse document with real OCR
+
+      // Paso 3: Extraer texto del documento
       setUploadState({
         status: 'processing',
-        progress: 60,
-        message: language === 'es' ? 'Extrayendo texto con IA...'
-          : language === 'fr' ? 'Extraction de texte avec IA...'
-          : language === 'de' ? 'Text mit KI extrahieren...'
-          : language === 'pt' ? 'Extraindo texto com IA...'
-          : language === 'ar' ? 'استخراج النص بالذكاء الاصطناعي...'
-          : language === 'zh' ? '使用AI提取文本...'
-          : language === 'hi' ? 'AI के साथ टेक्स्ट निकाल रहे हैं...'
-          : 'Extracting text with AI...'
+        progress: 50,
+        message: language === 'es' ? 'Extrayendo texto del documento...' : 'Extracting text from document...'
       });
 
-      const { extracted_text, detected_language, confidence } = await parseDocumentWithOCR(
-        file, 
-        language,
-        (ocrProgress) => {
-          setUploadState(prev => ({
-            ...prev,
-            progress: 60 + (ocrProgress * 20), // OCR takes 20% of total progress
-            ocrProgress: ocrProgress
-          }));
-        }
-      );
+      const parseResult = await parseDocument(file, (parseProgress) => {
+        setUploadState(prev => ({
+          ...prev,
+          progress: 50 + (parseProgress * 30), // 30% del progreso total para parsing
+          parseProgress: parseProgress
+        }));
+      });
 
-      if (confidence < 0.5) {
-        throw new Error('Document text quality too low for reliable processing');
+      if (parseResult.confidence < 0.5) {
+        throw new Error(language === 'es' ? 'La calidad del texto extraído es muy baja' : 'Extracted text quality is too low');
       }
 
-      // Step 5: Update document with parsed data
+      // Paso 4: Actualizar documento con texto extraído
       setUploadState({
         status: 'processing',
-        progress: 90,
-        message: language === 'es' ? 'Finalizando documento...'
-          : language === 'fr' ? 'Finalisation du document...'
-          : language === 'de' ? 'Dokument fertigstellen...'
-          : language === 'pt' ? 'Finalizando documento...'
-          : language === 'ar' ? 'إنهاء الوثيقة...'
-          : language === 'zh' ? '完成文档...'
-          : language === 'hi' ? 'दस्तावेज़ को अंतिम रूप दे रहे हैं...'
-          : 'Finalizing document...'
+        progress: 85,
+        message: language === 'es' ? 'Guardando texto extraído...' : 'Saving extracted text...'
       });
 
-      await updateDocumentWithParsedData(docId, extracted_text, detected_language);
+      await updateDocumentWithParsedData(docId, parseResult.extracted_text, parseResult.detected_language);
 
-      // Step 6: Generar y guardar la guía paso a paso con datos reales
+      // Paso 5: Generar guía paso a paso
       setUploadState({
         status: 'processing',
         progress: 95,
-        message: language === 'es'
-          ? 'Generando guía paso a paso...'
-          : language === 'fr'
-          ? 'Génération du guide étape par étape...'
-          : language === 'de'
-          ? 'Schritt-für-Schritt-Anleitung wird erstellt...'
-          : language === 'pt'
-          ? 'Gerando guia passo a passo...'
-          : language === 'ar'
-          ? 'جارٍ إنشاء الدليل خطوة بخطوة...'
-          : language === 'zh'
-          ? '正在生成分步指南...'
-          : language === 'hi'
-          ? 'स्टेप-बाय-स्टेप गाइड बना रहे हैं...'
-          : 'Generating step-by-step guide...'
+        message: language === 'es' ? 'Generando guía paso a paso...' : 'Generating step-by-step guide...'
       });
 
-      const guide = await generateStepByStepGuide(extracted_text, language);
+      const guide = await generateStepByStepGuide(parseResult.extracted_text, parseResult.detected_language);
       await supabase.from('simplified_guides').insert([
         {
           document_id: docId,
@@ -245,24 +192,38 @@ export default function UploadDocumentPage() {
         }
       ]);
 
-      // Step 7: Success
+      // Paso 6: Éxito
       setUploadState({
         status: 'success',
         progress: 100,
-        message: language === 'es' ? '¡Documento procesado exitosamente!'
-          : language === 'fr' ? 'Document traité avec succès!'
-          : language === 'de' ? 'Dokument erfolgreich verarbeitet!'
-          : language === 'pt' ? 'Documento processado com sucesso!'
-          : language === 'ar' ? 'تم معالجة الوثيقة بنجاح!'
-          : language === 'zh' ? '文档处理成功！'
-          : language === 'hi' ? 'दस्तावेज़ सफलतापूर्वक संसाधित!'
-          : 'Document processed successfully!'
+        message: language === 'es' ? '¡Documento procesado exitosamente!' : 'Document processed successfully!'
       });
 
-      // Redirect to summary page after a brief delay
+      // Mostrar información del documento procesado
+      Swal.fire({
+        icon: 'success',
+        title: language === 'es' ? '¡Documento Procesado!' : 'Document Processed!',
+        html: `
+          <div class="text-left">
+            <p><strong>${language === 'es' ? 'Archivo:' : 'File:'}</strong> ${file.name}</p>
+            <p><strong>${language === 'es' ? 'Tipo:' : 'Type:'}</strong> ${parseResult.detected_language === 'es' ? 'Español' : 'English'}</p>
+            <p><strong>${language === 'es' ? 'Palabras:' : 'Words:'}</strong> ${parseResult.word_count}</p>
+            <p><strong>${language === 'es' ? 'Confianza:' : 'Confidence:'}</strong> ${Math.round(parseResult.confidence * 100)}%</p>
+          </div>
+        `,
+        timer: 3000,
+        showConfirmButton: true,
+        confirmButtonText: language === 'es' ? 'Ver Resumen' : 'View Summary'
+      }).then((result) => {
+        if (result.isConfirmed || result.isDismissed) {
+          navigate(`/summary/${docId}`);
+        }
+      });
+
+      // Redirigir después de un breve delay
       setTimeout(() => {
         navigate(`/summary/${docId}`);
-      }, 1500);
+      }, 3500);
 
     } catch (error) {
       let errorMessage = '';
@@ -273,12 +234,13 @@ export default function UploadDocumentPage() {
       } else {
         errorMessage = language === 'es' ? 'Error desconocido al procesar el documento.' : 'Unknown error processing document.';
       }
-      // Mostrar notificación clara
+
       Swal.fire({
         icon: 'error',
-        title: language === 'es' ? 'Error al subir documento' : 'Error uploading document',
+        title: language === 'es' ? 'Error al procesar documento' : 'Error processing document',
         text: errorMessage
       });
+
       setUploadState({
         status: 'error',
         progress: 0,
@@ -315,73 +277,165 @@ export default function UploadDocumentPage() {
     }
   };
 
+  const getFileIcon = (fileName: string) => {
+    if (fileName.toLowerCase().endsWith('.pdf')) {
+      return <FileText className="w-8 h-8 text-red-600" />;
+    } else if (fileName.toLowerCase().endsWith('.docx')) {
+      return <File className="w-8 h-8 text-blue-600" />;
+    }
+    return <Upload className="w-8 h-8 text-just-moss" />;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-just-beige dark:bg-gray-900 px-4 py-8">
       <div className="w-full max-w-xl mx-auto">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-fade-in">
-          <h2 className="text-xl font-bold text-just-forest dark:text-just-white mb-4 flex items-center">
-            <Upload className="w-6 h-6 mr-2 text-just-moss" /> {t.uploadDocument}
-          </h2>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
+              <Upload className="w-6 h-6 mr-2 text-just-moss" /> 
+              {t.uploadDocument}
+            </h2>
+            <p className="text-just-gray dark:text-gray-400">
+              {language === 'es' 
+                ? 'Sube archivos PDF o DOCX en español o inglés'
+                : 'Upload PDF or DOCX files in Spanish or English'
+              }
+            </p>
+          </div>
+
+          {/* Drop Zone */}
           <div
-            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 mb-6 transition-colors duration-200 ${dragActive ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20' : 'border-just-sand dark:border-gray-700 bg-just-beige/50 dark:bg-gray-900/30'}`}
+            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 mb-6 transition-all duration-200 ${
+              dragActive 
+                ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 scale-105' 
+                : 'border-just-sand dark:border-gray-700 bg-just-beige/50 dark:bg-gray-900/30'
+            }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <p className="text-just-hunter dark:text-gray-300 mb-2 text-center">
-              {language === 'es' ? 'Arrastra y suelta aquí o selecciona un archivo.' : 'Drag and drop here or select a file.'}
-            </p>
+            {uploadState.status === 'idle' && (
+              <>
+                <div className="flex space-x-4 mb-4">
+                  <FileText className="w-12 h-12 text-red-600" />
+                  <File className="w-12 h-12 text-blue-600" />
+                </div>
+                <p className="text-just-hunter dark:text-gray-300 mb-4 text-center font-medium">
+                  {language === 'es' 
+                    ? 'Arrastra y suelta tu archivo PDF o DOCX aquí'
+                    : 'Drag and drop your PDF or DOCX file here'
+                  }
+                </p>
+                <p className="text-sm text-just-gray dark:text-gray-400 mb-4 text-center">
+                  {language === 'es' 
+                    ? 'Solo documentos en español e inglés'
+                    : 'Only documents in Spanish and English'
+                  }
+                </p>
+              </>
+            )}
+
+            {uploadState.status === 'processing' && (
+              <div className="text-center">
+                {getFileIcon('processing')}
+                <p className="text-just-hunter dark:text-gray-300 mt-4 font-medium">
+                  {uploadState.message}
+                </p>
+                {uploadState.parseProgress !== undefined && (
+                  <div className="mt-2">
+                    <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-just-moss h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${uploadState.parseProgress * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-just-gray dark:text-gray-400 mt-1">
+                      {language === 'es' ? 'Extrayendo texto...' : 'Extracting text...'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <input
               type="file"
-              accept=".pdf, .docx, .jpg, .jpeg, .png, .gif"
+              accept=".pdf,.docx"
               onChange={handleFileSelect}
               ref={fileInputRef}
               className="hidden"
             />
-            <button
-              className="mt-2 bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-forest transition-colors duration-200 flex items-center"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadState.status === 'uploading'}
-            >
-              {uploadState.status === 'uploading' ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Upload className="w-5 h-5 mr-2" />} 
-              {uploadState.status === 'uploading' ? t.uploading : t.uploadDocument}
-            </button>
+            
+            {uploadState.status === 'idle' && (
+              <button
+                className="mt-4 bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest transition-all duration-200 flex items-center hover:scale-105"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                {language === 'es' ? 'Seleccionar Archivo' : 'Select File'}
+              </button>
+            )}
           </div>
+
+          {/* Progress Bar */}
           {uploadState.status !== 'idle' && (
-            <div className="mb-4">
-              {uploadState.status === 'uploading' && (
-                <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
-                  <div className="bg-just-moss h-3 rounded-full transition-all duration-300" style={{ width: `${uploadState.progress}%` }}></div>
-                </div>
-              )}
-              {uploadState.status === 'error' && (
-                <div className="flex items-center text-red-600 dark:text-red-400 mt-2">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  <span>{uploadState.error}</span>
-                </div>
-              )}
-              {uploadState.status === 'success' && (
-                <div className="flex items-center text-green-600 dark:text-green-400 mt-2">
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  <span>{language === 'es' ? '¡Documento procesado exitosamente!' : 'Document processed successfully!'}</span>
-                </div>
-              )}
+            <div className="mb-6">
+              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
+                <div 
+                  className="bg-just-moss h-3 rounded-full transition-all duration-500" 
+                  style={{ width: `${uploadState.progress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-just-gray dark:text-gray-400 text-center">
+                {uploadState.progress}% - {uploadState.message}
+              </p>
             </div>
           )}
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-moss transition-colors duration-200 mt-2"
-          >
-            <ArrowLeft className="w-5 h-5 mr-1" /> {language === 'es' ? 'Volver al inicio' : 'Back to Home'}
-          </button>
-          <div className="flex justify-center mt-6 space-x-4">
-            <div className="flex items-center text-just-hunter dark:text-gray-400">
-              <Info className="w-5 h-5 mr-1" />
-              <span className="text-xs">PDF, DOCX, JPG, PNG, GIF</span>
+
+          {/* Status Messages */}
+          {uploadState.status === 'error' && (
+            <div className="flex items-center text-red-600 dark:text-red-400 mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+              <span>{uploadState.error}</span>
             </div>
-            <div className="flex items-center text-just-hunter dark:text-gray-400">
-              <Eye className="w-5 h-5 mr-1" />
-              <span className="text-xs">{language === 'es' ? 'Privado y seguro' : 'Private & secure'}</span>
+          )}
+
+          {uploadState.status === 'success' && (
+            <div className="flex items-center text-green-600 dark:text-green-400 mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+              <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+              <span>{uploadState.message}</span>
+            </div>
+          )}
+
+          {/* Back Button */}
+          <div className="text-center">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-moss transition-colors duration-200"
+              disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+            </button>
+          </div>
+
+          {/* File Info */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+              <Info className="w-4 h-4 mr-2" />
+              <span className="text-xs">PDF, DOCX</span>
+            </div>
+            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+              <Eye className="w-4 h-4 mr-2" />
+              <span className="text-xs">
+                {language === 'es' ? 'Privado y seguro' : 'Private & secure'}
+              </span>
+            </div>
+            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+              <Upload className="w-4 h-4 mr-2" />
+              <span className="text-xs">
+                {language === 'es' ? 'Máx 10MB' : 'Max 10MB'}
+              </span>
             </div>
           </div>
         </div>

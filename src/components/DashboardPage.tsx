@@ -9,19 +9,11 @@ import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 import HackathonBadge from './HackathonBadge';
 
-// Idiomas soportados
+// Solo idiomas soportados: español e inglés
 const languageNames: Record<string, string> = {
   es: 'Español',
-  en: 'English',
-  fr: 'Français',
-  de: 'Deutsch',
-  pt: 'Português',
-  ar: 'العربية',
-  zh: '中文',
-  hi: 'हिन्दी',
+  en: 'English'
 };
-
-// type Language = keyof typeof languageNames;
 
 interface Document {
   id: string;
@@ -50,7 +42,7 @@ export default function DashboardPage() {
     successRate: 94,
     globalUsers: 15420,
     countriesSupported: 25,
-    languagesSupported: 8,
+    languagesSupported: 2, // Solo español e inglés
     avgSatisfaction: 4.8
   };
 
@@ -64,8 +56,8 @@ export default function DashboardPage() {
     },
     {
       icon: Globe,
-      value: '25',
-      label: language === 'es' ? 'Países Soportados' : 'Countries Supported',
+      value: '2',
+      label: language === 'es' ? 'Idiomas Soportados' : 'Languages Supported',
       color: 'text-just-brown',
       bgColor: 'bg-just-brown/10 dark:bg-just-brown/20'
     },
@@ -259,13 +251,13 @@ export default function DashboardPage() {
                   {t.hello}, {userName}! 👋
                 </h1>
                 <p className="text-sm lg:text-base text-just-hunter dark:text-gray-300">
-                  {language === 'es' ? 'Democratizando el acceso a la justicia con IA' : 'Democratizing access to justice with AI'}
+                  {language === 'es' ? 'Simplificando documentos legales con IA' : 'Simplifying legal documents with AI'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2 lg:space-x-4">
-              {/* Language Switcher */}
+              {/* Language Switcher - Solo español e inglés */}
               <div className="relative">
                 <button
                   onClick={() => setShowLanguageMenu(!showLanguageMenu)}
@@ -273,18 +265,18 @@ export default function DashboardPage() {
                 >
                   <Globe className="w-4 lg:w-5 h-4 lg:h-5 text-just-hunter dark:text-gray-300 mr-1 lg:mr-2" />
                   <span className="hidden sm:block text-sm font-medium text-just-hunter dark:text-gray-300">
-                    {language}
+                    {language === 'es' ? 'ES' : 'EN'}
                   </span>
                   <ChevronDown className="w-3 lg:w-4 h-3 lg:h-4 text-just-hunter dark:text-gray-300 ml-1" />
                 </button>
 
                 {showLanguageMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-just-white dark:bg-gray-800 rounded-xl shadow-lg border border-just-sand dark:border-gray-700 z-50 max-h-64 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-48 bg-just-white dark:bg-gray-800 rounded-xl shadow-lg border border-just-sand dark:border-gray-700 z-50">
                     {Object.entries(languageNames).map(([code, name]) => (
                       <button
                         key={code}
                         onClick={() => {
-                          setLanguage(code as any);
+                          setLanguage(code as 'es' | 'en');
                           setShowLanguageMenu(false);
                         }}
                         className={`w-full px-4 py-3 text-left hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl ${
@@ -343,12 +335,12 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold">
-                      {language === 'es' ? 'Impacto Global de JustGuide' : 'JustGuide Global Impact'}
+                      {language === 'es' ? 'JustGuide - Documentos Legales Simplificados' : 'JustGuide - Simplified Legal Documents'}
                     </h2>
                     <p className="text-just-white/80">
                       {language === 'es'
-                        ? 'Democratizando el acceso a la justicia en todo el mundo'
-                        : 'Democratizing access to justice worldwide'
+                        ? 'Procesamiento inteligente de PDF y DOCX en español e inglés'
+                        : 'Intelligent processing of PDF and DOCX in Spanish and English'
                       }
                     </p>
                   </div>
@@ -419,8 +411,8 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es'
-                      ? 'Sube tu documento legal y nuestra IA avanzada con OCR lo procesará automáticamente.'
-                      : 'Upload your legal document and our advanced AI with OCR will process it automatically.'
+                      ? 'Sube archivos PDF o DOCX en español o inglés. Nuestro sistema extrae el texto y lo capitaliza correctamente.'
+                      : 'Upload PDF or DOCX files in Spanish or English. Our system extracts text and capitalizes it correctly.'
                     }
                   </p>
                   <button
@@ -438,8 +430,8 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {language === 'es'
-                      ? 'Tecnología de IA que entiende 25+ jurisdicciones y 8 idiomas para simplificar documentos legales.'
-                      : 'AI technology that understands 25+ jurisdictions and 8 languages to simplify legal documents.'
+                      ? 'Tecnología de IA optimizada para documentos legales en español e inglés con capitalización inteligente.'
+                      : 'AI technology optimized for legal documents in Spanish and English with intelligent capitalization.'
                     }
                   </p>
                   <button className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200">
@@ -507,7 +499,7 @@ export default function DashboardPage() {
                     {language === 'es' ? 'No se encontraron documentos' : 'No documents found'}
                   </h3>
                   <p className="text-just-gray dark:text-gray-400 mb-4">
-                    {language === 'es' ? 'Sube tu primer documento para comenzar' : 'Upload your first document to get started'}
+                    {language === 'es' ? 'Sube tu primer documento PDF o DOCX para comenzar' : 'Upload your first PDF or DOCX document to get started'}
                   </p>
                   <button
                     onClick={() => navigate('/upload')}
