@@ -35,7 +35,11 @@ export default function SimplifiedGuidesPage() {
         const { data, error } = await supabase
           .from('simplified_guides')
           .select(`
-            *,
+            id,
+            document_id,
+            summary,
+            reading_level,
+            created_at,
             documents (
               title,
               document_type,
