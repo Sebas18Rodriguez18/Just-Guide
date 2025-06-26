@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, File, Home } from 'lucide-react';
+import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, File } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -278,11 +278,11 @@ export default function UploadDocumentPage() {
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Header Mejorado con Botones Prominentes */}
+      {/* Header */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Botones de Navegación Prominentes */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          {/* Botón de navegación */}
+          <div className="flex items-start justify-start mb-4">
             <button
               onClick={() => navigate(-1)}
               className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
@@ -290,18 +290,6 @@ export default function UploadDocumentPage() {
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               <span className="font-medium">{t.back}</span>
-            </button>
-            
-            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
-              disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
-            >
-              <Home className="w-5 h-5 mr-2" />
-              <span className="text-lg">
-                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
-              </span>
             </button>
           </div>
 
@@ -466,18 +454,6 @@ export default function UploadDocumentPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Botón Flotante Adicional para Volver al Panel */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
-          title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
-          disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
-        >
-          <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
-        </button>
       </div>
     </div>
   );
