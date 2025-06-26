@@ -78,7 +78,7 @@ function detectJurisdiction(text: string): JurisdictionInfo {
     return {
       country: 'Colombia',
       legal_system: 'civil_law',
-      language: 'es',
+      language: 'es', // Idioma DETECTADO del documento (no el idioma de salida)
       specific_laws: detectedLaws
     };
   }
@@ -339,17 +339,19 @@ function extractDocumentInfo(text: string) {
   return info;
 }
 
-// Generar pasos específicos basados en el contenido real del documento
+// CRÍTICO: Generar pasos específicos basados en el contenido real del documento
+// PERO SIEMPRE EN EL IDIOMA CONFIGURADO POR EL USUARIO
 function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, userLanguage: 'es' | 'en'): string[] {
   const steps: string[] = [];
   const docInfo = extractDocumentInfo(text);
   
-  // IMPORTANTE: Usar userLanguage para determinar el idioma de los pasos, NO jurisdiction.language
-  const language = userLanguage;
+  // ✅ CRÍTICO: Usar userLanguage para determinar el idioma de los pasos
+  // NO usar jurisdiction.language (que es el idioma detectado del documento)
+  const outputLanguage = userLanguage;
   
   // Pasos basados en el tipo de documento detectado
   if (docInfo.type === 'rental') {
-    if (language === 'es') {
+    if (outputLanguage === 'es') {
       steps.push('Verificar la identidad y capacidad legal de ambas partes (arrendador y arrendatario). Asegúrate de que ambas personas sean mayores de edad y tengan la documentación necesaria para firmar el contrato.');
       
       if (docInfo.payments.length > 0) {
@@ -389,6 +391,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         steps.push(`Procedimiento de terminación: ${terminationInfo}. Es importante conocer las condiciones bajo las cuales el contrato puede terminarse para evitar problemas legales.`);
       }
     } else {
+      // ✅ INGLÉS: Aunque el documento esté en español, generar pasos en inglés
       steps.push('Verify the identity and legal capacity of both parties (landlord and tenant). Ensure both individuals are of legal age and have the necessary documentation to sign the contract.');
       
       if (docInfo.payments.length > 0) {
@@ -411,10 +414,15 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         });
       }
       
-      // Agregar pasos específicos basados en las leyes detectadas
+      // Agregar pasos específicos basados en las leyes detectadas (en inglés)
       if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
         jurisdiction.specific_laws.forEach(law => {
-          if (law.includes('Fair Housing Act')) {
+          if (law.includes('Ley 820')) {
+            steps.push('Verify compliance with Law 820 of 2003 for rentals in Colombia. This law establishes the rights and duties of both landlord and tenant, including conditions for rent adjustments.');
+            steps.push('Ensure that annual adjustments are based on the CPI certified by DANE. The rent increase cannot exceed the official inflation percentage of the previous year.');
+          } else if (law.includes('Código Civil')) {
+            steps.push(`Comply with the provisions of the Colombian Civil Code. This code establishes general rules for civil contracts and party obligations.`);
+          } else if (law.includes('Fair Housing Act')) {
             steps.push('Verify compliance with Fair Housing Act regulations. This act prohibits discrimination in housing based on race, color, religion, sex, national origin, familial status, or disability.');
           } else if (law.includes('State Laws')) {
             steps.push('Ensure security deposit complies with state regulations. Each state has specific laws regarding the amount, handling, and return of security deposits.');
@@ -423,7 +431,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
       }
     }
   } else if (docInfo.type === 'sale') {
-    if (language === 'es') {
+    if (outputLanguage === 'es') {
       steps.push('Verificar la titularidad y capacidad legal de las partes. Es fundamental confirmar que el vendedor sea el propietario legítimo del bien y que ambas partes tengan capacidad legal para contratar.');
       
       if (docInfo.payments.length > 0) {
@@ -457,7 +465,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
       }
     }
   } else if (docInfo.type === 'employment') {
-    if (language === 'es') {
+    if (outputLanguage === 'es') {
       steps.push('Verificar que el contrato cumpla con la legislación laboral aplicable. El contrato debe incluir todas las cláusulas mínimas requeridas por la ley laboral del país correspondiente.');
       
       if (docInfo.payments.length > 0) {
@@ -492,7 +500,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
     }
   } else {
     // Documento general - extraer pasos del contenido
-    if (language === 'es') {
+    if (outputLanguage === 'es') {
       steps.push('Verificar que todas las partes tengan capacidad legal para contratar. Confirmar que todos los firmantes sean mayores de edad y tengan la autoridad necesaria para comprometerse legalmente.');
       
       if (docInfo.obligations.length > 0) {
@@ -534,6 +542,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
       steps.push('Mantener copias de todos los documentos y comprobantes relacionados. Guardar evidencia de cumplimiento de obligaciones y pagos realizados para futuras referencias.');
       steps.push('Consultar con un abogado en caso de dudas sobre interpretación. Si hay aspectos del contrato que no están claros, es recomendable buscar asesoría legal profesional.');
     } else {
+      // ✅ INGLÉS: Aunque el documento esté en español, generar pasos en inglés
       steps.push('Verify that all parties have legal capacity to contract. Confirm that all signatories are of legal age and have the necessary authority to legally commit themselves.');
       
       if (docInfo.obligations.length > 0) {
@@ -580,20 +589,20 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
   return steps.filter(step => step.length > 10).slice(0, 8); // Máximo 8 pasos
 }
 
-// Función principal para generar guía paso a paso
+// ✅ FUNCIÓN PRINCIPAL: Generar guía paso a paso SIEMPRE en el idioma del usuario
 export async function generateStepByStepGuide(text: string, userLanguage: 'es' | 'en'): Promise<StepByStepGuide> {
   try {
     if (!text || text.trim().length < 50) {
       throw new Error('El texto del documento es demasiado corto para generar una guía');
     }
 
-    // Detectar jurisdicción basada en el contenido REAL del documento
+    // 1. Detectar jurisdicción basada en el contenido REAL del documento
     const jurisdiction = detectJurisdiction(text);
     
-    // CRÍTICO: Generar pasos en el idioma del USUARIO, no del documento
+    // 2. ✅ CRÍTICO: Generar pasos en el idioma del USUARIO, NO del documento
     const steps = generateStepsFromContent(text, jurisdiction, userLanguage);
     
-    // Generar resumen basado en el contenido EN EL IDIOMA DEL USUARIO
+    // 3. ✅ Generar resumen EN EL IDIOMA DEL USUARIO
     let summary = '';
     const docInfo = extractDocumentInfo(text);
     
@@ -607,7 +616,7 @@ export async function generateStepByStepGuide(text: string, userLanguage: 'es' |
       summary += `Follow these ${steps.length} steps to ensure complete legal compliance.`;
     }
     
-    // Marco legal específico basado en las leyes REALMENTE detectadas en el documento
+    // 4. Marco legal específico basado en las leyes REALMENTE detectadas en el documento
     let legalFramework = '';
     if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
       legalFramework = `${jurisdiction.country} - ${jurisdiction.specific_laws.join(', ')}`;
@@ -626,7 +635,7 @@ export async function generateStepByStepGuide(text: string, userLanguage: 'es' |
   } catch (error) {
     console.error('Error generating step-by-step guide:', error);
     
-    // Fallback en caso de error EN EL IDIOMA CORRECTO
+    // ✅ Fallback en caso de error EN EL IDIOMA CORRECTO DEL USUARIO
     const fallbackSteps = userLanguage === 'es' ? [
       'Leer el documento completo cuidadosamente para entender todos los términos y condiciones establecidos.',
       'Identificar las partes involucradas y sus obligaciones específicas según lo establecido en el contrato.',
