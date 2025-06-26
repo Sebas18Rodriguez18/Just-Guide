@@ -31,65 +31,111 @@ export default function GuidePage({
 
   const fetchGuide = async () => {
     setIsLoading(true);
-    // Buscar guía en Supabase
-    const { data } = await supabase
-      .from('simplified_guides')
-      .select('*')
-      .eq('document_id', docId)
-      .single();
-    if (data) {
-      setGuide(data);
-      setIsLoading(false);
-      return;
-    }
-    // Si no existe, buscar el texto del documento y generar la guía
-    const { data: docData } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', docId)
-      .eq('user_id', userId)
-      .single();
-    if (docData && docData.extracted_text) {
-      const generated = await generateStepByStepGuide(docData.extracted_text, language);
-      const insertResult = await supabase.from('simplified_guides').insert([
-        {
-          document_id: docId,
-          steps: generated.steps,
-          summary: generated.summary,
-          reading_level: generated.reading_level,
-          created_at: new Date().toISOString()
+    try {
+      // Buscar guía en Supabase
+      const { data, error } = await supabase
+        .from('simplified_guides')
+        .select('*')
+        .eq('document_id', docId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching guide:', error);
+      }
+      
+      if (data) {
+        setGuide(data);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Si no existe, buscar el texto del documento y generar la guía
+      const { data: docData, error: docError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', docId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (docError) {
+        console.error('Error fetching document:', docError);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (docData && docData.extracted_text) {
+        const generated = await generateStepByStepGuide(docData.extracted_text, language);
+        const { data: insertData, error: insertError } = await supabase
+          .from('simplified_guides')
+          .insert([
+            {
+              document_id: docId,
+              steps: generated.steps,
+              summary: generated.summary,
+              reading_level: generated.reading_level,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select('*')
+          .maybeSingle();
+        
+        if (insertError) {
+          console.error('Error inserting guide:', insertError);
         }
-      ]).select('*').single();
-      setGuide(insertResult.data || generated);
+        
+        setGuide(insertData || generated);
+      }
+    } catch (err) {
+      console.error('Error in fetchGuide:', err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleRefreshGuide = async () => {
     setIsRefreshing(true);
-    // Buscar el texto del documento y regenerar la guía
-    const { data: docData } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', docId)
-      .eq('user_id', userId)
-      .single();
-    if (docData && docData.extracted_text) {
-      const generated = await generateStepByStepGuide(docData.extracted_text, language);
-      const insertResult = await supabase.from('simplified_guides')
-        .upsert([
-          {
-            document_id: docId,
-            steps: generated.steps,
-            summary: generated.summary,
-            reading_level: generated.reading_level,
-            created_at: new Date().toISOString()
-          }
-        ], { onConflict: 'document_id' })
-        .select('*').single();
-      setGuide(insertResult.data || generated);
+    try {
+      // Buscar el texto del documento y regenerar la guía
+      const { data: docData, error: docError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', docId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (docError) {
+        console.error('Error fetching document:', docError);
+        setIsRefreshing(false);
+        return;
+      }
+      
+      if (docData && docData.extracted_text) {
+        const generated = await generateStepByStepGuide(docData.extracted_text, language);
+        const { data: insertData, error: insertError } = await supabase
+          .from('simplified_guides')
+          .upsert([
+            {
+              document_id: docId,
+              steps: generated.steps,
+              summary: generated.summary,
+              reading_level: generated.reading_level,
+              created_at: new Date().toISOString()
+            }
+          ], { onConflict: 'document_id' })
+          .select('*')
+          .maybeSingle();
+        
+        if (insertError) {
+          console.error('Error upserting guide:', insertError);
+        }
+        
+        setGuide(insertData || generated);
+      }
+    } catch (err) {
+      console.error('Error in handleRefreshGuide:', err);
+    } finally {
+      setIsRefreshing(false);
     }
-    setIsRefreshing(false);
   };
 
   if (isLoading) {

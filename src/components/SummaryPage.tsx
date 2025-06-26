@@ -104,46 +104,75 @@ export default function SummaryPage({
   // Buscar o generar la guía paso a paso automáticamente
   const autoFetchOrGenerateGuide = async (docId: string, extractedText: string) => {
     setIsSimplifying(true);
-    // Buscar si ya existe la guía en Supabase
-    const { data } = await supabase
-      .from('simplified_guides')
-      .select('*')
-      .eq('document_id', docId)
-      .single();
-    if (data) {
-      setSimplifiedGuide(data);
-      setIsSimplifying(false);
-      return;
-    }
-    // Si no existe y hay texto, generar y guardar una nueva guía
-    if (extractedText && extractedText.length > 0) {
-      const guide = await generateStepByStepGuide(extractedText, language);
-      const insertResult = await supabase.from('simplified_guides').insert([
-        {
-          document_id: docId,
-          steps: guide.steps,
-          summary: guide.summary,
-          reading_level: guide.reading_level,
-          created_at: new Date().toISOString()
+    try {
+      // Buscar si ya existe la guía en Supabase
+      const { data, error } = await supabase
+        .from('simplified_guides')
+        .select('*')
+        .eq('document_id', docId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching guide:', error);
+      }
+      
+      if (data) {
+        setSimplifiedGuide(data);
+        setIsSimplifying(false);
+        return;
+      }
+      // Si no existe y hay texto, generar y guardar una nueva guía
+      if (extractedText && extractedText.length > 0) {
+        const guide = await generateStepByStepGuide(extractedText, language);
+        const { data: insertData, error: insertError } = await supabase
+          .from('simplified_guides')
+          .insert([
+            {
+              document_id: docId,
+              steps: guide.steps,
+              summary: guide.summary,
+              reading_level: guide.reading_level,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select('*')
+          .maybeSingle();
+        
+        if (insertError) {
+          console.error('Error inserting guide:', insertError);
         }
-      ]).select('*').single();
-      setSimplifiedGuide(insertResult.data || guide);
+        
+        setSimplifiedGuide(insertData || guide);
+      }
+    } catch (err) {
+      console.error('Error in autoFetchOrGenerateGuide:', err);
+    } finally {
+      setIsSimplifying(false);
     }
-    setIsSimplifying(false);
   };
 
   // Consultar la guía paso a paso manualmente (por si el usuario la quiere refrescar)
   const fetchStepByStepGuide = async (docId: string) => {
     setIsSimplifying(true);
-    const { data } = await supabase
-      .from('simplified_guides')
-      .select('*')
-      .eq('document_id', docId)
-      .single();
-    if (data) {
-      setSimplifiedGuide(data);
+    try {
+      const { data, error } = await supabase
+        .from('simplified_guides')
+        .select('*')
+        .eq('document_id', docId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching guide:', error);
+      }
+      
+      if (data) {
+        setSimplifiedGuide(data);
+      }
+    } catch (err) {
+      console.error('Error in fetchStepByStepGuide:', err);
+    } finally {
+      setIsSimplifying(false);
     }
-    setIsSimplifying(false);
   };
 
   if (isLoading) {
