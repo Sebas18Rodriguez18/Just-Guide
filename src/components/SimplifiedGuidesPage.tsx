@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash }
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
+import { smartCapitalize } from '../utils/textCapitalization';
 import { supabase } from '../utils/supabaseClient';
 
 interface SimplifiedGuide {
@@ -114,9 +115,9 @@ export default function SimplifiedGuidesPage() {
       <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
           <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{t.loading}</h2>
+          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.loading, 'title', language)}</h2>
           <p className="text-just-gray dark:text-gray-400">
-            {language === 'es' ? 'Cargando tus guías simplificadas...' : 'Loading your simplified guides...'}
+            {smartCapitalize(language === 'es' ? 'cargando tus guías simplificadas...' : 'loading your simplified guides...', 'sentence', language)}
           </p>
         </div>
       </div>
@@ -133,7 +134,7 @@ export default function SimplifiedGuidesPage() {
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
+            {smartCapitalize(t.back, 'title', language)}
           </button>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -141,12 +142,15 @@ export default function SimplifiedGuidesPage() {
                 <BookOpen className="w-6 h-6 text-just-moss" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{t.simplifiedGuides}</h1>
+                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(t.simplifiedGuides, 'title', language)}</h1>
                 <p className="text-just-gray dark:text-gray-400">
-                  {language === 'es' 
-                    ? `${guides.length} guías simplificadas disponibles`
-                    : `${guides.length} simplified guides available`
-                  }
+                  {smartCapitalize(
+                    language === 'es' 
+                      ? `${guides.length} guías simplificadas disponibles`
+                      : `${guides.length} simplified guides available`,
+                    'sentence',
+                    language
+                  )}
                 </p>
               </div>
             </div>
@@ -155,7 +159,7 @@ export default function SimplifiedGuidesPage() {
                 <div className="flex items-center">
                   <Sparkles className="w-4 h-4 text-just-moss mr-2" />
                   <span className="text-sm font-medium text-just-moss">
-                    {language === 'es' ? 'Nivel B1' : 'B1 Level'}
+                    {smartCapitalize(language === 'es' ? 'nivel B1' : 'B1 level', 'title', language)}
                   </span>
                 </div>
               </div>
@@ -173,7 +177,7 @@ export default function SimplifiedGuidesPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-just-gray dark:text-gray-400" />
               <input
                 type="text"
-                placeholder={language === 'es' ? 'Buscar guías...' : 'Search guides...'}
+                placeholder={smartCapitalize(language === 'es' ? 'buscar guías...' : 'search guides...', 'sentence', language)}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
@@ -185,10 +189,10 @@ export default function SimplifiedGuidesPage() {
               onChange={(e) => setFilterLevel(e.target.value)}
               className="px-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
             >
-              <option value="all">{language === 'es' ? 'Todos los niveles' : 'All levels'}</option>
-              <option value="A1">{language === 'es' ? 'Nivel A1 (Básico)' : 'A1 Level (Basic)'}</option>
-              <option value="B1">{language === 'es' ? 'Nivel B1 (Intermedio)' : 'B1 Level (Intermediate)'}</option>
-              <option value="B2">{language === 'es' ? 'Nivel B2 (Avanzado)' : 'B2 Level (Advanced)'}</option>
+              <option value="all">{smartCapitalize(language === 'es' ? 'todos los niveles' : 'all levels', 'title', language)}</option>
+              <option value="A1">{smartCapitalize(language === 'es' ? 'nivel A1 (básico)' : 'A1 level (basic)', 'title', language)}</option>
+              <option value="B1">{smartCapitalize(language === 'es' ? 'nivel B1 (intermedio)' : 'B1 level (intermediate)', 'title', language)}</option>
+              <option value="B2">{smartCapitalize(language === 'es' ? 'nivel B2 (avanzado)' : 'B2 level (advanced)', 'title', language)}</option>
             </select>
           </div>
         </div>
@@ -197,12 +201,12 @@ export default function SimplifiedGuidesPage() {
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
             <BookOpen className="w-16 h-16 text-just-gray dark:text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-              {language === 'es' ? 'No se encontraron guías' : 'No guides found'}
+              {smartCapitalize(language === 'es' ? 'no se encontraron guías' : 'no guides found', 'sentence', language)}
             </h3>
             <p className="text-just-gray dark:text-gray-400">
               {searchTerm 
-                ? (language === 'es' ? 'Intenta con diferentes términos de búsqueda' : 'Try different search terms')
-                : (language === 'es' ? 'Sube documentos para generar guías simplificadas' : 'Upload documents to generate simplified guides')
+                ? smartCapitalize(language === 'es' ? 'intenta con diferentes términos de búsqueda' : 'try different search terms', 'sentence', language)
+                : smartCapitalize(language === 'es' ? 'sube documentos para generar guías simplificadas' : 'upload documents to generate simplified guides', 'sentence', language)
               }
             </p>
           </div>
@@ -219,12 +223,12 @@ export default function SimplifiedGuidesPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-just-forest dark:text-just-white mb-1">
-                          {guide.document_title}
+                          {smartCapitalize(guide.document_title, 'title', language)}
                         </h3>
                         <div className="flex items-center space-x-4 text-sm text-just-gray dark:text-gray-400">
-                          <span>{guide.document_type}</span>
+                          <span>{smartCapitalize(guide.document_type, 'proper', language)}</span>
                           <span>•</span>
-                          <span>{guide.word_count} {language === 'es' ? 'palabras' : 'words'}</span>
+                          <span>{guide.word_count} {smartCapitalize(language === 'es' ? 'palabras' : 'words', 'title', language)}</span>
                           <span>•</span>
                           <span>{new Date(guide.created_at).toLocaleDateString()}</span>
                         </div>
@@ -250,26 +254,26 @@ export default function SimplifiedGuidesPage() {
                         className="bg-just-moss text-just-white px-6 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center"
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        {language === 'es' ? 'Ver Guía Completa' : 'View Full Guide'}
+                        {smartCapitalize(language === 'es' ? 'ver guía completa' : 'view full guide', 'title', language)}
                       </button>
                       <button
                         onClick={() => exportGuide(guide)}
                         className="bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center"
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        {language === 'es' ? 'Exportar' : 'Export'}
+                        {smartCapitalize(language === 'es' ? 'exportar' : 'export', 'title', language)}
                       </button>
                       <button
                         onClick={() => handleDeleteGuide(guide.id)}
                         className="bg-red-500 text-just-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors duration-200 flex items-center"
                       >
                         <Trash className="w-4 h-4 mr-2" />
-                        {language === 'es' ? 'Eliminar' : 'Delete'}
+                        {smartCapitalize(language === 'es' ? 'eliminar' : 'delete', 'title', language)}
                       </button>
                     </div>
                     <div className="flex items-center text-sm text-just-gray dark:text-gray-400">
                       <Calendar className="w-4 h-4 mr-1" />
-                      {language === 'es' ? 'Creado' : 'Created'} {new Date(guide.created_at).toLocaleDateString()}
+                      {smartCapitalize(language === 'es' ? 'creado' : 'created', 'title', language)} {new Date(guide.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 </div>

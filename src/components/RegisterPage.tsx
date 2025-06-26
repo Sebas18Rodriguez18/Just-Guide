@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
+import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
 import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setUser, setIsAuthenticated } = useAppContext();
+  const { setUser, setIsAuthenticated, language } = useAppContext();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -31,16 +32,16 @@ export default function RegisterPage() {
     if (formData.password !== formData.confirmPassword) {
       Swal.fire({
         icon: 'warning',
-        title: 'Passwords do not match',
-        text: 'Please make sure both passwords are the same.',
+        title: smartCapitalize(language === 'es' ? 'las contraseñas no coinciden' : 'passwords do not match', 'title', language),
+        text: smartCapitalize(language === 'es' ? 'por favor asegúrate de que ambas contraseñas sean iguales.' : 'please make sure both passwords are the same.', 'sentence', language),
       });
       return;
     }
     if (!acceptTerms) {
       Swal.fire({
         icon: 'warning',
-        title: 'Términos no aceptados',
-        text: 'Por favor acepta los términos de servicio',
+        title: smartCapitalize(language === 'es' ? 'términos no aceptados' : 'terms not accepted', 'title', language),
+        text: smartCapitalize(language === 'es' ? 'por favor acepta los términos de servicio' : 'please accept the terms of service', 'sentence', language),
       });
       return;
     }
@@ -55,7 +56,7 @@ export default function RegisterPage() {
     if (error) {
       Swal.fire({
         icon: 'error',
-        title: 'Error',
+        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
         text: error.message,
       });
       setIsLoading(false);
@@ -69,7 +70,7 @@ export default function RegisterPage() {
           name: formData.fullName,
           email: formData.email,
           hashed_password: 'supabase_auth',
-          language: 'es',
+          language: language,
           literacy_level: 'basic',
           uploaded_documents: [],
           history: {},
@@ -80,7 +81,7 @@ export default function RegisterPage() {
       if (insertResult.error) {
         Swal.fire({
           icon: 'error',
-          title: 'Error',
+          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
           text: insertResult.error.message,
         });
         setIsLoading(false);
@@ -92,8 +93,8 @@ export default function RegisterPage() {
     setIsLoading(false);
     Swal.fire({
       icon: 'success',
-      title: '¡Registro exitoso!',
-      text: 'Tu cuenta ha sido creada correctamente.',
+      title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
+      text: smartCapitalize(language === 'es' ? 'tu cuenta ha sido creada correctamente.' : 'your account has been created successfully.', 'sentence', language),
       timer: 2000,
       showConfirmButton: false
     });
@@ -112,8 +113,12 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-just-forest mb-2">Join JustGuide</h1>
-          <p className="text-just-hunter text-lg">Start your journey to legal clarity</p>
+          <h1 className="text-3xl font-bold text-just-forest mb-2">
+            {smartCapitalize(language === 'es' ? 'únete a JustGuide' : 'join JustGuide', 'title', language)}
+          </h1>
+          <p className="text-just-hunter text-lg">
+            {smartCapitalize(language === 'es' ? 'comienza tu viaje hacia la claridad legal' : 'start your journey to legal clarity', 'sentence', language)}
+          </p>
         </div>
 
         {/* Registration Form */}
@@ -122,7 +127,7 @@ export default function RegisterPage() {
             {/* Full Name Input */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-just-forest mb-2">
-                Full Name
+                {smartCapitalize(language === 'es' ? 'nombre completo' : 'full name', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -135,7 +140,7 @@ export default function RegisterPage() {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                  placeholder="Enter your full name"
+                  placeholder={smartCapitalize(language === 'es' ? 'ingresa tu nombre completo' : 'enter your full name', 'sentence', language)}
                   required
                 />
               </div>
@@ -144,7 +149,7 @@ export default function RegisterPage() {
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-just-forest mb-2">
-                Email Address
+                {smartCapitalize(language === 'es' ? 'correo electrónico' : 'email address', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -157,7 +162,7 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                  placeholder="Enter your email"
+                  placeholder={smartCapitalize(language === 'es' ? 'ingresa tu correo' : 'enter your email', 'sentence', language)}
                   required
                 />
               </div>
@@ -166,7 +171,7 @@ export default function RegisterPage() {
             {/* Password Input */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-just-forest mb-2">
-                Password
+                {smartCapitalize(language === 'es' ? 'contraseña' : 'password', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -179,7 +184,7 @@ export default function RegisterPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-12 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                  placeholder="Create a password"
+                  placeholder={smartCapitalize(language === 'es' ? 'crea una contraseña' : 'create a password', 'sentence', language)}
                   required
                 />
                 <button
@@ -195,7 +200,7 @@ export default function RegisterPage() {
             {/* Confirm Password Input */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-just-forest mb-2">
-                Confirm Password
+                {smartCapitalize(language === 'es' ? 'confirmar contraseña' : 'confirm password', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -210,7 +215,7 @@ export default function RegisterPage() {
                   className={`block w-full pl-10 pr-12 py-3 border rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-300 ${
                     passwordsMatch ? 'border-green-300 focus:ring-green-200' : 'border-just-sand focus:ring-just-moss'
                   }`}
-                  placeholder="Confirm your password"
+                  placeholder={smartCapitalize(language === 'es' ? 'confirma tu contraseña' : 'confirm your password', 'sentence', language)}
                   required
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center">
@@ -242,13 +247,13 @@ export default function RegisterPage() {
               </div>
               <div className="ml-3 text-sm">
                 <label htmlFor="terms" className="text-just-gray">
-                  I agree to the{' '}
+                  {smartCapitalize(language === 'es' ? 'acepto los' : 'I agree to the', 'sentence', language)}{' '}
                   <a href="#" className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200">
-                    Terms of Service
+                    {smartCapitalize(language === 'es' ? 'términos de servicio' : 'terms of service', 'title', language)}
                   </a>{' '}
-                  and{' '}
+                  {language === 'es' ? 'y la' : 'and'}{' '}
                   <a href="#" className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200">
-                    Privacy Policy
+                    {smartCapitalize(language === 'es' ? 'política de privacidad' : 'privacy policy', 'title', language)}
                   </a>
                 </label>
               </div>
@@ -263,10 +268,10 @@ export default function RegisterPage() {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-just-white mr-2"></div>
-                  Creating account...
+                  {smartCapitalize(language === 'es' ? 'creando cuenta...' : 'creating account...', 'sentence', language)}
                 </div>
               ) : (
-                'Create Account'
+                smartCapitalize(language === 'es' ? 'crear cuenta' : 'create account', 'title', language)
               )}
             </button>
           </form>
@@ -274,12 +279,12 @@ export default function RegisterPage() {
           {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-just-gray">
-              Already have an account?{' '}
+              {smartCapitalize(language === 'es' ? '¿ya tienes una cuenta?' : 'already have an account?', 'sentence', language)}{' '}
               <button
                 onClick={() => navigate('/login')}
                 className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
               >
-                Sign in here
+                {smartCapitalize(language === 'es' ? 'inicia sesión aquí' : 'sign in here', 'sentence', language)}
               </button>
             </p>
           </div>

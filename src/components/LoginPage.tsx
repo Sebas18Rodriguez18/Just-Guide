@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, Sparkles, Globe, Users, Award } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
+import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
 import HackathonBadge from './HackathonBadge';
 import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
@@ -44,9 +45,21 @@ export default function LoginPage() {
   };
 
   const impactStats = [
-    { icon: Users, value: '15.4K+', label: language === 'es' ? 'Usuarios Globales' : 'Global Users' },
-    { icon: Globe, value: '25+', label: language === 'es' ? 'Países' : 'Countries' },
-    { icon: Award, value: '94%', label: language === 'es' ? 'Éxito' : 'Success Rate' }
+    { 
+      icon: Users, 
+      value: '15.4K+', 
+      label: smartCapitalize(language === 'es' ? 'usuarios globales' : 'global users', 'title', language)
+    },
+    { 
+      icon: Globe, 
+      value: '2', 
+      label: smartCapitalize(language === 'es' ? 'idiomas soportados' : 'languages supported', 'title', language)
+    },
+    { 
+      icon: Award, 
+      value: '94%', 
+      label: smartCapitalize(language === 'es' ? 'tasa de éxito' : 'success rate', 'title', language)
+    }
   ];
 
   return (
@@ -70,16 +83,21 @@ export default function LoginPage() {
           {/* Mission Statement */}
           <div className="mb-12">
             <h2 className="text-4xl font-bold mb-4">
-              {language === 'es' 
-                ? 'Democratizando el Acceso a la Justicia'
-                : 'Democratizing Access to Justice'
-              }
+              {capitalizeUI(
+                language === 'es' 
+                  ? 'simplificando documentos legales'
+                  : 'simplifying legal documents',
+                language
+              )}
             </h2>
             <p className="text-xl text-just-white/80 leading-relaxed">
-              {language === 'es'
-                ? 'Transformamos documentos legales complejos en guías claras y accionables usando IA avanzada. Más de 5 mil millones de personas merecen entender sus derechos legales.'
-                : 'We transform complex legal documents into clear, actionable guides using advanced AI. Over 5 billion people deserve to understand their legal rights.'
-              }
+              {smartCapitalize(
+                language === 'es'
+                  ? 'transformamos documentos legales complejos en guías claras y accionables usando IA avanzada. Procesamiento inteligente de archivos DOCX en español e inglés.'
+                  : 'we transform complex legal documents into clear, actionable guides using advanced AI. Intelligent processing of DOCX files in Spanish and English.',
+                'sentence',
+                language
+              )}
             </p>
           </div>
           {/* Impact Stats */}
@@ -102,15 +120,15 @@ export default function LoginPage() {
         <div className="space-y-4">
           <div className="flex items-center">
             <Sparkles className="w-5 h-5 mr-3" />
-            <span>{language === 'es' ? 'IA con OCR Inteligente' : 'AI with Smart OCR'}</span>
+            <span>{smartCapitalize(language === 'es' ? 'IA con procesamiento DOCX inteligente' : 'AI with intelligent DOCX processing', 'sentence', language)}</span>
           </div>
           <div className="flex items-center">
             <Globe className="w-5 h-5 mr-3" />
-            <span>{language === 'es' ? '8 Idiomas, 25+ Jurisdicciones' : '8 Languages, 25+ Jurisdictions'}</span>
+            <span>{smartCapitalize(language === 'es' ? 'español e inglés, múltiples jurisdicciones' : 'Spanish and English, multiple jurisdictions', 'sentence', language)}</span>
           </div>
           <div className="flex items-center">
             <Award className="w-5 h-5 mr-3" />
-            <span>{language === 'es' ? 'Nivel de Lectura B1' : 'B1 Reading Level'}</span>
+            <span>{smartCapitalize(language === 'es' ? 'nivel de lectura B1' : 'B1 reading level', 'sentence', language)}</span>
           </div>
         </div>
       </div>
@@ -126,16 +144,28 @@ export default function LoginPage() {
             </div>
             <h1 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">JustGuide</h1>
             <p className="text-just-hunter dark:text-gray-300 text-lg">
-              {language === 'es' ? 'Tu compañero de confianza para la claridad legal' : 'Your trusted companion for legal clarity'}
+              {smartCapitalize(
+                language === 'es' ? 'tu compañero de confianza para la claridad legal' : 'your trusted companion for legal clarity',
+                'sentence',
+                language
+              )}
             </p>
           </div>
           {/* Welcome Header */}
           <div className="text-center mb-8 animate-fade-in">
             <h2 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">
-              {language === 'es' ? 'Bienvenido de vuelta' : 'Welcome back'}
+              {smartCapitalize(
+                language === 'es' ? 'bienvenido de vuelta' : 'welcome back',
+                'title',
+                language
+              )}
             </h2>
             <p className="text-just-hunter dark:text-gray-300 text-lg">
-              {language === 'es' ? 'Continúa simplificando documentos legales' : 'Continue simplifying legal documents'}
+              {smartCapitalize(
+                language === 'es' ? 'continúa simplificando documentos legales' : 'continue simplifying legal documents',
+                'sentence',
+                language
+              )}
             </p>
           </div>
           {/* Login Form */}
@@ -144,7 +174,7 @@ export default function LoginPage() {
               {/* Email Input */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
-                  {t.email}
+                  {smartCapitalize(t.email, 'title', language)}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -156,7 +186,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                    placeholder={language === 'es' ? 'Ingresa tu correo' : 'Enter your email'}
+                    placeholder={smartCapitalize(language === 'es' ? 'ingresa tu correo' : 'enter your email', 'sentence', language)}
                     required
                   />
                 </div>
@@ -164,7 +194,7 @@ export default function LoginPage() {
               {/* Password Input */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
-                  {t.password}
+                  {smartCapitalize(t.password, 'title', language)}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -176,7 +206,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full pl-10 pr-12 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                    placeholder={language === 'es' ? 'Ingresa tu contraseña' : 'Enter your password'}
+                    placeholder={smartCapitalize(language === 'es' ? 'ingresa tu contraseña' : 'enter your password', 'sentence', language)}
                     required
                   />
                   <button
@@ -195,7 +225,7 @@ export default function LoginPage() {
                   onClick={() => navigate('/forgot-password')}
                   className="text-sm text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown transition-colors duration-200 font-medium"
                 >
-                  {t.forgotPassword}
+                  {smartCapitalize(t.forgotPassword, 'sentence', language)}
                 </button>
               </div>
               {/* Submit Button */}
@@ -207,22 +237,22 @@ export default function LoginPage() {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-just-white mr-2"></div>
-                    {language === 'es' ? 'Iniciando sesión...' : 'Signing in...'}
+                    {smartCapitalize(language === 'es' ? 'iniciando sesión...' : 'signing in...', 'sentence', language)}
                   </div>
                 ) : (
-                  t.signIn
+                  smartCapitalize(t.signIn, 'title', language)
                 )}
               </button>
             </form>
             {/* Register Link */}
             <div className="mt-6 text-center">
               <p className="text-just-gray dark:text-gray-400">
-                {language === 'es' ? '¿No tienes una cuenta?' : "Don't have an account?"}{' '}
+                {smartCapitalize(language === 'es' ? '¿no tienes una cuenta?' : "don't have an account?", 'sentence', language)}{' '}
                 <button
                   onClick={() => navigate('/register')}
                   className="text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown font-medium transition-colors duration-200"
                 >
-                  {t.createAccount}
+                  {smartCapitalize(t.createAccount, 'sentence', language)}
                 </button>
               </p>
             </div>

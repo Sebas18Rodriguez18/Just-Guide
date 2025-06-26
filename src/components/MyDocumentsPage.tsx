@@ -3,6 +3,7 @@ import { ArrowLeft, FileText, Search, Eye, Download, MoreVertical, Upload, Check
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
+import { smartCapitalize } from '../utils/textCapitalization';
 import { supabase } from '../utils/supabaseClient';
 
 interface Document {
@@ -79,10 +80,10 @@ export default function MyDocumentsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return t.completed;
-      case 'processing': return language === 'es' ? 'Procesando' : 'Processing';
-      case 'failed': return t.failed;
-      default: return t.pending;
+      case 'completed': return smartCapitalize(t.completed, 'title', language);
+      case 'processing': return smartCapitalize(language === 'es' ? 'procesando' : 'processing', 'title', language);
+      case 'failed': return smartCapitalize(t.failed, 'title', language);
+      default: return smartCapitalize(t.pending, 'title', language);
     }
   };
 
@@ -111,9 +112,9 @@ export default function MyDocumentsPage() {
       <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
           <FileText className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{t.loading}</h2>
+          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.loading, 'title', language)}</h2>
           <p className="text-just-gray dark:text-gray-400">
-            {language === 'es' ? 'Cargando tus documentos...' : 'Loading your documents...'}
+            {smartCapitalize(language === 'es' ? 'cargando tus documentos...' : 'loading your documents...', 'sentence', language)}
           </p>
         </div>
       </div>
@@ -130,7 +131,7 @@ export default function MyDocumentsPage() {
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
+            {smartCapitalize(t.back, 'title', language)}
           </button>
           
           <div className="flex items-center justify-between">
@@ -139,12 +140,15 @@ export default function MyDocumentsPage() {
                 <FileText className="w-6 h-6 text-just-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{t.myDocuments}</h1>
+                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(t.myDocuments, 'title', language)}</h1>
                 <p className="text-just-gray dark:text-gray-400">
-                  {language === 'es' 
-                    ? `${documents.length} documentos en total`
-                    : `${documents.length} documents total`
-                  }
+                  {smartCapitalize(
+                    language === 'es' 
+                      ? `${documents.length} documentos en total`
+                      : `${documents.length} documents total`,
+                    'sentence',
+                    language
+                  )}
                 </p>
               </div>
             </div>
@@ -154,7 +158,7 @@ export default function MyDocumentsPage() {
               className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 flex items-center"
             >
               <Upload className="w-5 h-5 mr-2" />
-              {t.uploadDocument}
+              {smartCapitalize(t.uploadDocument, 'title', language)}
             </button>
           </div>
         </div>
@@ -170,7 +174,7 @@ export default function MyDocumentsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-just-gray dark:text-gray-400" />
               <input
                 type="text"
-                placeholder={language === 'es' ? 'Buscar documentos...' : 'Search documents...'}
+                placeholder={smartCapitalize(language === 'es' ? 'buscar documentos...' : 'search documents...', 'sentence', language)}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
@@ -184,10 +188,10 @@ export default function MyDocumentsPage() {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="px-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
               >
-                <option value="all">{language === 'es' ? 'Todos' : 'All'}</option>
-                <option value="completed">{t.completed}</option>
-                <option value="processing">{language === 'es' ? 'Procesando' : 'Processing'}</option>
-                <option value="failed">{t.failed}</option>
+                <option value="all">{smartCapitalize(language === 'es' ? 'todos' : 'all', 'title', language)}</option>
+                <option value="completed">{smartCapitalize(t.completed, 'title', language)}</option>
+                <option value="processing">{smartCapitalize(language === 'es' ? 'procesando' : 'processing', 'title', language)}</option>
+                <option value="failed">{smartCapitalize(t.failed, 'title', language)}</option>
               </select>
 
               <select
@@ -195,9 +199,9 @@ export default function MyDocumentsPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
               >
-                <option value="date">{language === 'es' ? 'Fecha' : 'Date'}</option>
-                <option value="name">{language === 'es' ? 'Nombre' : 'Name'}</option>
-                <option value="type">{language === 'es' ? 'Tipo' : 'Type'}</option>
+                <option value="date">{smartCapitalize(language === 'es' ? 'fecha' : 'date', 'title', language)}</option>
+                <option value="name">{smartCapitalize(language === 'es' ? 'nombre' : 'name', 'title', language)}</option>
+                <option value="type">{smartCapitalize(language === 'es' ? 'tipo' : 'type', 'title', language)}</option>
               </select>
             </div>
           </div>
@@ -208,19 +212,19 @@ export default function MyDocumentsPage() {
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
             <FileText className="w-16 h-16 text-just-gray dark:text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-              {language === 'es' ? 'No se encontraron documentos' : 'No documents found'}
+              {smartCapitalize(language === 'es' ? 'no se encontraron documentos' : 'no documents found', 'sentence', language)}
             </h3>
             <p className="text-just-gray dark:text-gray-400 mb-6">
               {searchTerm 
-                ? (language === 'es' ? 'Intenta con diferentes términos de búsqueda' : 'Try different search terms')
-                : (language === 'es' ? 'Sube tu primer documento para comenzar' : 'Upload your first document to get started')
+                ? smartCapitalize(language === 'es' ? 'intenta con diferentes términos de búsqueda' : 'try different search terms', 'sentence', language)
+                : smartCapitalize(language === 'es' ? 'sube tu primer documento para comenzar' : 'upload your first document to get started', 'sentence', language)
               }
             </p>
             <button
               onClick={() => navigate('/upload')}
               className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
             >
-              {t.uploadDocument}
+              {smartCapitalize(t.uploadDocument, 'title', language)}
             </button>
           </div>
         ) : (
@@ -235,8 +239,12 @@ export default function MyDocumentsPage() {
                         <FileText className="w-5 h-5 text-just-forest dark:text-just-moss" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-just-forest dark:text-just-white truncate">{doc.title}</h3>
-                        <p className="text-sm text-just-gray dark:text-gray-400">{doc.document_type}</p>
+                        <h3 className="font-semibold text-just-forest dark:text-just-white truncate">
+                          {smartCapitalize(doc.title, 'title', language)}
+                        </h3>
+                        <p className="text-sm text-just-gray dark:text-gray-400">
+                          {smartCapitalize(doc.document_type, 'proper', language)}
+                        </p>
                       </div>
                     </div>
                     <button className="p-1 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200">
@@ -254,7 +262,7 @@ export default function MyDocumentsPage() {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-just-gray dark:text-gray-400">
-                        {language === 'es' ? 'Subido' : 'Uploaded'}
+                        {smartCapitalize(language === 'es' ? 'subido' : 'uploaded', 'title', language)}
                       </span>
                       <span className="text-just-hunter dark:text-gray-300">
                         {new Date(doc.upload_date).toLocaleDateString()}
@@ -262,16 +270,19 @@ export default function MyDocumentsPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-just-gray dark:text-gray-400">
-                        {language === 'es' ? 'Tamaño' : 'Size'}
+                        {smartCapitalize(language === 'es' ? 'tamaño' : 'size', 'title', language)}
                       </span>
                       <span className="text-just-hunter dark:text-gray-300">{doc.file_size}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-just-gray dark:text-gray-400">
-                        {language === 'es' ? 'Simplificado' : 'Simplified'}
+                        {smartCapitalize(language === 'es' ? 'simplificado' : 'simplified', 'title', language)}
                       </span>
                       <span className={`${doc.simplified ? 'text-green-600' : 'text-just-gray dark:text-gray-400'}`}>
-                        {doc.simplified ? (language === 'es' ? 'Sí' : 'Yes') : (language === 'es' ? 'No' : 'No')}
+                        {doc.simplified 
+                          ? smartCapitalize(language === 'es' ? 'sí' : 'yes', 'title', language) 
+                          : smartCapitalize(language === 'es' ? 'no' : 'no', 'title', language)
+                        }
                       </span>
                     </div>
                   </div>
@@ -284,7 +295,7 @@ export default function MyDocumentsPage() {
                         className="flex-1 bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center justify-center"
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        {language === 'es' ? 'Ver' : 'View'}
+                        {smartCapitalize(language === 'es' ? 'ver' : 'view', 'title', language)}
                       </button>
                     )}
                     {doc.status === 'processing' && (
@@ -293,7 +304,7 @@ export default function MyDocumentsPage() {
                         className="flex-1 bg-just-gray/20 text-just-gray px-4 py-2 rounded-xl font-medium cursor-not-allowed flex items-center justify-center"
                       >
                         <Clock className="w-4 h-4 mr-2 animate-pulse" />
-                        {language === 'es' ? 'Procesando' : 'Processing'}
+                        {smartCapitalize(language === 'es' ? 'procesando' : 'processing', 'title', language)}
                       </button>
                     )}
                     {doc.status === 'failed' && (
@@ -301,7 +312,7 @@ export default function MyDocumentsPage() {
                         className="flex-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-4 py-2 rounded-xl font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200 flex items-center justify-center"
                       >
                         <AlertCircle className="w-4 h-4 mr-2" />
-                        {language === 'es' ? 'Reintentar' : 'Retry'}
+                        {smartCapitalize(language === 'es' ? 'reintentar' : 'retry', 'title', language)}
                       </button>
                     )}
                     <button className="p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200">

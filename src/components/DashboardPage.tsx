@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { supabase } from '../utils/supabaseClient';
+import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
 import Swal from 'sweetalert2';
 import HackathonBadge from './HackathonBadge';
 
@@ -50,28 +51,28 @@ export default function DashboardPage() {
     {
       icon: Users,
       value: '15.4K+',
-      label: language === 'es' ? 'Usuarios Globales' : 'Global Users',
+      label: smartCapitalize(language === 'es' ? 'usuarios globales' : 'global users', 'title', language),
       color: 'text-just-moss',
       bgColor: 'bg-just-moss/10 dark:bg-just-moss/20'
     },
     {
       icon: Globe,
       value: '2',
-      label: language === 'es' ? 'Idiomas Soportados' : 'Languages Supported',
+      label: smartCapitalize(language === 'es' ? 'idiomas soportados' : 'languages supported', 'title', language),
       color: 'text-just-brown',
       bgColor: 'bg-just-brown/10 dark:bg-just-brown/20'
     },
     {
       icon: Award,
       value: '94%',
-      label: language === 'es' ? 'Tasa de Éxito' : 'Success Rate',
+      label: smartCapitalize(language === 'es' ? 'tasa de éxito' : 'success rate', 'title', language),
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900'
     },
     {
       icon: Zap,
       value: '4.8/5',
-      label: language === 'es' ? 'Satisfacción' : 'User Rating',
+      label: smartCapitalize(language === 'es' ? 'satisfacción' : 'user rating', 'title', language),
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900'
     }
@@ -248,10 +249,14 @@ export default function DashboardPage() {
 
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold text-just-forest dark:text-just-white">
-                  {t.hello}, {userName}! 👋
+                  {smartCapitalize(`${t.hello}, ${userName}!`, 'sentence', language)} 👋
                 </h1>
                 <p className="text-sm lg:text-base text-just-hunter dark:text-gray-300">
-                  {language === 'es' ? 'Simplificando documentos legales con IA' : 'Simplifying legal documents with AI'}
+                  {smartCapitalize(
+                    language === 'es' ? 'simplificando documentos legales con IA' : 'simplifying legal documents with AI',
+                    'sentence',
+                    language
+                  )}
                 </p>
               </div>
             </div>
@@ -335,13 +340,19 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold">
-                      {language === 'es' ? 'JustGuide - Documentos Legales Simplificados' : 'JustGuide - Simplified Legal Documents'}
+                      {capitalizeUI(
+                        language === 'es' ? 'JustGuide - documentos legales simplificados' : 'JustGuide - simplified legal documents',
+                        language
+                      )}
                     </h2>
                     <p className="text-just-white/80">
-                      {language === 'es'
-                        ? 'Procesamiento inteligente de PDF y DOCX en español e inglés'
-                        : 'Intelligent processing of PDF and DOCX in Spanish and English'
-                      }
+                      {smartCapitalize(
+                        language === 'es'
+                          ? 'procesamiento inteligente de PDF y DOCX en español e inglés'
+                          : 'intelligent processing of PDF and DOCX in Spanish and English',
+                        'sentence',
+                        language
+                      )}
                     </p>
                   </div>
                   <Sparkles className="w-8 h-8" />
@@ -406,14 +417,17 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg lg:text-xl font-semibold">{t.uploadNew}</h3>
+                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.uploadNew, 'title', language)}</h3>
                     <Upload className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
-                    {language === 'es'
-                      ? 'Sube archivos PDF o DOCX en español o inglés. Nuestro sistema extrae el texto y lo capitaliza correctamente.'
-                      : 'Upload PDF or DOCX files in Spanish or English. Our system extracts text and capitalizes it correctly.'
-                    }
+                    {smartCapitalize(
+                      language === 'es'
+                        ? 'sube archivos PDF o DOCX en español o inglés. Nuestro sistema extrae el texto y lo capitaliza correctamente.'
+                        : 'upload PDF or DOCX files in Spanish or English. Our system extracts text and capitalizes it correctly.',
+                      'sentence',
+                      language
+                    )}
                   </p>
                   <button
                     onClick={() => navigate('/upload')}
@@ -425,17 +439,20 @@ export default function DashboardPage() {
 
                 <div className="bg-gradient-to-br from-just-moss to-just-brown rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg lg:text-xl font-semibold">{t.aiPoweredSimplification}</h3>
+                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.aiPoweredSimplification, 'title', language)}</h3>
                     <Sparkles className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
-                    {language === 'es'
-                      ? 'Tecnología de IA optimizada para documentos legales en español e inglés con capitalización inteligente.'
-                      : 'AI technology optimized for legal documents in Spanish and English with intelligent capitalization.'
-                    }
+                    {smartCapitalize(
+                      language === 'es'
+                        ? 'tecnología de IA optimizada para documentos legales en español e inglés con capitalización inteligente.'
+                        : 'AI technology optimized for legal documents in Spanish and English with intelligent capitalization.',
+                      'sentence',
+                      language
+                    )}
                   </p>
                   <button className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200">
-                    {language === 'es' ? 'Aprende Más' : 'Learn More'}
+                    {smartCapitalize(language === 'es' ? 'aprende más' : 'learn more', 'title', language)}
                   </button>
                 </div>
               </div>
@@ -465,8 +482,12 @@ export default function DashboardPage() {
                             <FileText className="w-5 h-5 text-just-forest dark:text-just-moss" />
                           </div>
                           <div>
-                            <h4 className="font-medium text-just-forest dark:text-just-white">{doc.title}</h4>
-                            <p className="text-sm text-just-gray dark:text-gray-400">{String(doc.type ?? '')} • {String(doc.jurisdiction ?? '')}</p>
+                            <h4 className="font-medium text-just-forest dark:text-just-white">
+                              {smartCapitalize(doc.title, 'title', language)}
+                            </h4>
+                            <p className="text-sm text-just-gray dark:text-gray-400">
+                              {smartCapitalize(String(doc.type ?? ''), 'proper', language)} • {smartCapitalize(String(doc.jurisdiction ?? ''), 'proper', language)}
+                            </p>
                           </div>
                         </div>
 
@@ -496,16 +517,28 @@ export default function DashboardPage() {
                     <FileText className="w-8 h-8 text-just-hunter dark:text-gray-400" />
                   </div>
                   <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                    {language === 'es' ? 'No se encontraron documentos' : 'No documents found'}
+                    {smartCapitalize(
+                      language === 'es' ? 'no se encontraron documentos' : 'no documents found',
+                      'sentence',
+                      language
+                    )}
                   </h3>
                   <p className="text-just-gray dark:text-gray-400 mb-4">
-                    {language === 'es' ? 'Sube tu primer documento PDF o DOCX para comenzar' : 'Upload your first PDF or DOCX document to get started'}
+                    {smartCapitalize(
+                      language === 'es' ? 'sube tu primer documento PDF o DOCX para comenzar' : 'upload your first PDF or DOCX document to get started',
+                      'sentence',
+                      language
+                    )}
                   </p>
                   <button
                     onClick={() => navigate('/upload')}
                     className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
                   >
-                    {language === 'es' ? 'Sube tu Primer Documento' : 'Upload Your First Document'}
+                    {smartCapitalize(
+                      language === 'es' ? 'sube tu primer documento' : 'upload your first document',
+                      'title',
+                      language
+                    )}
                   </button>
                 </div>
               )}
@@ -525,17 +558,24 @@ export default function DashboardPage() {
                 {sidebarItems.find(item => item.id === activeTab)?.label}
               </h3>
               <p className="text-just-gray dark:text-gray-400 mb-4">
-                {language === 'es'
-                  ? 'Esta sección estará disponible pronto. Estamos trabajando duro para brindarte la mejor experiencia con documentos legales.'
-                  : 'This section is coming soon. We\'re working hard to bring you the best legal document experience.'
-                }
+                {smartCapitalize(
+                  language === 'es'
+                    ? 'esta sección estará disponible pronto. Estamos trabajando duro para brindarte la mejor experiencia con documentos legales.'
+                    : 'this section is coming soon. We\'re working hard to bring you the best legal document experience.',
+                  'sentence',
+                  language
+                )}
               </p>
               {activeTab === 'documents' && (
                 <button
                   onClick={() => navigate('/upload')}
                   className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
                 >
-                  {language === 'es' ? 'Sube tu Primer Documento' : 'Upload Your First Document'}
+                  {smartCapitalize(
+                    language === 'es' ? 'sube tu primer documento' : 'upload your first document',
+                    'title',
+                    language
+                  )}
                 </button>
               )}
             </div>
