@@ -141,252 +141,345 @@ function detectJurisdiction(text: string): JurisdictionInfo {
   }
 }
 
-// Generar pasos específicos para Colombia
-function generateColombianSteps(text: string): string[] {
-  const steps: string[] = [];
-  const lowerText = text.toLowerCase();
+// Extraer información específica del documento
+function extractDocumentInfo(text: string) {
+  const info = {
+    parties: [] as string[],
+    obligations: [] as string[],
+    payments: [] as string[],
+    dates: [] as string[],
+    penalties: [] as string[],
+    termination: [] as string[],
+    type: 'general'
+  };
+
+  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
   
-  // Pasos para contratos de arrendamiento en Colombia
-  if (lowerText.includes('arrendamiento') || lowerText.includes('arriendo')) {
-    steps.push('Verificar que el contrato cumpla con la Ley 820 de 2003 que regula los arrendamientos en Colombia');
-    steps.push('Confirmar que el canon de arrendamiento no exceda los límites legales y que el reajuste anual se base en el IPC certificado por el DANE');
-    steps.push('Asegurar que el depósito en dinero no supere el equivalente a dos (2) meses de canon de arrendamiento');
-    steps.push('Verificar que el inmueble se entregue en condiciones de habitabilidad según el Código Civil Colombiano');
-    steps.push('Cumplir puntualmente con el pago del canon dentro de los primeros cinco (5) días de cada mes');
-    steps.push('Usar el inmueble exclusivamente para vivienda urbana y no subarrendar sin autorización escrita');
-    steps.push('En caso de terminación del contrato, seguir el procedimiento establecido en el artículo 22 de la Ley 820 de 2003');
+  // Detectar tipo de documento
+  if (text.toLowerCase().includes('arrendamiento') || text.toLowerCase().includes('lease')) {
+    info.type = 'rental';
+  } else if (text.toLowerCase().includes('compraventa') || text.toLowerCase().includes('purchase')) {
+    info.type = 'sale';
+  } else if (text.toLowerCase().includes('laboral') || text.toLowerCase().includes('employment')) {
+    info.type = 'employment';
+  } else if (text.toLowerCase().includes('demanda') || text.toLowerCase().includes('lawsuit')) {
+    info.type = 'lawsuit';
   }
+
+  // Extraer partes involucradas
+  const partyPatterns = [
+    /(?:arrendador|landlord|demandante|plaintiff|comprador|buyer|empleador|employer):\s*([^,\n.]+)/gi,
+    /(?:arrendatario|tenant|demandado|defendant|vendedor|seller|empleado|employee):\s*([^,\n.]+)/gi
+  ];
   
-  // Pasos para contratos generales en Colombia
-  else if (lowerText.includes('contrato')) {
-    steps.push('Verificar que todas las partes sean mayores de edad y estén debidamente identificadas con cédula de ciudadanía');
-    steps.push('Confirmar que el objeto del contrato sea lícito y esté claramente definido según el Código Civil Colombiano');
-    steps.push('Cumplir con todas las obligaciones establecidas en las cláusulas del contrato');
-    steps.push('Realizar los pagos en las fechas acordadas y conservar los comprobantes de pago');
-    steps.push('En caso de incumplimiento, seguir el procedimiento legal establecido en el Código de Procedimiento Civil');
-    steps.push('Consultar con un abogado si surgen dudas sobre la interpretación del contrato');
-  }
-  
-  // Pasos para demandas civiles en Colombia
-  else if (lowerText.includes('demanda') || lowerText.includes('civil')) {
-    steps.push('Presentar la demanda ante el juez competente según la cuantía y la materia');
-    steps.push('Adjuntar todas las pruebas documentales que soporten las pretensiones');
-    steps.push('Notificar debidamente a la parte demandada según el Código de Procedimiento Civil');
-    steps.push('Comparecer a todas las audiencias programadas por el juzgado');
-    steps.push('Cumplir con los términos procesales establecidos por la ley colombiana');
-    steps.push('En caso de sentencia favorable, iniciar el proceso de ejecución si es necesario');
-  }
-  
-  // Pasos generales para documentos legales colombianos
-  else {
-    steps.push('Verificar que el documento cumpla con los requisitos legales establecidos en la legislación colombiana');
-    steps.push('Confirmar que todas las partes involucradas tengan capacidad legal para contratar');
-    steps.push('Cumplir con las obligaciones específicas establecidas en el documento');
-    steps.push('Mantener copias del documento y todos los comprobantes relacionados');
-    steps.push('Consultar con un profesional del derecho en caso de dudas o conflictos');
-  }
-  
-  return steps;
+  partyPatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      info.parties.push(match[1].trim());
+    }
+  });
+
+  // Extraer obligaciones
+  const obligationKeywords = ['deberá', 'debe', 'obligación', 'responsabilidad', 'shall', 'must', 'obligation', 'responsibility'];
+  info.obligations = sentences.filter(s => 
+    obligationKeywords.some(keyword => s.toLowerCase().includes(keyword))
+  ).slice(0, 5);
+
+  // Extraer información de pagos
+  const paymentKeywords = ['pagar', 'canon', 'precio', 'valor', 'suma', 'pay', 'rent', 'price', 'amount'];
+  info.payments = sentences.filter(s => 
+    paymentKeywords.some(keyword => s.toLowerCase().includes(keyword))
+  ).slice(0, 3);
+
+  // Extraer fechas y plazos
+  const dateKeywords = ['plazo', 'fecha', 'duración', 'término', 'vencimiento', 'term', 'date', 'duration', 'deadline'];
+  info.dates = sentences.filter(s => 
+    dateKeywords.some(keyword => s.toLowerCase().includes(keyword))
+  ).slice(0, 3);
+
+  // Extraer información sobre penalizaciones
+  const penaltyKeywords = ['multa', 'sanción', 'penalización', 'incumplimiento', 'penalty', 'fine', 'breach', 'violation'];
+  info.penalties = sentences.filter(s => 
+    penaltyKeywords.some(keyword => s.toLowerCase().includes(keyword))
+  ).slice(0, 2);
+
+  // Extraer información sobre terminación
+  const terminationKeywords = ['terminación', 'rescisión', 'finalización', 'termination', 'cancellation', 'expiration'];
+  info.termination = sentences.filter(s => 
+    terminationKeywords.some(keyword => s.toLowerCase().includes(keyword))
+  ).slice(0, 2);
+
+  return info;
 }
 
-// Generar pasos específicos para Estados Unidos
-function generateUSSteps(text: string): string[] {
+// Generar pasos específicos basados en el contenido real del documento
+function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, language: 'es' | 'en'): string[] {
   const steps: string[] = [];
-  const lowerText = text.toLowerCase();
+  const docInfo = extractDocumentInfo(text);
   
-  // Pasos para contratos de arrendamiento en EE.UU.
-  if (lowerText.includes('lease') || lowerText.includes('rental')) {
-    steps.push('Review the lease agreement to ensure compliance with federal and state housing laws');
-    steps.push('Verify that the security deposit does not exceed state-mandated limits');
-    steps.push('Ensure the property meets habitability standards required by local housing codes');
-    steps.push('Pay rent on time according to the lease terms to avoid late fees or eviction');
-    steps.push('Document any property damage or maintenance issues in writing');
-    steps.push('Provide proper notice before terminating the lease as required by state law');
-    steps.push('Understand your rights as a tenant under federal and state tenant protection laws');
-  }
-  
-  // Pasos para contratos generales en EE.UU.
-  else if (lowerText.includes('contract') || lowerText.includes('agreement')) {
-    steps.push('Ensure all parties have legal capacity to enter into the contract');
-    steps.push('Verify that the contract terms are clear, specific, and legally enforceable');
-    steps.push('Perform all obligations as specified in the contract terms');
-    steps.push('Maintain detailed records of all payments and contract performance');
-    steps.push('Follow dispute resolution procedures outlined in the contract');
-    steps.push('Consult with a qualified attorney if contract interpretation issues arise');
-  }
-  
-  // Pasos para demandas civiles en EE.UU.
-  else if (lowerText.includes('lawsuit') || lowerText.includes('plaintiff') || lowerText.includes('defendant')) {
-    steps.push('File the complaint in the appropriate court with proper jurisdiction');
-    steps.push('Serve the defendant according to federal and state service of process rules');
-    steps.push('Respond to discovery requests within the time limits set by court rules');
-    steps.push('Attend all scheduled court hearings and depositions');
-    steps.push('Comply with all court orders and procedural deadlines');
-    steps.push('Consider settlement negotiations before trial to resolve the dispute');
-  }
-  
-  // Pasos generales para documentos legales en EE.UU.
-  else {
-    steps.push('Verify that the document complies with applicable federal and state laws');
-    steps.push('Ensure all required signatures and notarizations are properly completed');
-    steps.push('Fulfill all obligations and responsibilities outlined in the document');
-    steps.push('Keep detailed records and copies of all related documentation');
-    steps.push('Seek legal counsel if you have questions about your rights or obligations');
-  }
-  
-  return steps;
-}
-
-// Generar pasos específicos para México
-function generateMexicanSteps(text: string): string[] {
-  const steps: string[] = [];
-  const lowerText = text.toLowerCase();
-  
-  if (lowerText.includes('arrendamiento') || lowerText.includes('renta')) {
-    steps.push('Verificar que el contrato cumpla con las disposiciones del Código Civil Federal mexicano');
-    steps.push('Confirmar que la renta mensual esté dentro de los parámetros del mercado local');
-    steps.push('Asegurar que el depósito de garantía no exceda dos meses de renta');
-    steps.push('Verificar que el inmueble cuente con los servicios básicos y esté en condiciones habitables');
-    steps.push('Realizar los pagos de renta puntualmente según lo acordado en el contrato');
-    steps.push('Registrar el contrato ante las autoridades fiscales mexicanas si es requerido');
-    steps.push('En caso de terminación, dar el aviso correspondiente según la ley mexicana');
+  // Pasos basados en el tipo de documento detectado
+  if (docInfo.type === 'rental') {
+    if (language === 'es') {
+      steps.push('Verificar la identidad y capacidad legal de ambas partes (arrendador y arrendatario)');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Cumplir con los pagos establecidos: ${paymentInfo}...`);
+      } else {
+        steps.push('Realizar los pagos del canon de arrendamiento puntualmente según lo acordado');
+      }
+      
+      if (docInfo.dates.length > 0) {
+        const dateInfo = docInfo.dates[0].substring(0, 100);
+        steps.push(`Respetar los plazos establecidos: ${dateInfo}...`);
+      } else {
+        steps.push('Cumplir con la duración del contrato y fechas importantes');
+      }
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 2).forEach(obligation => {
+          steps.push(`Cumplir obligación: ${obligation.substring(0, 120)}...`);
+        });
+      }
+      
+      if (jurisdiction.country === 'Colombia') {
+        steps.push('Verificar cumplimiento con la Ley 820 de 2003 para arrendamientos en Colombia');
+        steps.push('Asegurar que el reajuste anual se base en el IPC certificado por el DANE');
+      }
+      
+      if (docInfo.termination.length > 0) {
+        const terminationInfo = docInfo.termination[0].substring(0, 100);
+        steps.push(`Procedimiento de terminación: ${terminationInfo}...`);
+      }
+    } else {
+      steps.push('Verify the identity and legal capacity of both parties (landlord and tenant)');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Comply with established payments: ${paymentInfo}...`);
+      } else {
+        steps.push('Make rental payments punctually as agreed');
+      }
+      
+      if (docInfo.dates.length > 0) {
+        const dateInfo = docInfo.dates[0].substring(0, 100);
+        steps.push(`Respect established deadlines: ${dateInfo}...`);
+      } else {
+        steps.push('Comply with contract duration and important dates');
+      }
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 2).forEach(obligation => {
+          steps.push(`Fulfill obligation: ${obligation.substring(0, 120)}...`);
+        });
+      }
+      
+      if (jurisdiction.country === 'United States') {
+        steps.push('Verify compliance with federal and state housing laws');
+        steps.push('Ensure security deposit complies with state regulations');
+      }
+    }
+  } else if (docInfo.type === 'sale') {
+    if (language === 'es') {
+      steps.push('Verificar la titularidad y capacidad legal de las partes');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Realizar el pago según lo acordado: ${paymentInfo}...`);
+      }
+      
+      steps.push('Verificar que el bien esté libre de gravámenes y cargas');
+      steps.push('Realizar la transferencia de propiedad ante notario público');
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 2).forEach(obligation => {
+          steps.push(`Cumplir: ${obligation.substring(0, 120)}...`);
+        });
+      }
+    } else {
+      steps.push('Verify ownership and legal capacity of the parties');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Make payment as agreed: ${paymentInfo}...`);
+      }
+      
+      steps.push('Verify that the property is free of liens and encumbrances');
+      steps.push('Complete property transfer before a notary public');
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 2).forEach(obligation => {
+          steps.push(`Fulfill: ${obligation.substring(0, 120)}...`);
+        });
+      }
+    }
+  } else if (docInfo.type === 'employment') {
+    if (language === 'es') {
+      steps.push('Verificar que el contrato cumpla con la legislación laboral aplicable');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Cumplir con la remuneración acordada: ${paymentInfo}...`);
+      }
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 3).forEach(obligation => {
+          steps.push(`Obligación laboral: ${obligation.substring(0, 120)}...`);
+        });
+      }
+      
+      steps.push('Cumplir con horarios, funciones y responsabilidades establecidas');
+      steps.push('Respetar las políticas de la empresa y código de conducta');
+    } else {
+      steps.push('Verify that the contract complies with applicable labor legislation');
+      
+      if (docInfo.payments.length > 0) {
+        const paymentInfo = docInfo.payments[0].substring(0, 100);
+        steps.push(`Comply with agreed compensation: ${paymentInfo}...`);
+      }
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 3).forEach(obligation => {
+          steps.push(`Employment obligation: ${obligation.substring(0, 120)}...`);
+        });
+      }
+      
+      steps.push('Comply with established schedules, functions and responsibilities');
+      steps.push('Respect company policies and code of conduct');
+    }
   } else {
-    steps.push('Verificar que el documento cumpla con la legislación mexicana aplicable');
-    steps.push('Confirmar que todas las partes tengan capacidad legal según el derecho mexicano');
-    steps.push('Cumplir con las obligaciones establecidas en el documento');
-    steps.push('Mantener registros adecuados para efectos fiscales y legales');
-    steps.push('Consultar con un abogado mexicano en caso de dudas legales');
+    // Documento general - extraer pasos del contenido
+    if (language === 'es') {
+      steps.push('Verificar que todas las partes tengan capacidad legal para contratar');
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 4).forEach(obligation => {
+          const cleanObligation = obligation.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanObligation.length > 20) {
+            steps.push(`${cleanObligation.substring(0, 150)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.payments.length > 0) {
+        docInfo.payments.forEach(payment => {
+          const cleanPayment = payment.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanPayment.length > 20) {
+            steps.push(`Pago requerido: ${cleanPayment.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.dates.length > 0) {
+        docInfo.dates.forEach(date => {
+          const cleanDate = date.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanDate.length > 20) {
+            steps.push(`Fecha importante: ${cleanDate.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.penalties.length > 0) {
+        docInfo.penalties.forEach(penalty => {
+          const cleanPenalty = penalty.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanPenalty.length > 20) {
+            steps.push(`Evitar penalización: ${cleanPenalty.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      steps.push('Mantener copias de todos los documentos y comprobantes relacionados');
+      steps.push('Consultar con un abogado en caso de dudas sobre interpretación');
+    } else {
+      steps.push('Verify that all parties have legal capacity to contract');
+      
+      if (docInfo.obligations.length > 0) {
+        docInfo.obligations.slice(0, 4).forEach(obligation => {
+          const cleanObligation = obligation.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanObligation.length > 20) {
+            steps.push(`${cleanObligation.substring(0, 150)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.payments.length > 0) {
+        docInfo.payments.forEach(payment => {
+          const cleanPayment = payment.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanPayment.length > 20) {
+            steps.push(`Required payment: ${cleanPayment.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.dates.length > 0) {
+        docInfo.dates.forEach(date => {
+          const cleanDate = date.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanDate.length > 20) {
+            steps.push(`Important date: ${cleanDate.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      if (docInfo.penalties.length > 0) {
+        docInfo.penalties.forEach(penalty => {
+          const cleanPenalty = penalty.replace(/^[-–•\d.\s]+/, '').trim();
+          if (cleanPenalty.length > 20) {
+            steps.push(`Avoid penalty: ${cleanPenalty.substring(0, 120)}...`);
+          }
+        });
+      }
+      
+      steps.push('Keep copies of all related documents and receipts');
+      steps.push('Consult with a lawyer in case of interpretation doubts');
+    }
   }
   
-  return steps;
-}
-
-// Generar pasos específicos para España
-function generateSpanishSteps(text: string): string[] {
-  const steps: string[] = [];
-  const lowerText = text.toLowerCase();
-  
-  if (lowerText.includes('arrendamiento') || lowerText.includes('alquiler')) {
-    steps.push('Verificar que el contrato cumpla con la Ley de Arrendamientos Urbanos española');
-    steps.push('Confirmar que la renta esté dentro de los límites establecidos por la normativa autonómica');
-    steps.push('Asegurar que la fianza no supere dos mensualidades según la ley española');
-    steps.push('Verificar que el inmueble cumpla con los estándares de habitabilidad europeos');
-    steps.push('Realizar los pagos según lo establecido en el contrato y la legislación española');
-    steps.push('Cumplir con las obligaciones fiscales ante la Agencia Tributaria española');
-    steps.push('En caso de conflicto, seguir los procedimientos establecidos en la legislación española');
-  } else {
-    steps.push('Verificar que el documento cumpla con el ordenamiento jurídico español');
-    steps.push('Confirmar que todas las partes tengan capacidad según el Código Civil español');
-    steps.push('Cumplir con las obligaciones establecidas en el documento');
-    steps.push('Mantener registros para efectos fiscales y legales en España');
-    steps.push('Consultar con un abogado español especializado en caso de dudas');
+  // Agregar pasos específicos de jurisdicción
+  if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
+    const lawsText = jurisdiction.specific_laws.join(', ');
+    if (language === 'es') {
+      steps.push(`Verificar cumplimiento con: ${lawsText}`);
+    } else {
+      steps.push(`Verify compliance with: ${lawsText}`);
+    }
   }
   
-  return steps;
+  return steps.filter(step => step.length > 10).slice(0, 8); // Máximo 8 pasos
 }
 
 // Función principal para generar guía paso a paso
 export async function generateStepByStepGuide(text: string, language: 'es' | 'en'): Promise<StepByStepGuide> {
   try {
+    if (!text || text.trim().length < 50) {
+      throw new Error('El texto del documento es demasiado corto para generar una guía');
+    }
+
     // Detectar jurisdicción
     const jurisdiction = detectJurisdiction(text);
     
-    let steps: string[] = [];
-    let summary = '';
-    let legalFramework = '';
+    // Generar pasos basados en el contenido real del documento
+    const steps = generateStepsFromContent(text, jurisdiction, language);
     
-    // Generar pasos específicos según el país detectado
-    switch (jurisdiction.country) {
-      case 'Colombia':
-        steps = generateColombianSteps(text);
-        summary = language === 'es' 
-          ? 'Guía paso a paso para cumplir con la legislación colombiana. Sigue estos pasos para asegurar el cumplimiento legal según la Ley 820 de 2003 y el Código Civil Colombiano.'
-          : 'Step-by-step guide to comply with Colombian legislation. Follow these steps to ensure legal compliance according to Law 820 of 2003 and the Colombian Civil Code.';
-        legalFramework = 'Legislación Colombiana - Ley 820 de 2003, Código Civil Colombiano';
-        break;
-        
-      case 'México':
-        steps = generateMexicanSteps(text);
-        summary = language === 'es'
-          ? 'Guía paso a paso para cumplir con la legislación mexicana. Sigue estos pasos para asegurar el cumplimiento legal según el Código Civil Federal mexicano.'
-          : 'Step-by-step guide to comply with Mexican legislation. Follow these steps to ensure legal compliance according to the Mexican Federal Civil Code.';
-        legalFramework = 'Legislación Mexicana - Código Civil Federal';
-        break;
-        
-      case 'España':
-        steps = generateSpanishSteps(text);
-        summary = language === 'es'
-          ? 'Guía paso a paso para cumplir con la legislación española. Sigue estos pasos para asegurar el cumplimiento legal según la Ley de Arrendamientos Urbanos y el Código Civil español.'
-          : 'Step-by-step guide to comply with Spanish legislation. Follow these steps to ensure legal compliance according to the Urban Leasing Law and Spanish Civil Code.';
-        legalFramework = 'Legislación Española - Ley de Arrendamientos Urbanos, Código Civil';
-        break;
-        
-      case 'United States':
-        steps = generateUSSteps(text);
-        summary = language === 'es'
-          ? 'Guía paso a paso para cumplir con la legislación estadounidense. Sigue estos pasos para asegurar el cumplimiento legal según las leyes federales y estatales.'
-          : 'Step-by-step guide to comply with US legislation. Follow these steps to ensure legal compliance according to federal and state laws.';
-        legalFramework = 'US Federal and State Laws';
-        break;
-        
-      case 'United Kingdom':
-        steps = generateUSSteps(text); // Usar pasos similares a EE.UU. por ser common law
-        summary = language === 'es'
-          ? 'Guía paso a paso para cumplir con la legislación del Reino Unido. Sigue estos pasos para asegurar el cumplimiento legal según el derecho común inglés.'
-          : 'Step-by-step guide to comply with UK legislation. Follow these steps to ensure legal compliance according to English common law.';
-        legalFramework = 'English Common Law';
-        break;
-        
-      default:
-        // Pasos genéricos basados en el idioma
-        if (language === 'es') {
-          steps = [
-            'Verificar que el documento cumpla con la legislación local aplicable',
-            'Confirmar que todas las partes tengan capacidad legal para contratar',
-            'Cumplir con todas las obligaciones establecidas en el documento',
-            'Realizar los pagos y cumplir con los plazos acordados',
-            'Mantener registros y comprobantes de todas las transacciones',
-            'Consultar con un abogado local en caso de dudas o conflictos',
-            'Seguir los procedimientos legales establecidos en su jurisdicción'
-          ];
-          summary = 'Guía paso a paso general para documentos legales. Sigue estos pasos básicos para asegurar el cumplimiento legal.';
-          legalFramework = 'Legislación General';
-        } else {
-          steps = [
-            'Verify that the document complies with applicable local legislation',
-            'Confirm that all parties have legal capacity to contract',
-            'Fulfill all obligations established in the document',
-            'Make payments and comply with agreed deadlines',
-            'Maintain records and receipts of all transactions',
-            'Consult with a local attorney in case of doubts or conflicts',
-            'Follow legal procedures established in your jurisdiction'
-          ];
-          summary = 'General step-by-step guide for legal documents. Follow these basic steps to ensure legal compliance.';
-          legalFramework = 'General Legislation';
-        }
+    // Generar resumen basado en el contenido
+    let summary = '';
+    const docInfo = extractDocumentInfo(text);
+    
+    if (language === 'es') {
+      summary = `Guía paso a paso para cumplir con este documento legal de tipo ${docInfo.type}. `;
+      summary += `Detectado en ${jurisdiction.country} bajo el sistema de ${jurisdiction.legal_system}. `;
+      summary += `Sigue estos ${steps.length} pasos para asegurar el cumplimiento legal.`;
+    } else {
+      summary = `Step-by-step guide to comply with this ${docInfo.type} legal document. `;
+      summary += `Detected in ${jurisdiction.country} under ${jurisdiction.legal_system} system. `;
+      summary += `Follow these ${steps.length} steps to ensure legal compliance.`;
     }
     
-    // Si no se generaron pasos específicos, crear pasos genéricos
-    if (steps.length === 0) {
-      if (language === 'es') {
-        steps = [
-          'Leer cuidadosamente todo el documento legal',
-          'Identificar todas las obligaciones y derechos establecidos',
-          'Verificar fechas importantes y plazos de cumplimiento',
-          'Cumplir con los pagos y obligaciones en las fechas acordadas',
-          'Mantener copias de todos los documentos relacionados',
-          'Consultar con un profesional del derecho si hay dudas'
-        ];
-      } else {
-        steps = [
-          'Carefully read the entire legal document',
-          'Identify all obligations and rights established',
-          'Verify important dates and compliance deadlines',
-          'Fulfill payments and obligations on agreed dates',
-          'Keep copies of all related documents',
-          'Consult with a legal professional if there are doubts'
-        ];
-      }
+    // Marco legal específico
+    let legalFramework = '';
+    if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
+      legalFramework = `${jurisdiction.country} - ${jurisdiction.specific_laws.join(', ')}`;
+    } else {
+      legalFramework = `${jurisdiction.country} - ${jurisdiction.legal_system}`;
     }
     
     return {
@@ -404,14 +497,14 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     const fallbackSteps = language === 'es' ? [
       'Leer el documento completo cuidadosamente',
       'Identificar las partes involucradas y sus obligaciones',
-      'Verificar fechas importantes y plazos',
+      'Verificar fechas importantes y plazos de cumplimiento',
       'Cumplir con los pagos y obligaciones acordadas',
       'Mantener registros de todas las transacciones',
       'Consultar con un abogado en caso de dudas'
     ] : [
       'Read the complete document carefully',
       'Identify the parties involved and their obligations',
-      'Verify important dates and deadlines',
+      'Verify important dates and compliance deadlines',
       'Fulfill agreed payments and obligations',
       'Keep records of all transactions',
       'Consult with a lawyer in case of doubts'
@@ -420,11 +513,11 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     return {
       steps: fallbackSteps,
       summary: language === 'es' 
-        ? 'Guía básica para documentos legales'
-        : 'Basic guide for legal documents',
+        ? 'Guía básica para documentos legales basada en principios generales'
+        : 'Basic guide for legal documents based on general principles',
       reading_level: 'B1',
       jurisdiction: 'General',
-      legal_framework: 'General'
+      legal_framework: 'General Legal Principles'
     };
   }
 }
