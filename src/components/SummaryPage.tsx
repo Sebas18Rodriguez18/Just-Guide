@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen, MapPin, Scale } from 'lucide-react';
+import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen, MapPin, Scale, Home } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
 import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
@@ -222,18 +222,33 @@ export default function SummaryPage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Header */}
+      {/* Header Mejorado con Botones Más Visibles */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <button
-            onClick={onNavigateBack}
-            className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
-          </button>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Botones de Navegación Prominentes */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="font-medium">{t.back}</span>
+            </button>
+            
+            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="text-lg">
+                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+              </span>
+            </button>
+          </div>
           
-          <div className="flex items-center justify-between">
+          {/* Información del Documento */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-just-forest dark:bg-just-moss rounded-xl flex items-center justify-center mr-4">
                 <FileText className="w-6 h-6 text-just-white" />
@@ -447,6 +462,17 @@ export default function SummaryPage({
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Botón Flotante Adicional para Volver al Panel */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
+            title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
+          >
+            <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+          </button>
         </div>
       </div>
     </div>

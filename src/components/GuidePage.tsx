@@ -198,32 +198,35 @@ export default function GuidePage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Header */}
+      {/* Header Mejorado con Botones Más Visibles */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button
-            onClick={onNavigateBack}
-            className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
-          </button>
-          <button
-            onClick={onNavigateToDashboard}
-            className="inline-flex items-center px-4 py-2 bg-just-brown dark:bg-just-moss text-just-white rounded-xl hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-200"
-          >
-            <Home className="w-4 h-4 mr-2" />
-            {t.dashboard}
-          </button>
-        </div>
-      </div>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Botones de Navegación Prominentes */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="font-medium">{t.back}</span>
+            </button>
+            
+            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
+            <button
+              onClick={onNavigateToDashboard}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="text-lg">
+                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+              </span>
+            </button>
+          </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          {/* Guide Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center">
-              <BookOpen className="w-6 h-6 mr-2 text-just-moss" />
+          {/* Título de la Página */}
+          <div className="text-center">
+            <h1 className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
+              <BookOpen className="w-7 h-7 mr-3 text-just-moss" />
               {language === 'es' ? 'Guía Paso a Paso' : 'Step-by-Step Guide'}
               {guide?.jurisdiction && (
                 <span className="ml-3 text-lg font-normal text-just-hunter dark:text-gray-300">
@@ -231,51 +234,55 @@ export default function GuidePage({
                 </span>
               )}
             </h1>
-            
-            {/* Jurisdiction Info */}
-            {guide?.jurisdiction && (
-              <div className="mb-4 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
-                <div className="flex items-center space-x-4">
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          {/* Jurisdiction Info */}
+          {guide?.jurisdiction && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-just-forest dark:text-just-moss" />
+                  <span className="font-medium text-just-forest dark:text-just-moss">
+                    {guide.jurisdiction}
+                  </span>
+                </div>
+                {guide.legal_framework && (
                   <div className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-2 text-just-forest dark:text-just-moss" />
-                    <span className="font-medium text-just-forest dark:text-just-moss">
-                      {guide.jurisdiction}
+                    <Scale className="w-5 h-5 mr-2 text-just-hunter dark:text-gray-300" />
+                    <span className="text-sm text-just-hunter dark:text-gray-300">
+                      {guide.legal_framework}
                     </span>
                   </div>
-                  {guide.legal_framework && (
-                    <div className="flex items-center">
-                      <Scale className="w-5 h-5 mr-2 text-just-hunter dark:text-gray-300" />
-                      <span className="text-sm text-just-hunter dark:text-gray-300">
-                        {guide.legal_framework}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Progress Bar */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-just-forest dark:text-just-white">
-                  {language === 'es' ? 'Progreso' : 'Progress'}: {completedCount}/{totalSteps}
-                </span>
-                <span className="text-sm text-just-gray dark:text-gray-400">
-                  {Math.round(progressPercentage)}%
-                </span>
-              </div>
-              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3">
-                <div 
-                  className="bg-just-moss h-3 rounded-full transition-all duration-300" 
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
+                )}
               </div>
             </div>
+          )}
 
-            <p className="text-just-gray dark:text-gray-400 mb-4">
-              {guide?.summary || (language === 'es' ? 'Sigue estos pasos clave para cumplir con la legislación aplicable.' : 'Follow these key steps to comply with applicable legislation.')}
-            </p>
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-just-forest dark:text-just-white">
+                {language === 'es' ? 'Progreso' : 'Progress'}: {completedCount}/{totalSteps}
+              </span>
+              <span className="text-sm text-just-gray dark:text-gray-400">
+                {Math.round(progressPercentage)}%
+              </span>
+            </div>
+            <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3">
+              <div 
+                className="bg-just-moss h-3 rounded-full transition-all duration-300" 
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
           </div>
+
+          <p className="text-just-gray dark:text-gray-400 mb-6">
+            {guide?.summary || (language === 'es' ? 'Sigue estos pasos clave para cumplir con la legislación aplicable.' : 'Follow these key steps to comply with applicable legislation.')}
+          </p>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mb-6">
@@ -386,6 +393,17 @@ export default function GuidePage({
               )}
             </div>
           </div>
+        </div>
+
+        {/* Botón Flotante Adicional para Volver al Panel */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={onNavigateToDashboard}
+            className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
+            title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
+          >
+            <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+          </button>
         </div>
       </div>
     </div>
