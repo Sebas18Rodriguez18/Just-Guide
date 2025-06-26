@@ -76,8 +76,8 @@ export default function GuidePage({
       }
       
       if (docData && docData.extracted_text) {
-        const detectedLang = docData.detected_language === 'es' ? 'es' : 'en';
-        const generated = await generateStepByStepGuide(docData.extracted_text, detectedLang);
+        // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
+        const generated = await generateStepByStepGuide(docData.extracted_text, language);
         const { data: insertData, error: insertError } = await supabase
           .from('simplified_guides')
           .insert([
@@ -131,8 +131,8 @@ export default function GuidePage({
       }
       
       if (docData && docData.extracted_text) {
-        const detectedLang = docData.detected_language === 'es' ? 'es' : 'en';
-        const generated = await generateStepByStepGuide(docData.extracted_text, detectedLang);
+        // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
+        const generated = await generateStepByStepGuide(docData.extracted_text, language);
         const { data: insertData, error: insertError } = await supabase
           .from('simplified_guides')
           .upsert([
@@ -371,6 +371,9 @@ export default function GuidePage({
                     {language === 'es' ? 'Específico para' : 'Specific to'} {guide.jurisdiction}
                   </span>
                 )}
+                <span className="text-xs bg-just-moss/20 dark:bg-just-moss/30 text-just-moss px-2 py-1 rounded-full">
+                  {language === 'es' ? 'Idioma: Español' : 'Language: English'}
+                </span>
               </div>
               
               {completedCount === totalSteps && totalSteps > 0 && (

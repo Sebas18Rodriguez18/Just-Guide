@@ -84,10 +84,9 @@ export default function SummaryPage({
       
       setDocument(realDocument);
       
-      // Generar resumen y puntos clave
+      // Generar resumen y puntos clave EN EL IDIOMA DEL USUARIO
       if (data.extracted_text) {
-        const detectedLang = data.detected_language === 'es' ? 'es' : 'en';
-        setDocSummary(summarizeDocument(data.extracted_text, detectedLang));
+        setDocSummary(summarizeDocument(data.extracted_text, language));
       } else {
         setDocSummary({ summary: '', keyPoints: [] });
       }
@@ -125,8 +124,8 @@ export default function SummaryPage({
       
       // Si no existe y hay texto, generar y guardar una nueva guía
       if (extractedText && extractedText.length > 0) {
-        const detectedLang = document?.detected_language === 'es' ? 'es' : 'en';
-        const guide = await generateStepByStepGuide(extractedText, detectedLang);
+        // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
+        const guide = await generateStepByStepGuide(extractedText, language);
         const { data: insertData, error: insertError } = await supabase
           .from('simplified_guides')
           .insert([
@@ -407,6 +406,11 @@ export default function SummaryPage({
                       </span>
                     )}
                   </div>
+                  <div className="bg-just-moss/20 dark:bg-just-moss/30 px-3 py-2 rounded-lg mt-2">
+                    <span className="text-xs font-medium text-just-moss">
+                      {language === 'es' ? '✓ Pasos generados en español según tu configuración' : '✓ Steps generated in English according to your settings'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -421,8 +425,8 @@ export default function SummaryPage({
               <BookOpen className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-2">
-              {language === 'es' ? 'Los pasos mostrados están adaptados específicamente para la legislación detectada en tu documento.'
-                : 'The steps shown are specifically adapted for the legislation detected in your document.'
+              {language === 'es' ? 'Los pasos mostrados están adaptados específicamente para la legislación detectada y generados en español.'
+                : 'The steps shown are specifically adapted for the detected legislation and generated in English.'
               }
             </p>
           </div>
@@ -433,8 +437,8 @@ export default function SummaryPage({
               <Scale className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-4">
-              {language === 'es' ? 'Nuestra IA detecta automáticamente el país y genera pasos específicos según la legislación local aplicable.'
-                : 'Our AI automatically detects the country and generates specific steps according to applicable local legislation.'
+              {language === 'es' ? 'Nuestra IA detecta automáticamente el país y genera pasos específicos en tu idioma preferido según la legislación local aplicable.'
+                : 'Our AI automatically detects the country and generates specific steps in your preferred language according to applicable local legislation.'
               }
             </p>
             <div className="bg-just-white/20 px-3 py-2 rounded-lg">

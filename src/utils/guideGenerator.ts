@@ -340,9 +340,12 @@ function extractDocumentInfo(text: string) {
 }
 
 // Generar pasos específicos basados en el contenido real del documento
-function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, language: 'es' | 'en'): string[] {
+function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, userLanguage: 'es' | 'en'): string[] {
   const steps: string[] = [];
   const docInfo = extractDocumentInfo(text);
+  
+  // IMPORTANTE: Usar userLanguage para determinar el idioma de los pasos, NO jurisdiction.language
+  const language = userLanguage;
   
   // Pasos basados en el tipo de documento detectado
   if (docInfo.type === 'rental') {
@@ -578,7 +581,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
 }
 
 // Función principal para generar guía paso a paso
-export async function generateStepByStepGuide(text: string, language: 'es' | 'en'): Promise<StepByStepGuide> {
+export async function generateStepByStepGuide(text: string, userLanguage: 'es' | 'en'): Promise<StepByStepGuide> {
   try {
     if (!text || text.trim().length < 50) {
       throw new Error('El texto del documento es demasiado corto para generar una guía');
@@ -587,14 +590,14 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     // Detectar jurisdicción basada en el contenido REAL del documento
     const jurisdiction = detectJurisdiction(text);
     
-    // Generar pasos basados en el contenido real del documento
-    const steps = generateStepsFromContent(text, jurisdiction, language);
+    // CRÍTICO: Generar pasos en el idioma del USUARIO, no del documento
+    const steps = generateStepsFromContent(text, jurisdiction, userLanguage);
     
-    // Generar resumen basado en el contenido
+    // Generar resumen basado en el contenido EN EL IDIOMA DEL USUARIO
     let summary = '';
     const docInfo = extractDocumentInfo(text);
     
-    if (language === 'es') {
+    if (userLanguage === 'es') {
       summary = `Guía paso a paso para cumplir con este documento legal de tipo ${docInfo.type}. `;
       summary += `Detectado en ${jurisdiction.country} bajo el sistema de ${jurisdiction.legal_system}. `;
       summary += `Sigue estos ${steps.length} pasos para asegurar el cumplimiento legal completo.`;
@@ -623,8 +626,8 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
   } catch (error) {
     console.error('Error generating step-by-step guide:', error);
     
-    // Fallback en caso de error
-    const fallbackSteps = language === 'es' ? [
+    // Fallback en caso de error EN EL IDIOMA CORRECTO
+    const fallbackSteps = userLanguage === 'es' ? [
       'Leer el documento completo cuidadosamente para entender todos los términos y condiciones establecidos.',
       'Identificar las partes involucradas y sus obligaciones específicas según lo establecido en el contrato.',
       'Verificar fechas importantes y plazos de cumplimiento para evitar incumplimientos contractuales.',
@@ -642,7 +645,7 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     
     return {
       steps: fallbackSteps,
-      summary: language === 'es' 
+      summary: userLanguage === 'es' 
         ? 'Guía básica para documentos legales basada en principios generales de cumplimiento contractual'
         : 'Basic guide for legal documents based on general principles of contractual compliance',
       reading_level: 'B1',
