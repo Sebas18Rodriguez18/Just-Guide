@@ -15,14 +15,38 @@ interface JurisdictionInfo {
   specific_laws?: string[];
 }
 
-// Detectar país y jurisdicción basado en el contenido del documento
+// Detectar país y jurisdicción basado en el contenido REAL del documento
 function detectJurisdiction(text: string): JurisdictionInfo {
   const lowerText = text.toLowerCase();
   
-  // Colombia - Sistema de derecho civil
-  if (lowerText.includes('ley 820') || 
-      lowerText.includes('código civil colombiano') ||
-      lowerText.includes('bogotá d.c') ||
+  // Detectar leyes específicas mencionadas en el documento
+  const detectedLaws: string[] = [];
+  
+  // Colombia - Detectar leyes específicas mencionadas
+  if (lowerText.includes('ley 820') || lowerText.includes('ley 820 de 2003')) {
+    detectedLaws.push('Ley 820 de 2003');
+  }
+  if (lowerText.includes('código civil colombiano') || lowerText.includes('código civil de colombia')) {
+    detectedLaws.push('Código Civil Colombiano');
+  }
+  if (lowerText.includes('código de procedimiento civil')) {
+    detectedLaws.push('Código de Procedimiento Civil');
+  }
+  if (lowerText.includes('código de comercio')) {
+    detectedLaws.push('Código de Comercio');
+  }
+  if (lowerText.includes('código sustantivo del trabajo')) {
+    detectedLaws.push('Código Sustantivo del Trabajo');
+  }
+  if (lowerText.includes('ley 1564') || lowerText.includes('código general del proceso')) {
+    detectedLaws.push('Código General del Proceso');
+  }
+  if (lowerText.includes('decreto 1077') || lowerText.includes('decreto único reglamentario')) {
+    detectedLaws.push('Decreto 1077 de 2015');
+  }
+  
+  // Colombia - Detectar por ubicación geográfica y términos específicos
+  if (lowerText.includes('bogotá d.c') || 
       lowerText.includes('bogotá dc') ||
       lowerText.includes('medellín') ||
       lowerText.includes('cali') ||
@@ -35,16 +59,45 @@ function detectJurisdiction(text: string): JurisdictionInfo {
       lowerText.includes('dane') ||
       lowerText.includes('ipc') ||
       lowerText.includes('colombia') ||
-      lowerText.includes('colombiano')) {
+      lowerText.includes('colombiano') ||
+      lowerText.includes('cédula de ciudadanía')) {
+    
+    // Si no se detectaron leyes específicas, agregar las más comunes para Colombia
+    if (detectedLaws.length === 0) {
+      if (lowerText.includes('arrendamiento') || lowerText.includes('arriendo')) {
+        detectedLaws.push('Ley 820 de 2003', 'Código Civil Colombiano');
+      } else if (lowerText.includes('contrato') || lowerText.includes('obligación')) {
+        detectedLaws.push('Código Civil Colombiano');
+      } else if (lowerText.includes('demanda') || lowerText.includes('proceso')) {
+        detectedLaws.push('Código General del Proceso');
+      } else if (lowerText.includes('laboral') || lowerText.includes('trabajo')) {
+        detectedLaws.push('Código Sustantivo del Trabajo');
+      }
+    }
+    
     return {
       country: 'Colombia',
       legal_system: 'civil_law',
       language: 'es',
-      specific_laws: ['Ley 820 de 2003', 'Código Civil Colombiano', 'Código de Procedimiento Civil']
+      specific_laws: detectedLaws
     };
   }
   
-  // México - Sistema de derecho civil
+  // México - Detectar leyes específicas
+  const mexicanLaws: string[] = [];
+  if (lowerText.includes('código civil federal')) {
+    mexicanLaws.push('Código Civil Federal');
+  }
+  if (lowerText.includes('ley federal del trabajo')) {
+    mexicanLaws.push('Ley Federal del Trabajo');
+  }
+  if (lowerText.includes('código de comercio')) {
+    mexicanLaws.push('Código de Comercio');
+  }
+  if (lowerText.includes('código federal de procedimientos civiles')) {
+    mexicanLaws.push('Código Federal de Procedimientos Civiles');
+  }
+  
   if (lowerText.includes('ciudad de méxico') ||
       lowerText.includes('cdmx') ||
       lowerText.includes('guadalajara') ||
@@ -54,15 +107,34 @@ function detectJurisdiction(text: string): JurisdictionInfo {
       lowerText.includes('pesos mexicanos') ||
       lowerText.includes('méxico') ||
       lowerText.includes('mexicano')) {
+    
+    if (mexicanLaws.length === 0) {
+      mexicanLaws.push('Código Civil Federal');
+    }
+    
     return {
       country: 'México',
       legal_system: 'civil_law',
       language: 'es',
-      specific_laws: ['Código Civil Federal', 'Ley Federal del Trabajo']
+      specific_laws: mexicanLaws
     };
   }
   
-  // España - Sistema de derecho civil
+  // España - Detectar leyes específicas
+  const spanishLaws: string[] = [];
+  if (lowerText.includes('código civil español') || lowerText.includes('código civil')) {
+    spanishLaws.push('Código Civil Español');
+  }
+  if (lowerText.includes('ley de arrendamientos urbanos')) {
+    spanishLaws.push('Ley de Arrendamientos Urbanos');
+  }
+  if (lowerText.includes('ley de enjuiciamiento civil')) {
+    spanishLaws.push('Ley de Enjuiciamiento Civil');
+  }
+  if (lowerText.includes('estatuto de los trabajadores')) {
+    spanishLaws.push('Estatuto de los Trabajadores');
+  }
+  
   if (lowerText.includes('madrid') ||
       lowerText.includes('barcelona') ||
       lowerText.includes('valencia') ||
@@ -71,15 +143,43 @@ function detectJurisdiction(text: string): JurisdictionInfo {
       lowerText.includes('euros') ||
       lowerText.includes('españa') ||
       lowerText.includes('español')) {
+    
+    if (spanishLaws.length === 0) {
+      spanishLaws.push('Código Civil Español');
+    }
+    
     return {
       country: 'España',
       legal_system: 'civil_law',
       language: 'es',
-      specific_laws: ['Código Civil Español', 'Ley de Arrendamientos Urbanos']
+      specific_laws: spanishLaws
     };
   }
   
-  // Estados Unidos - Sistema de common law
+  // Estados Unidos - Detectar leyes específicas
+  const usLaws: string[] = [];
+  if (lowerText.includes('federal civil code') || lowerText.includes('civil code')) {
+    usLaws.push('Federal Civil Code');
+  }
+  if (lowerText.includes('uniform commercial code') || lowerText.includes('ucc')) {
+    usLaws.push('Uniform Commercial Code');
+  }
+  if (lowerText.includes('fair housing act')) {
+    usLaws.push('Fair Housing Act');
+  }
+  if (lowerText.includes('americans with disabilities act') || lowerText.includes('ada')) {
+    usLaws.push('Americans with Disabilities Act');
+  }
+  if (lowerText.includes('california civil code')) {
+    usLaws.push('California Civil Code');
+  }
+  if (lowerText.includes('new york real property law')) {
+    usLaws.push('New York Real Property Law');
+  }
+  if (lowerText.includes('texas property code')) {
+    usLaws.push('Texas Property Code');
+  }
+  
   if (lowerText.includes('plaintiff') || 
       lowerText.includes('defendant') || 
       lowerText.includes('discovery') ||
@@ -90,15 +190,37 @@ function detectJurisdiction(text: string): JurisdictionInfo {
       lowerText.includes('dollars') ||
       lowerText.includes('united states') ||
       lowerText.includes('usd')) {
+    
+    if (usLaws.length === 0) {
+      usLaws.push('Federal Civil Code', 'State Laws');
+    }
+    
     return {
       country: 'United States',
       legal_system: 'common_law',
       language: 'en',
-      specific_laws: ['Federal Civil Code', 'State Laws']
+      specific_laws: usLaws
     };
   }
   
-  // Reino Unido - Sistema de common law
+  // Reino Unido - Detectar leyes específicas
+  const ukLaws: string[] = [];
+  if (lowerText.includes('english common law')) {
+    ukLaws.push('English Common Law');
+  }
+  if (lowerText.includes('contract law')) {
+    ukLaws.push('Contract Law');
+  }
+  if (lowerText.includes('housing act')) {
+    ukLaws.push('Housing Act');
+  }
+  if (lowerText.includes('landlord and tenant act')) {
+    ukLaws.push('Landlord and Tenant Act');
+  }
+  if (lowerText.includes('employment rights act')) {
+    ukLaws.push('Employment Rights Act');
+  }
+  
   if (lowerText.includes('claimant') ||
       lowerText.includes('solicitor') ||
       lowerText.includes('barrister') ||
@@ -108,11 +230,16 @@ function detectJurisdiction(text: string): JurisdictionInfo {
       lowerText.includes('pounds') ||
       lowerText.includes('gbp') ||
       lowerText.includes('united kingdom')) {
+    
+    if (ukLaws.length === 0) {
+      ukLaws.push('English Common Law', 'Contract Law');
+    }
+    
     return {
       country: 'United Kingdom',
       legal_system: 'common_law',
       language: 'en',
-      specific_laws: ['English Common Law', 'Contract Law']
+      specific_laws: ukLaws
     };
   }
   
@@ -242,9 +369,16 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         });
       }
       
-      if (jurisdiction.country === 'Colombia') {
-        steps.push('Verificar cumplimiento con la Ley 820 de 2003 para arrendamientos en Colombia');
-        steps.push('Asegurar que el reajuste anual se base en el IPC certificado por el DANE');
+      // Agregar pasos específicos basados en las leyes detectadas
+      if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
+        jurisdiction.specific_laws.forEach(law => {
+          if (law.includes('Ley 820')) {
+            steps.push('Verificar cumplimiento con la Ley 820 de 2003 para arrendamientos en Colombia');
+            steps.push('Asegurar que el reajuste anual se base en el IPC certificado por el DANE');
+          } else if (law.includes('Código Civil')) {
+            steps.push(`Cumplir con las disposiciones del ${law}`);
+          }
+        });
       }
       
       if (docInfo.termination.length > 0) {
@@ -274,9 +408,15 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         });
       }
       
-      if (jurisdiction.country === 'United States') {
-        steps.push('Verify compliance with federal and state housing laws');
-        steps.push('Ensure security deposit complies with state regulations');
+      // Agregar pasos específicos basados en las leyes detectadas
+      if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
+        jurisdiction.specific_laws.forEach(law => {
+          if (law.includes('Fair Housing Act')) {
+            steps.push('Verify compliance with Fair Housing Act regulations');
+          } else if (law.includes('State Laws')) {
+            steps.push('Ensure security deposit complies with state regulations');
+          }
+        });
       }
     }
   } else if (docInfo.type === 'sale') {
@@ -434,16 +574,6 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
     }
   }
   
-  // Agregar pasos específicos de jurisdicción
-  if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
-    const lawsText = jurisdiction.specific_laws.join(', ');
-    if (language === 'es') {
-      steps.push(`Verificar cumplimiento con: ${lawsText}`);
-    } else {
-      steps.push(`Verify compliance with: ${lawsText}`);
-    }
-  }
-  
   return steps.filter(step => step.length > 10).slice(0, 8); // Máximo 8 pasos
 }
 
@@ -454,7 +584,7 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
       throw new Error('El texto del documento es demasiado corto para generar una guía');
     }
 
-    // Detectar jurisdicción
+    // Detectar jurisdicción basada en el contenido REAL del documento
     const jurisdiction = detectJurisdiction(text);
     
     // Generar pasos basados en el contenido real del documento
@@ -474,7 +604,7 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
       summary += `Follow these ${steps.length} steps to ensure legal compliance.`;
     }
     
-    // Marco legal específico
+    // Marco legal específico basado en las leyes REALMENTE detectadas en el documento
     let legalFramework = '';
     if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
       legalFramework = `${jurisdiction.country} - ${jurisdiction.specific_laws.join(', ')}`;
