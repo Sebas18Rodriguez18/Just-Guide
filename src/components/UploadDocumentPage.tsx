@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, File } from 'lucide-react';
+import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, File, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -277,175 +277,207 @@ export default function UploadDocumentPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-just-beige dark:bg-gray-900 px-4 py-8">
-      <div className="w-full max-w-xl mx-auto">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-fade-in">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
-              <Upload className="w-6 h-6 mr-2 text-just-moss" /> 
+    <div className="min-h-screen bg-just-beige dark:bg-gray-900">
+      {/* Header Mejorado con Botones Prominentes */}
+      <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Botones de Navegación Prominentes */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+              disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="font-medium">{t.back}</span>
+            </button>
+            
+            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+              disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="text-lg">
+                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+              </span>
+            </button>
+          </div>
+
+          {/* Título de la Página */}
+          <div className="text-center">
+            <h1 className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
+              <Upload className="w-7 h-7 mr-3 text-just-moss" />
               {t.uploadDocument}
-            </h2>
-            <p className="text-just-gray dark:text-gray-400">
+            </h1>
+            <p className="text-just-gray dark:text-gray-400 text-lg">
               {language === 'es' 
                 ? 'Sube archivos DOCX en español o inglés'
                 : 'Upload DOCX files in Spanish or English'
               }
             </p>
           </div>
+        </div>
+      </div>
 
-          {/* Drop Zone */}
-          <div
-            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 mb-6 transition-all duration-200 ${
-              dragActive 
-                ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 scale-105' 
-                : 'border-just-sand dark:border-gray-700 bg-just-beige/50 dark:bg-gray-900/30'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {uploadState.status === 'idle' && (
-              <>
-                <div className="mb-4">
-                  <File className="w-16 h-16 text-blue-600 mx-auto" />
-                </div>
-                <p className="text-just-hunter dark:text-gray-300 mb-4 text-center font-medium">
-                  {language === 'es' 
-                    ? 'Arrastra y suelta tu archivo DOCX aquí'
-                    : 'Drag and drop your DOCX file here'
-                  }
-                </p>
-                <p className="text-sm text-just-gray dark:text-gray-400 mb-4 text-center">
-                  {language === 'es' 
-                    ? 'Solo documentos DOCX en español e inglés'
-                    : 'Only DOCX documents in Spanish and English'
-                  }
-                </p>
-              </>
-            )}
-
-            {uploadState.status === 'processing' && (
-              <div className="text-center">
-                <File className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                <p className="text-just-hunter dark:text-gray-300 mt-4 font-medium">
-                  {uploadState.message}
-                </p>
-                {uploadState.parseProgress !== undefined && (
-                  <div className="mt-2">
-                    <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-just-moss h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${uploadState.parseProgress * 100}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-just-gray dark:text-gray-400 mt-1">
-                      {language === 'es' ? 'Extrayendo texto de DOCX...' : 'Extracting text from DOCX...'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <input
-              type="file"
-              accept=".docx"
-              onChange={handleFileSelect}
-              ref={fileInputRef}
-              className="hidden"
-            />
-            
-            {uploadState.status === 'idle' && (
-              <button
-                className="mt-4 bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest transition-all duration-200 flex items-center hover:scale-105"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Seleccionar Archivo DOCX' : 'Select DOCX File'}
-              </button>
-            )}
-          </div>
-
-          {/* Progress Bar */}
-          {uploadState.status !== 'idle' && (
-            <div className="mb-6">
-              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
-                <div 
-                  className="bg-just-moss h-3 rounded-full transition-all duration-500" 
-                  style={{ width: `${uploadState.progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-just-gray dark:text-gray-400 text-center">
-                {uploadState.progress}% - {uploadState.message}
-              </p>
-            </div>
-          )}
-
-          {/* Status Messages */}
-          {uploadState.status === 'error' && (
-            <div className="flex items-center text-red-600 dark:text-red-400 mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-              <span>{uploadState.error}</span>
-            </div>
-          )}
-
-          {uploadState.status === 'success' && (
-            <div className="flex items-center text-green-600 dark:text-green-400 mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-              <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-              <span>{uploadState.message}</span>
-            </div>
-          )}
-
-          {/* Back Button */}
-          <div className="text-center">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-moss transition-colors duration-200"
-              disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
+      {/* Contenido Principal */}
+      <div className="flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-xl mx-auto">
+          <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-fade-in">
+            {/* Drop Zone */}
+            <div
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 mb-6 transition-all duration-200 ${
+                dragActive 
+                  ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 scale-105' 
+                  : 'border-just-sand dark:border-gray-700 bg-just-beige/50 dark:bg-gray-900/30'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
-            </button>
-          </div>
+              {uploadState.status === 'idle' && (
+                <>
+                  <div className="mb-4">
+                    <File className="w-16 h-16 text-blue-600 mx-auto" />
+                  </div>
+                  <p className="text-just-hunter dark:text-gray-300 mb-4 text-center font-medium">
+                    {language === 'es' 
+                      ? 'Arrastra y suelta tu archivo DOCX aquí'
+                      : 'Drag and drop your DOCX file here'
+                    }
+                  </p>
+                  <p className="text-sm text-just-gray dark:text-gray-400 mb-4 text-center">
+                    {language === 'es' 
+                      ? 'Solo documentos DOCX en español e inglés'
+                      : 'Only DOCX documents in Spanish and English'
+                    }
+                  </p>
+                </>
+              )}
 
-          {/* File Info */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
-              <Info className="w-4 h-4 mr-2" />
-              <span className="text-xs">Solo DOCX</span>
-            </div>
-            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
-              <Eye className="w-4 h-4 mr-2" />
-              <span className="text-xs">
-                {language === 'es' ? 'Privado y seguro' : 'Private & secure'}
-              </span>
-            </div>
-            <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
-              <Upload className="w-4 h-4 mr-2" />
-              <span className="text-xs">
-                {language === 'es' ? 'Máx 10MB' : 'Max 10MB'}
-              </span>
-            </div>
-          </div>
+              {uploadState.status === 'processing' && (
+                <div className="text-center">
+                  <File className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                  <p className="text-just-hunter dark:text-gray-300 mt-4 font-medium">
+                    {uploadState.message}
+                  </p>
+                  {uploadState.parseProgress !== undefined && (
+                    <div className="mt-2">
+                      <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-just-moss h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadState.parseProgress * 100}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-just-gray dark:text-gray-400 mt-1">
+                        {language === 'es' ? 'Extrayendo texto de DOCX...' : 'Extracting text from DOCX...'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {/* Info Box */}
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-            <div className="flex items-start">
-              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800 dark:text-blue-200">
-                <p className="font-medium mb-1">
-                  {language === 'es' ? '¿Por qué solo DOCX?' : 'Why only DOCX?'}
+              <input
+                type="file"
+                accept=".docx"
+                onChange={handleFileSelect}
+                ref={fileInputRef}
+                className="hidden"
+              />
+              
+              {uploadState.status === 'idle' && (
+                <button
+                  className="mt-4 bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest transition-all duration-200 flex items-center hover:scale-105"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  {language === 'es' ? 'Seleccionar Archivo DOCX' : 'Select DOCX File'}
+                </button>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            {uploadState.status !== 'idle' && (
+              <div className="mb-6">
+                <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
+                  <div 
+                    className="bg-just-moss h-3 rounded-full transition-all duration-500" 
+                    style={{ width: `${uploadState.progress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-just-gray dark:text-gray-400 text-center">
+                  {uploadState.progress}% - {uploadState.message}
                 </p>
-                <p>
-                  {language === 'es' 
-                    ? 'Los archivos DOCX ofrecen la mejor calidad de extracción de texto y preservan el formato original del documento.'
-                    : 'DOCX files offer the best text extraction quality and preserve the original document formatting.'
-                  }
-                </p>
+              </div>
+            )}
+
+            {/* Status Messages */}
+            {uploadState.status === 'error' && (
+              <div className="flex items-center text-red-600 dark:text-red-400 mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <span>{uploadState.error}</span>
+              </div>
+            )}
+
+            {uploadState.status === 'success' && (
+              <div className="flex items-center text-green-600 dark:text-green-400 mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <span>{uploadState.message}</span>
+              </div>
+            )}
+
+            {/* File Info */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+                <Info className="w-4 h-4 mr-2" />
+                <span className="text-xs">Solo DOCX</span>
+              </div>
+              <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+                <Eye className="w-4 h-4 mr-2" />
+                <span className="text-xs">
+                  {language === 'es' ? 'Privado y seguro' : 'Private & secure'}
+                </span>
+              </div>
+              <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
+                <Upload className="w-4 h-4 mr-2" />
+                <span className="text-xs">
+                  {language === 'es' ? 'Máx 10MB' : 'Max 10MB'}
+                </span>
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800 dark:text-blue-200">
+                  <p className="font-medium mb-1">
+                    {language === 'es' ? '¿Por qué solo DOCX?' : 'Why only DOCX?'}
+                  </p>
+                  <p>
+                    {language === 'es' 
+                      ? 'Los archivos DOCX ofrecen la mejor calidad de extracción de texto y preservan el formato original del documento.'
+                      : 'DOCX files offer the best text extraction quality and preserve the original document formatting.'
+                    }
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Botón Flotante Adicional para Volver al Panel */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
+          title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
+          disabled={uploadState.status === 'uploading' || uploadState.status === 'processing'}
+        >
+          <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+        </button>
       </div>
     </div>
   );
