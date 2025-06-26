@@ -105,8 +105,6 @@ export default function SummaryPage({
   const autoFetchOrGenerateGuide = async (docId: string, extractedText: string) => {
     setIsSimplifying(true);
     try {
-      console.log('🔍 Buscando guía existente para documento:', docId);
-      
       // Buscar si ya existe la guía en Supabase
       const { data, error } = await supabase
         .from('simplified_guides')
@@ -115,24 +113,19 @@ export default function SummaryPage({
         .maybeSingle();
       
       if (error) {
-        console.error('❌ Error fetching guide:', error);
+        console.error('Error fetching guide:', error);
       }
       
       if (data) {
-        console.log('✅ Guía existente encontrada:', data);
         setSimplifiedGuide(data);
         setIsSimplifying(false);
         return;
       }
       
-      console.log('📝 No existe guía, generando nueva...');
-      
       // Si no existe y hay texto, generar y guardar una nueva guía
       if (extractedText && extractedText.length > 0) {
         // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
         const guide = await generateStepByStepGuide(extractedText, language);
-        
-        console.log('🤖 Guía generada:', guide);
         
         // Guardar en la base de datos
         const { data: insertData, error: insertError } = await supabase
@@ -150,9 +143,7 @@ export default function SummaryPage({
           .maybeSingle();
         
         if (insertError) {
-          console.error('❌ Error inserting guide:', insertError);
-        } else {
-          console.log('✅ Guía guardada en base de datos:', insertData);
+          console.error('Error inserting guide:', insertError);
         }
         
         // Agregar información de jurisdicción al guide
@@ -165,7 +156,7 @@ export default function SummaryPage({
         setSimplifiedGuide(enhancedGuide);
       }
     } catch (err) {
-      console.error('💥 Error in autoFetchOrGenerateGuide:', err);
+      console.error('Error in autoFetchOrGenerateGuide:', err);
     } finally {
       setIsSimplifying(false);
     }
