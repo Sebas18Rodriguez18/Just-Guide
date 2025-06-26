@@ -218,7 +218,7 @@ export default function GuidePage({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           {/* Guide Header */}
           <div className="mb-6">
@@ -302,52 +302,56 @@ export default function GuidePage({
             )}
           </div>
 
-          {/* Steps List */}
+          {/* Steps List - TEXTO COMPLETO SIN CORTES */}
           {guide && guide.steps && guide.steps.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {guide.steps.map((step: string, idx: number) => (
                 <div 
                   key={idx} 
-                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                  className={`p-6 rounded-xl border-2 transition-all duration-200 ${
                     completedSteps[idx] 
                       ? 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-600' 
                       : 'border-just-sand dark:border-gray-600 bg-just-beige/30 dark:bg-gray-700/30'
                   }`}
                 >
-                  <div className="flex items-start space-x-3">
+                  <div className="flex items-start space-x-4">
                     <button
                       onClick={() => toggleStepCompletion(idx)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${
+                      className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors duration-200 mt-1 ${
                         completedSteps[idx]
                           ? 'border-green-500 bg-green-500 text-white'
                           : 'border-just-gray dark:border-gray-500 hover:border-just-moss dark:hover:border-just-moss'
                       }`}
                     >
                       {completedSteps[idx] ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-5 h-5" />
                       ) : (
-                        <Clock className="w-4 h-4" />
+                        <Clock className="w-5 h-5" />
                       )}
                     </button>
                     
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <span className="text-sm font-medium text-just-moss mr-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center mb-3">
+                        <span className="text-lg font-semibold text-just-moss mr-3">
                           {language === 'es' ? 'Paso' : 'Step'} {idx + 1}
                         </span>
                         {completedSteps[idx] && (
-                          <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                          <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full font-medium">
                             {language === 'es' ? 'Completado' : 'Completed'}
                           </span>
                         )}
                       </div>
-                      <p className={`text-base leading-relaxed ${
+                      
+                      {/* TEXTO COMPLETO SIN LÍMITES DE CARACTERES */}
+                      <div className={`text-base leading-relaxed ${
                         completedSteps[idx] 
                           ? 'text-green-800 dark:text-green-200' 
                           : 'text-just-hunter dark:text-gray-300'
                       }`}>
-                        {step}
-                      </p>
+                        <p className="whitespace-pre-wrap break-words">
+                          {step}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -356,7 +360,7 @@ export default function GuidePage({
           )}
 
           {/* Footer Info */}
-          <div className="mt-6 pt-6 border-t border-just-sand dark:border-gray-700">
+          <div className="mt-8 pt-6 border-t border-just-sand dark:border-gray-700">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center space-x-4 text-sm text-just-gray dark:text-gray-400">
                 <span>

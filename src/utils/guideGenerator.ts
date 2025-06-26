@@ -347,25 +347,25 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
   // Pasos basados en el tipo de documento detectado
   if (docInfo.type === 'rental') {
     if (language === 'es') {
-      steps.push('Verificar la identidad y capacidad legal de ambas partes (arrendador y arrendatario)');
+      steps.push('Verificar la identidad y capacidad legal de ambas partes (arrendador y arrendatario). Asegúrate de que ambas personas sean mayores de edad y tengan la documentación necesaria para firmar el contrato.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Cumplir con los pagos establecidos: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Cumplir con los pagos establecidos: ${paymentInfo}. Es fundamental realizar todos los pagos en las fechas acordadas para evitar incumplimientos contractuales.`);
       } else {
-        steps.push('Realizar los pagos del canon de arrendamiento puntualmente según lo acordado');
+        steps.push('Realizar los pagos del canon de arrendamiento puntualmente según lo acordado. El pago debe hacerse en la fecha establecida en el contrato para mantener una buena relación contractual.');
       }
       
       if (docInfo.dates.length > 0) {
-        const dateInfo = docInfo.dates[0].substring(0, 100);
-        steps.push(`Respetar los plazos establecidos: ${dateInfo}...`);
+        const dateInfo = docInfo.dates[0];
+        steps.push(`Respetar los plazos establecidos: ${dateInfo}. Todas las fechas mencionadas en el contrato son vinculantes y deben cumplirse estrictamente.`);
       } else {
-        steps.push('Cumplir con la duración del contrato y fechas importantes');
+        steps.push('Cumplir con la duración del contrato y fechas importantes. Mantén un calendario con todas las fechas relevantes del contrato para evitar olvidos.');
       }
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 2).forEach(obligation => {
-          steps.push(`Cumplir obligación: ${obligation.substring(0, 120)}...`);
+          steps.push(`Cumplir obligación específica: ${obligation}. Esta obligación es parte integral del contrato y su incumplimiento puede tener consecuencias legales.`);
         });
       }
       
@@ -373,38 +373,38 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
       if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
         jurisdiction.specific_laws.forEach(law => {
           if (law.includes('Ley 820')) {
-            steps.push('Verificar cumplimiento con la Ley 820 de 2003 para arrendamientos en Colombia');
-            steps.push('Asegurar que el reajuste anual se base en el IPC certificado por el DANE');
+            steps.push('Verificar cumplimiento con la Ley 820 de 2003 para arrendamientos en Colombia. Esta ley establece los derechos y deberes tanto del arrendador como del arrendatario, incluyendo las condiciones para el reajuste del canon.');
+            steps.push('Asegurar que el reajuste anual se base en el IPC certificado por el DANE. El incremento del canon no puede exceder el porcentaje de inflación oficial del año anterior.');
           } else if (law.includes('Código Civil')) {
-            steps.push(`Cumplir con las disposiciones del ${law}`);
+            steps.push(`Cumplir con las disposiciones del ${law}. Este código establece las normas generales para los contratos civiles y las obligaciones de las partes.`);
           }
         });
       }
       
       if (docInfo.termination.length > 0) {
-        const terminationInfo = docInfo.termination[0].substring(0, 100);
-        steps.push(`Procedimiento de terminación: ${terminationInfo}...`);
+        const terminationInfo = docInfo.termination[0];
+        steps.push(`Procedimiento de terminación: ${terminationInfo}. Es importante conocer las condiciones bajo las cuales el contrato puede terminarse para evitar problemas legales.`);
       }
     } else {
-      steps.push('Verify the identity and legal capacity of both parties (landlord and tenant)');
+      steps.push('Verify the identity and legal capacity of both parties (landlord and tenant). Ensure both individuals are of legal age and have the necessary documentation to sign the contract.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Comply with established payments: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Comply with established payments: ${paymentInfo}. It is essential to make all payments on the agreed dates to avoid contractual breaches.`);
       } else {
-        steps.push('Make rental payments punctually as agreed');
+        steps.push('Make rental payments punctually as agreed. Payment must be made on the date established in the contract to maintain a good contractual relationship.');
       }
       
       if (docInfo.dates.length > 0) {
-        const dateInfo = docInfo.dates[0].substring(0, 100);
-        steps.push(`Respect established deadlines: ${dateInfo}...`);
+        const dateInfo = docInfo.dates[0];
+        steps.push(`Respect established deadlines: ${dateInfo}. All dates mentioned in the contract are binding and must be strictly complied with.`);
       } else {
-        steps.push('Comply with contract duration and important dates');
+        steps.push('Comply with contract duration and important dates. Keep a calendar with all relevant contract dates to avoid oversights.');
       }
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 2).forEach(obligation => {
-          steps.push(`Fulfill obligation: ${obligation.substring(0, 120)}...`);
+          steps.push(`Fulfill specific obligation: ${obligation}. This obligation is an integral part of the contract and non-compliance may have legal consequences.`);
         });
       }
       
@@ -412,91 +412,91 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
       if (jurisdiction.specific_laws && jurisdiction.specific_laws.length > 0) {
         jurisdiction.specific_laws.forEach(law => {
           if (law.includes('Fair Housing Act')) {
-            steps.push('Verify compliance with Fair Housing Act regulations');
+            steps.push('Verify compliance with Fair Housing Act regulations. This act prohibits discrimination in housing based on race, color, religion, sex, national origin, familial status, or disability.');
           } else if (law.includes('State Laws')) {
-            steps.push('Ensure security deposit complies with state regulations');
+            steps.push('Ensure security deposit complies with state regulations. Each state has specific laws regarding the amount, handling, and return of security deposits.');
           }
         });
       }
     }
   } else if (docInfo.type === 'sale') {
     if (language === 'es') {
-      steps.push('Verificar la titularidad y capacidad legal de las partes');
+      steps.push('Verificar la titularidad y capacidad legal de las partes. Es fundamental confirmar que el vendedor sea el propietario legítimo del bien y que ambas partes tengan capacidad legal para contratar.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Realizar el pago según lo acordado: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Realizar el pago según lo acordado: ${paymentInfo}. El pago debe realizarse en la forma y plazos establecidos en el contrato para completar la transacción.`);
       }
       
-      steps.push('Verificar que el bien esté libre de gravámenes y cargas');
-      steps.push('Realizar la transferencia de propiedad ante notario público');
+      steps.push('Verificar que el bien esté libre de gravámenes y cargas. Solicitar un certificado de libertad y tradición actualizado para confirmar que no existen deudas o limitaciones sobre la propiedad.');
+      steps.push('Realizar la transferencia de propiedad ante notario público. Este paso es esencial para que la venta sea legalmente válida y el nuevo propietario quede debidamente registrado.');
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 2).forEach(obligation => {
-          steps.push(`Cumplir: ${obligation.substring(0, 120)}...`);
+          steps.push(`Cumplir obligación específica: ${obligation}. Esta obligación debe ser cumplida para completar exitosamente la transacción de compraventa.`);
         });
       }
     } else {
-      steps.push('Verify ownership and legal capacity of the parties');
+      steps.push('Verify ownership and legal capacity of the parties. It is essential to confirm that the seller is the legitimate owner of the property and that both parties have legal capacity to contract.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Make payment as agreed: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Make payment as agreed: ${paymentInfo}. Payment must be made in the manner and timeframes established in the contract to complete the transaction.`);
       }
       
-      steps.push('Verify that the property is free of liens and encumbrances');
-      steps.push('Complete property transfer before a notary public');
+      steps.push('Verify that the property is free of liens and encumbrances. Request an updated title report to confirm there are no debts or limitations on the property.');
+      steps.push('Complete property transfer before a notary public. This step is essential for the sale to be legally valid and for the new owner to be properly registered.');
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 2).forEach(obligation => {
-          steps.push(`Fulfill: ${obligation.substring(0, 120)}...`);
+          steps.push(`Fulfill specific obligation: ${obligation}. This obligation must be met to successfully complete the purchase and sale transaction.`);
         });
       }
     }
   } else if (docInfo.type === 'employment') {
     if (language === 'es') {
-      steps.push('Verificar que el contrato cumpla con la legislación laboral aplicable');
+      steps.push('Verificar que el contrato cumpla con la legislación laboral aplicable. El contrato debe incluir todas las cláusulas mínimas requeridas por la ley laboral del país correspondiente.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Cumplir con la remuneración acordada: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Cumplir con la remuneración acordada: ${paymentInfo}. El salario debe pagarse en los períodos establecidos y cumplir con el salario mínimo legal vigente.`);
       }
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 3).forEach(obligation => {
-          steps.push(`Obligación laboral: ${obligation.substring(0, 120)}...`);
+          steps.push(`Obligación laboral específica: ${obligation}. Esta obligación forma parte de las responsabilidades del empleado o empleador según corresponda.`);
         });
       }
       
-      steps.push('Cumplir con horarios, funciones y responsabilidades establecidas');
-      steps.push('Respetar las políticas de la empresa y código de conducta');
+      steps.push('Cumplir con horarios, funciones y responsabilidades establecidas. Es importante mantener un registro de cumplimiento para evitar conflictos laborales.');
+      steps.push('Respetar las políticas de la empresa y código de conducta. El incumplimiento de estas normas puede resultar en medidas disciplinarias o terminación del contrato.');
     } else {
-      steps.push('Verify that the contract complies with applicable labor legislation');
+      steps.push('Verify that the contract complies with applicable labor legislation. The contract must include all minimum clauses required by the labor law of the corresponding country.');
       
       if (docInfo.payments.length > 0) {
-        const paymentInfo = docInfo.payments[0].substring(0, 100);
-        steps.push(`Comply with agreed compensation: ${paymentInfo}...`);
+        const paymentInfo = docInfo.payments[0];
+        steps.push(`Comply with agreed compensation: ${paymentInfo}. Salary must be paid in the established periods and comply with the current legal minimum wage.`);
       }
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 3).forEach(obligation => {
-          steps.push(`Employment obligation: ${obligation.substring(0, 120)}...`);
+          steps.push(`Specific employment obligation: ${obligation}. This obligation is part of the employee's or employer's responsibilities as applicable.`);
         });
       }
       
-      steps.push('Comply with established schedules, functions and responsibilities');
-      steps.push('Respect company policies and code of conduct');
+      steps.push('Comply with established schedules, functions and responsibilities. It is important to maintain a compliance record to avoid labor conflicts.');
+      steps.push('Respect company policies and code of conduct. Non-compliance with these standards may result in disciplinary measures or contract termination.');
     }
   } else {
     // Documento general - extraer pasos del contenido
     if (language === 'es') {
-      steps.push('Verificar que todas las partes tengan capacidad legal para contratar');
+      steps.push('Verificar que todas las partes tengan capacidad legal para contratar. Confirmar que todos los firmantes sean mayores de edad y tengan la autoridad necesaria para comprometerse legalmente.');
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 4).forEach(obligation => {
           const cleanObligation = obligation.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanObligation.length > 20) {
-            steps.push(`${cleanObligation.substring(0, 150)}...`);
+            steps.push(`Obligación contractual: ${cleanObligation}. Esta obligación debe cumplirse según los términos y condiciones establecidos en el documento.`);
           }
         });
       }
@@ -505,7 +505,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.payments.forEach(payment => {
           const cleanPayment = payment.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanPayment.length > 20) {
-            steps.push(`Pago requerido: ${cleanPayment.substring(0, 120)}...`);
+            steps.push(`Pago requerido: ${cleanPayment}. Este pago debe realizarse en la forma y plazos especificados para cumplir con las obligaciones contractuales.`);
           }
         });
       }
@@ -514,7 +514,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.dates.forEach(date => {
           const cleanDate = date.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanDate.length > 20) {
-            steps.push(`Fecha importante: ${cleanDate.substring(0, 120)}...`);
+            steps.push(`Fecha importante: ${cleanDate}. Esta fecha debe ser respetada estrictamente para evitar incumplimientos contractuales.`);
           }
         });
       }
@@ -523,21 +523,21 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.penalties.forEach(penalty => {
           const cleanPenalty = penalty.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanPenalty.length > 20) {
-            steps.push(`Evitar penalización: ${cleanPenalty.substring(0, 120)}...`);
+            steps.push(`Evitar penalización: ${cleanPenalty}. Es importante conocer las consecuencias del incumplimiento para tomar las medidas preventivas necesarias.`);
           }
         });
       }
       
-      steps.push('Mantener copias de todos los documentos y comprobantes relacionados');
-      steps.push('Consultar con un abogado en caso de dudas sobre interpretación');
+      steps.push('Mantener copias de todos los documentos y comprobantes relacionados. Guardar evidencia de cumplimiento de obligaciones y pagos realizados para futuras referencias.');
+      steps.push('Consultar con un abogado en caso de dudas sobre interpretación. Si hay aspectos del contrato que no están claros, es recomendable buscar asesoría legal profesional.');
     } else {
-      steps.push('Verify that all parties have legal capacity to contract');
+      steps.push('Verify that all parties have legal capacity to contract. Confirm that all signatories are of legal age and have the necessary authority to legally commit themselves.');
       
       if (docInfo.obligations.length > 0) {
         docInfo.obligations.slice(0, 4).forEach(obligation => {
           const cleanObligation = obligation.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanObligation.length > 20) {
-            steps.push(`${cleanObligation.substring(0, 150)}...`);
+            steps.push(`Contractual obligation: ${cleanObligation}. This obligation must be fulfilled according to the terms and conditions established in the document.`);
           }
         });
       }
@@ -546,7 +546,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.payments.forEach(payment => {
           const cleanPayment = payment.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanPayment.length > 20) {
-            steps.push(`Required payment: ${cleanPayment.substring(0, 120)}...`);
+            steps.push(`Required payment: ${cleanPayment}. This payment must be made in the manner and timeframes specified to fulfill contractual obligations.`);
           }
         });
       }
@@ -555,7 +555,7 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.dates.forEach(date => {
           const cleanDate = date.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanDate.length > 20) {
-            steps.push(`Important date: ${cleanDate.substring(0, 120)}...`);
+            steps.push(`Important date: ${cleanDate}. This date must be strictly respected to avoid contractual breaches.`);
           }
         });
       }
@@ -564,13 +564,13 @@ function generateStepsFromContent(text: string, jurisdiction: JurisdictionInfo, 
         docInfo.penalties.forEach(penalty => {
           const cleanPenalty = penalty.replace(/^[-–•\d.\s]+/, '').trim();
           if (cleanPenalty.length > 20) {
-            steps.push(`Avoid penalty: ${cleanPenalty.substring(0, 120)}...`);
+            steps.push(`Avoid penalty: ${cleanPenalty}. It is important to know the consequences of non-compliance to take necessary preventive measures.`);
           }
         });
       }
       
-      steps.push('Keep copies of all related documents and receipts');
-      steps.push('Consult with a lawyer in case of interpretation doubts');
+      steps.push('Keep copies of all related documents and receipts. Store evidence of obligation compliance and payments made for future reference.');
+      steps.push('Consult with a lawyer in case of interpretation doubts. If there are aspects of the contract that are not clear, it is advisable to seek professional legal advice.');
     }
   }
   
@@ -597,11 +597,11 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     if (language === 'es') {
       summary = `Guía paso a paso para cumplir con este documento legal de tipo ${docInfo.type}. `;
       summary += `Detectado en ${jurisdiction.country} bajo el sistema de ${jurisdiction.legal_system}. `;
-      summary += `Sigue estos ${steps.length} pasos para asegurar el cumplimiento legal.`;
+      summary += `Sigue estos ${steps.length} pasos para asegurar el cumplimiento legal completo.`;
     } else {
       summary = `Step-by-step guide to comply with this ${docInfo.type} legal document. `;
       summary += `Detected in ${jurisdiction.country} under ${jurisdiction.legal_system} system. `;
-      summary += `Follow these ${steps.length} steps to ensure legal compliance.`;
+      summary += `Follow these ${steps.length} steps to ensure complete legal compliance.`;
     }
     
     // Marco legal específico basado en las leyes REALMENTE detectadas en el documento
@@ -625,26 +625,26 @@ export async function generateStepByStepGuide(text: string, language: 'es' | 'en
     
     // Fallback en caso de error
     const fallbackSteps = language === 'es' ? [
-      'Leer el documento completo cuidadosamente',
-      'Identificar las partes involucradas y sus obligaciones',
-      'Verificar fechas importantes y plazos de cumplimiento',
-      'Cumplir con los pagos y obligaciones acordadas',
-      'Mantener registros de todas las transacciones',
-      'Consultar con un abogado en caso de dudas'
+      'Leer el documento completo cuidadosamente para entender todos los términos y condiciones establecidos.',
+      'Identificar las partes involucradas y sus obligaciones específicas según lo establecido en el contrato.',
+      'Verificar fechas importantes y plazos de cumplimiento para evitar incumplimientos contractuales.',
+      'Cumplir con los pagos y obligaciones acordadas en los términos y condiciones especificados.',
+      'Mantener registros detallados de todas las transacciones y comunicaciones relacionadas con el contrato.',
+      'Consultar con un abogado especializado en caso de dudas sobre interpretación o cumplimiento de cláusulas.'
     ] : [
-      'Read the complete document carefully',
-      'Identify the parties involved and their obligations',
-      'Verify important dates and compliance deadlines',
-      'Fulfill agreed payments and obligations',
-      'Keep records of all transactions',
-      'Consult with a lawyer in case of doubts'
+      'Read the complete document carefully to understand all established terms and conditions.',
+      'Identify the parties involved and their specific obligations as established in the contract.',
+      'Verify important dates and compliance deadlines to avoid contractual breaches.',
+      'Fulfill agreed payments and obligations under the specified terms and conditions.',
+      'Keep detailed records of all transactions and communications related to the contract.',
+      'Consult with a specialized lawyer in case of doubts about interpretation or clause compliance.'
     ];
     
     return {
       steps: fallbackSteps,
       summary: language === 'es' 
-        ? 'Guía básica para documentos legales basada en principios generales'
-        : 'Basic guide for legal documents based on general principles',
+        ? 'Guía básica para documentos legales basada en principios generales de cumplimiento contractual'
+        : 'Basic guide for legal documents based on general principles of contractual compliance',
       reading_level: 'B1',
       jurisdiction: 'General',
       legal_framework: 'General Legal Principles'
