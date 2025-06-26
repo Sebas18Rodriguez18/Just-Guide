@@ -120,8 +120,8 @@ function cleanAndFormatText(rawText: string): string {
     .replace(/\n{3,}/g, '\n\n')
     // Remover caracteres de control
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    // Limpiar caracteres especiales problemáticos
-    .replace(/[^\w\s\n.,;:!?¡¿()[\]{}"'`´-áéíóúñüÁÉÍÓÚÑÜ]/g, ' ')
+    // Limpiar caracteres especiales problemáticos pero mantener acentos
+    .replace(/[^\w\s\n.,;:!?¡¿()[\]{}"'`´-áéíóúñüÁÉÍÓÚÑÜ$%]/g, ' ')
     .trim();
   
   // Capitalizar correctamente
@@ -144,60 +144,128 @@ function cleanAndFormatText(rawText: string): string {
 }
 
 // Extraer texto de archivo DOCX usando mammoth
-async function extractTextFromDOCX(file: File): Promise<string> {
+async function extractTextFromDOCX(file: File, onProgress?: (progress: number) => void): Promise<string> {
   try {
+    if (onProgress) onProgress(0.2);
+    
     const arrayBuffer = await file.arrayBuffer();
+    
+    if (onProgress) onProgress(0.5);
+    
     const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    if (onProgress) onProgress(0.8);
     
     if (result.messages && result.messages.length > 0) {
       console.warn('DOCX extraction warnings:', result.messages);
     }
     
-    return result.value || '';
+    if (!result.value || result.value.trim().length === 0) {
+      throw new Error('El archivo DOCX no contiene texto extraíble o está vacío');
+    }
+    
+    if (onProgress) onProgress(1.0);
+    
+    return result.value;
   } catch (error) {
     console.error('Error extracting text from DOCX:', error);
-    throw new Error('No se pudo extraer texto del archivo DOCX');
+    throw new Error('No se pudo extraer texto del archivo DOCX. Verifica que el archivo no esté dañado.');
   }
 }
 
 // Extraer texto de archivo PDF usando pdfjs-dist
-async function extractTextFromPDF(file: File): Promise<string> {
+async function extractTextFromPDF(file: File, onProgress?: (progress: number) => void): Promise<string> {
   try {
+    if (onProgress) onProgress(0.1);
+    
     const arrayBuffer = await file.arrayBuffer();
     
-    // Load the PDF document
-    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    if (onProgress) onProgress(0.2);
+    
+    // Cargar el documento PDF
+    const loadingTask = pdfjs.getDocument({ 
+      data: arrayBuffer,
+      useSystemFonts: true,
+      disableFontFace: false
+    });
+    
     const pdf = await loadingTask.promise;
     
+    if (onProgress) onProgress(0.3);
+    
     let fullText = '';
+    const totalPages = pdf.numPages;
     
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      // Combine text items from the page
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
+    // Extraer texto de cada página
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        // Combinar elementos de texto de la página
+        const pageText = textContent.items
+          .filter((item: any) => item.str && item.str.trim().length > 0)
+          .map((item: any) => {
+            // Preservar espacios y formato básico
+            let text = item.str;
+            
+            // Agregar espacios entre palabras si es necesario
+            if (item.hasEOL) {
+              text += '\n';
+            }
+            
+            return text;
+          })
+          .join(' ');
+        
+        if (pageText.trim()) {
+          fullText += pageText + '\n\n';
+        }
+        
+        // Actualizar progreso
+        if (onProgress) {
+          const progress = 0.3 + (pageNum / totalPages) * 0.6;
+          onProgress(progress);
+        }
+      } catch (pageError) {
+        console.warn(`Error processing page ${pageNum}:`, pageError);
+        // Continuar con las siguientes páginas
+      }
     }
     
+    if (onProgress) onProgress(0.95);
+    
+    // Verificar que se extrajo texto
     if (!fullText || fullText.trim().length === 0) {
-      throw new Error('El PDF no contiene texto extraíble o está protegido');
+      throw new Error('El PDF no contiene texto extraíble. Puede ser un PDF escaneado o protegido.');
     }
+    
+    // Limpiar texto extraído
+    fullText = fullText
+      .replace(/\s+/g, ' ') // Normalizar espacios
+      .replace(/\n{3,}/g, '\n\n') // Normalizar saltos de línea
+      .trim();
+    
+    if (onProgress) onProgress(1.0);
     
     return fullText;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     
-    // Si falla la extracción real, mostrar error específico
-    if (error instanceof Error && error.message.includes('extraíble')) {
-      throw error;
+    // Mensajes de error específicos
+    if (error instanceof Error) {
+      if (error.message.includes('extraíble')) {
+        throw error;
+      }
+      if (error.message.includes('Invalid PDF')) {
+        throw new Error('El archivo PDF está dañado o no es válido.');
+      }
+      if (error.message.includes('password')) {
+        throw new Error('El PDF está protegido con contraseña.');
+      }
     }
     
-    throw new Error('No se pudo extraer texto del archivo PDF. Asegúrate de que el PDF contenga texto seleccionable.');
+    throw new Error('No se pudo extraer texto del archivo PDF. Asegúrate de que el PDF contenga texto seleccionable y no esté protegido.');
   }
 }
 
@@ -207,44 +275,52 @@ export async function parseDocument(
   onProgress?: (progress: number) => void
 ): Promise<DocumentParseResult> {
   try {
-    if (onProgress) onProgress(0.1);
+    if (onProgress) onProgress(0.05);
     
     // Validar tipo de archivo
     const fileType = file.type.toLowerCase();
     const fileName = file.name.toLowerCase();
     
     const isPDF = fileType.includes('pdf') || fileName.endsWith('.pdf');
-    const isDOCX = fileType.includes('wordprocessingml') || fileName.endsWith('.docx');
+    const isDOCX = fileType.includes('wordprocessingml') || 
+                   fileType.includes('officedocument') || 
+                   fileName.endsWith('.docx');
     
     if (!isPDF && !isDOCX) {
       throw new Error('Solo se admiten archivos PDF y DOCX');
     }
     
-    if (onProgress) onProgress(0.3);
+    if (onProgress) onProgress(0.1);
     
     let extractedText = '';
     
     try {
       if (isDOCX) {
-        extractedText = await extractTextFromDOCX(file);
+        console.log('Extracting text from DOCX file...');
+        extractedText = await extractTextFromDOCX(file, (progress) => {
+          if (onProgress) onProgress(0.1 + progress * 0.6);
+        });
       } else if (isPDF) {
-        extractedText = await extractTextFromPDF(file);
+        console.log('Extracting text from PDF file...');
+        extractedText = await extractTextFromPDF(file, (progress) => {
+          if (onProgress) onProgress(0.1 + progress * 0.6);
+        });
       }
     } catch (extractionError) {
       console.error('Error during text extraction:', extractionError);
       throw extractionError;
     }
     
-    if (onProgress) onProgress(0.7);
+    if (onProgress) onProgress(0.75);
     
     // Limpiar y formatear el texto
     const cleanedText = cleanAndFormatText(extractedText);
     
     if (cleanedText.length < 10) {
-      throw new Error('El documento no contiene suficiente texto para procesar');
+      throw new Error('El documento no contiene suficiente texto para procesar. Verifica que el archivo no esté vacío o dañado.');
     }
     
-    if (onProgress) onProgress(0.9);
+    if (onProgress) onProgress(0.85);
     
     // Detectar idioma (solo español o inglés)
     const detectedLanguage = detectLanguage(cleanedText);
@@ -252,13 +328,21 @@ export async function parseDocument(
     // Contar palabras
     const wordCount = cleanedText.split(/\s+/).filter(word => word.length > 0).length;
     
+    if (onProgress) onProgress(0.95);
+    
     // Calcular confianza basada en la longitud del texto y calidad
     let confidence = 0.8;
     if (wordCount > 100) confidence = 0.9;
     if (wordCount > 500) confidence = 0.95;
     if (wordCount < 50) confidence = 0.6;
     
+    // Ajustar confianza basada en la calidad del texto extraído
+    const hasLegalTerms = /\b(contrato|contract|ley|law|artículo|article|código|code)\b/i.test(cleanedText);
+    if (hasLegalTerms) confidence = Math.min(confidence + 0.05, 1.0);
+    
     if (onProgress) onProgress(1.0);
+    
+    console.log(`Successfully extracted ${wordCount} words in ${detectedLanguage} with ${Math.round(confidence * 100)}% confidence`);
     
     return {
       extracted_text: cleanedText,
