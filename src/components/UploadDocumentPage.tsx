@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, FileText, File } from 'lucide-react';
+import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle, File } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -30,9 +30,8 @@ export default function UploadDocumentPage() {
 
   const t = getTranslations(language);
 
-  // Solo aceptar PDF y DOCX
+  // Solo aceptar DOCX
   const acceptedTypes = {
-    'application/pdf': ['.pdf'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
   };
 
@@ -42,14 +41,13 @@ export default function UploadDocumentPage() {
       return language === 'es' ? 'El archivo debe ser menor a 10MB' : 'File size must be less than 10MB';
     }
 
-    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const isDOCX = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                    file.name.toLowerCase().endsWith('.docx');
     
-    if (!isPDF && !isDOCX) {
+    if (!isDOCX) {
       return language === 'es' 
-        ? 'Solo se admiten archivos PDF y DOCX' 
-        : 'Only PDF and DOCX files are allowed';
+        ? 'Solo se admiten archivos DOCX' 
+        : 'Only DOCX files are allowed';
     }
 
     return null;
@@ -86,7 +84,7 @@ export default function UploadDocumentPage() {
   const createDocumentRecord = async (file: File, fileUrl: string): Promise<string> => {
     const documentData: DocumentInsert = {
       title: file.name.replace(/\.[^/.]+$/, ''),
-      document_type: file.type.includes('pdf') ? 'PDF' : 'DOCX',
+      document_type: 'DOCX',
       language: language,
       file_url: fileUrl,
       user_id: userId,
@@ -146,11 +144,11 @@ export default function UploadDocumentPage() {
       });
       const docId = await createDocumentRecord(file, publicUrl);
 
-      // Paso 3: Extraer texto del documento
+      // Paso 3: Extraer texto del documento DOCX
       setUploadState({
         status: 'processing',
         progress: 50,
-        message: language === 'es' ? 'Extrayendo texto del documento...' : 'Extracting text from document...'
+        message: language === 'es' ? 'Extrayendo texto del documento DOCX...' : 'Extracting text from DOCX document...'
       });
 
       const parseResult = await parseDocument(file, (parseProgress) => {
@@ -196,17 +194,18 @@ export default function UploadDocumentPage() {
       setUploadState({
         status: 'success',
         progress: 100,
-        message: language === 'es' ? '¡Documento procesado exitosamente!' : 'Document processed successfully!'
+        message: language === 'es' ? '¡Documento DOCX procesado exitosamente!' : 'DOCX document processed successfully!'
       });
 
       // Mostrar información del documento procesado
       Swal.fire({
         icon: 'success',
-        title: language === 'es' ? '¡Documento Procesado!' : 'Document Processed!',
+        title: language === 'es' ? '¡Documento DOCX Procesado!' : 'DOCX Document Processed!',
         html: `
           <div class="text-left">
             <p><strong>${language === 'es' ? 'Archivo:' : 'File:'}</strong> ${file.name}</p>
-            <p><strong>${language === 'es' ? 'Tipo:' : 'Type:'}</strong> ${parseResult.detected_language === 'es' ? 'Español' : 'English'}</p>
+            <p><strong>${language === 'es' ? 'Tipo:' : 'Type:'}</strong> DOCX</p>
+            <p><strong>${language === 'es' ? 'Idioma:' : 'Language:'}</strong> ${parseResult.detected_language === 'es' ? 'Español' : 'English'}</p>
             <p><strong>${language === 'es' ? 'Palabras:' : 'Words:'}</strong> ${parseResult.word_count}</p>
             <p><strong>${language === 'es' ? 'Confianza:' : 'Confidence:'}</strong> ${Math.round(parseResult.confidence * 100)}%</p>
           </div>
@@ -237,7 +236,7 @@ export default function UploadDocumentPage() {
 
       Swal.fire({
         icon: 'error',
-        title: language === 'es' ? 'Error al procesar documento' : 'Error processing document',
+        title: language === 'es' ? 'Error al procesar documento DOCX' : 'Error processing DOCX document',
         text: errorMessage
       });
 
@@ -277,15 +276,6 @@ export default function UploadDocumentPage() {
     }
   };
 
-  const getFileIcon = (fileName: string) => {
-    if (fileName.toLowerCase().endsWith('.pdf')) {
-      return <FileText className="w-8 h-8 text-red-600" />;
-    } else if (fileName.toLowerCase().endsWith('.docx')) {
-      return <File className="w-8 h-8 text-blue-600" />;
-    }
-    return <Upload className="w-8 h-8 text-just-moss" />;
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-just-beige dark:bg-gray-900 px-4 py-8">
       <div className="w-full max-w-xl mx-auto">
@@ -298,8 +288,8 @@ export default function UploadDocumentPage() {
             </h2>
             <p className="text-just-gray dark:text-gray-400">
               {language === 'es' 
-                ? 'Sube archivos PDF o DOCX en español o inglés'
-                : 'Upload PDF or DOCX files in Spanish or English'
+                ? 'Sube archivos DOCX en español o inglés'
+                : 'Upload DOCX files in Spanish or English'
               }
             </p>
           </div>
@@ -317,20 +307,19 @@ export default function UploadDocumentPage() {
           >
             {uploadState.status === 'idle' && (
               <>
-                <div className="flex space-x-4 mb-4">
-                  <FileText className="w-12 h-12 text-red-600" />
-                  <File className="w-12 h-12 text-blue-600" />
+                <div className="mb-4">
+                  <File className="w-16 h-16 text-blue-600 mx-auto" />
                 </div>
                 <p className="text-just-hunter dark:text-gray-300 mb-4 text-center font-medium">
                   {language === 'es' 
-                    ? 'Arrastra y suelta tu archivo PDF o DOCX aquí'
-                    : 'Drag and drop your PDF or DOCX file here'
+                    ? 'Arrastra y suelta tu archivo DOCX aquí'
+                    : 'Drag and drop your DOCX file here'
                   }
                 </p>
                 <p className="text-sm text-just-gray dark:text-gray-400 mb-4 text-center">
                   {language === 'es' 
-                    ? 'Solo documentos en español e inglés'
-                    : 'Only documents in Spanish and English'
+                    ? 'Solo documentos DOCX en español e inglés'
+                    : 'Only DOCX documents in Spanish and English'
                   }
                 </p>
               </>
@@ -338,7 +327,7 @@ export default function UploadDocumentPage() {
 
             {uploadState.status === 'processing' && (
               <div className="text-center">
-                {getFileIcon('processing')}
+                <File className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                 <p className="text-just-hunter dark:text-gray-300 mt-4 font-medium">
                   {uploadState.message}
                 </p>
@@ -351,7 +340,7 @@ export default function UploadDocumentPage() {
                       ></div>
                     </div>
                     <p className="text-xs text-just-gray dark:text-gray-400 mt-1">
-                      {language === 'es' ? 'Extrayendo texto...' : 'Extracting text...'}
+                      {language === 'es' ? 'Extrayendo texto de DOCX...' : 'Extracting text from DOCX...'}
                     </p>
                   </div>
                 )}
@@ -360,7 +349,7 @@ export default function UploadDocumentPage() {
 
             <input
               type="file"
-              accept=".pdf,.docx"
+              accept=".docx"
               onChange={handleFileSelect}
               ref={fileInputRef}
               className="hidden"
@@ -372,7 +361,7 @@ export default function UploadDocumentPage() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Seleccionar Archivo' : 'Select File'}
+                {language === 'es' ? 'Seleccionar Archivo DOCX' : 'Select DOCX File'}
               </button>
             )}
           </div>
@@ -423,7 +412,7 @@ export default function UploadDocumentPage() {
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
               <Info className="w-4 h-4 mr-2" />
-              <span className="text-xs">PDF, DOCX</span>
+              <span className="text-xs">Solo DOCX</span>
             </div>
             <div className="flex items-center justify-center text-just-hunter dark:text-gray-400">
               <Eye className="w-4 h-4 mr-2" />
@@ -436,6 +425,24 @@ export default function UploadDocumentPage() {
               <span className="text-xs">
                 {language === 'es' ? 'Máx 10MB' : 'Max 10MB'}
               </span>
+            </div>
+          </div>
+
+          {/* Info Box */}
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start">
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <p className="font-medium mb-1">
+                  {language === 'es' ? '¿Por qué solo DOCX?' : 'Why only DOCX?'}
+                </p>
+                <p>
+                  {language === 'es' 
+                    ? 'Los archivos DOCX ofrecen la mejor calidad de extracción de texto y preservan el formato original del documento.'
+                    : 'DOCX files offer the best text extraction quality and preserve the original document formatting.'
+                  }
+                </p>
+              </div>
             </div>
           </div>
         </div>
