@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import * as pdfjs from 'pdfjs-dist';
 
 export interface DocumentParseResult {
   extracted_text: string;
@@ -159,22 +160,35 @@ async function extractTextFromDOCX(file: File): Promise<string> {
   }
 }
 
-// Extraer texto de archivo PDF usando pdf-parse
+// Extraer texto de archivo PDF usando pdfjs-dist
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    // Importar pdf-parse dinámicamente
-    const pdfParse = await import('pdf-parse/lib/pdf-parse.js');
-    
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
     
-    const data = await pdfParse.default(buffer);
+    // Load the PDF document
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     
-    if (!data.text || data.text.trim().length === 0) {
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Combine text items from the page
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    if (!fullText || fullText.trim().length === 0) {
       throw new Error('El PDF no contiene texto extraíble o está protegido');
     }
     
-    return data.text;
+    return fullText;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     
