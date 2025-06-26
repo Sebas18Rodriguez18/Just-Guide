@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
-import { ArrowLeft, Home, BookOpen, MapPin, Scale, CheckCircle, Clock, Sparkles, Save, Download } from 'lucide-react';
+import { ArrowLeft, Home, BookOpen, MapPin, Scale, CheckCircle, Clock } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
-import Swal from 'sweetalert2';
 
 interface SummaryPageProps {
   onNavigateBack: () => void;
@@ -22,7 +21,7 @@ interface Document {
   detected_language?: string;
 }
 
-interface GuideWithJurisdiction {
+interface SimplifiedGuide {
   id?: string;
   steps: string[];
   summary: string;
@@ -36,14 +35,12 @@ export default function SummaryPage({
   onNavigateBack, 
   docId, 
   userId,
-  language
+  language 
 }: SummaryPageProps) {
   const [document, setDocument] = useState<Document | null>(null);
-  const [guide, setGuide] = useState<GuideWithJurisdiction | null>(null);
+  const [simplifiedGuide, setSimplifiedGuide] = useState<SimplifiedGuide | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isGuideSaved, setIsGuideSaved] = useState(false);
+  const [isSimplifying, setIsSimplifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docSummary, setDocSummary] = useState<{ summary: string; keyPoints: string[] }>({ summary: '', keyPoints: [] });
 
@@ -51,10 +48,11 @@ export default function SummaryPage({
 
   useEffect(() => {
     loadDocument();
+    setSimplifiedGuide(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId]);
 
-  // Cargar documento y verificar si ya tiene guía guardada
+  // Cargar documento y mostrar resumen real
   const loadDocument = async () => {
     try {
       setIsLoading(true);
@@ -83,15 +81,16 @@ export default function SummaryPage({
       
       setDocument(realDocument);
       
-      // Generar resumen básico
+      // Generar resumen y puntos clave EN EL IDIOMA DEL USUARIO
       if (data.extracted_text) {
         const { summarizeDocument } = await import('../utils/summarizer');
         setDocSummary(summarizeDocument(data.extracted_text, language));
+      } else {
+        setDocSummary({ summary: '', keyPoints: [] });
       }
       
-      // Verificar si ya existe una guía guardada
-      await checkIfGuideExists(data.id);
-      
+      // Buscar o generar la guía automáticamente
+      await autoFetchOrGenerateGuide(data.id, data.extracted_text || '');
     } catch (err) {
       setError(language === 'es' ? 'Error al cargar el documento. Por favor intenta de nuevo.'
         : 'Failed to load document. Please try again.');
@@ -100,149 +99,94 @@ export default function SummaryPage({
     }
   };
 
-  // Verificar si ya existe una guía guardada para este documento
-  const checkIfGuideExists = async (documentId: string) => {
+  // Buscar o generar la guía paso a paso automáticamente
+  const autoFetchOrGenerateGuide = async (docId: string, extractedText: string) => {
+    setIsSimplifying(true);
     try {
+      // Buscar si ya existe la guía en Supabase
       const { data, error } = await supabase
         .from('simplified_guides')
         .select('*')
-        .eq('document_id', documentId)
+        .eq('document_id', docId)
         .maybeSingle();
       
       if (error) {
-        console.error('Error checking guide:', error);
-        return;
+        console.error('Error fetching guide:', error);
       }
       
       if (data) {
-        setIsGuideSaved(true);
-        setGuide({
-          id: data.id,
-          steps: data.steps || [],
-          summary: data.summary || '',
-          reading_level: data.reading_level || 'B1',
-          created_at: data.created_at
-        });
+        setSimplifiedGuide(data);
+        setIsSimplifying(false);
+        return;
+      }
+      
+      // Si no existe y hay texto, generar y guardar una nueva guía
+      if (extractedText && extractedText.length > 0) {
+        // CRÍTICO: Usar el idioma del USUARIO, no del documento detectado
+        const guide = await generateStepByStepGuide(extractedText, language);
+        const { data: insertData, error: insertError } = await supabase
+          .from('simplified_guides')
+          .insert([
+            {
+              document_id: docId,
+              steps: guide.steps,
+              summary: guide.summary,
+              reading_level: guide.reading_level,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select('*')
+          .maybeSingle();
+        
+        if (insertError) {
+          console.error('Error inserting guide:', insertError);
+        }
+        
+        // Agregar información de jurisdicción al guide
+        const enhancedGuide = {
+          ...(insertData || guide),
+          jurisdiction: guide.jurisdiction,
+          legal_framework: guide.legal_framework
+        };
+        
+        setSimplifiedGuide(enhancedGuide);
       }
     } catch (err) {
-      console.error('Error checking guide:', err);
-    }
-  };
-
-  // Generar guía paso a paso
-  const handleGenerateGuide = async () => {
-    if (!document || !document.extracted_text) {
-      Swal.fire({
-        icon: 'warning',
-        title: language === 'es' ? 'Sin texto' : 'No text',
-        text: language === 'es' ? 'No hay texto extraído para generar la guía.' : 'No extracted text available to generate guide.',
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      // Generar guía usando el idioma del usuario
-      const generated = await generateStepByStepGuide(document.extracted_text, language);
-      
-      setGuide({
-        steps: generated.steps,
-        summary: generated.summary,
-        reading_level: generated.reading_level,
-        jurisdiction: generated.jurisdiction,
-        legal_framework: generated.legal_framework
-      });
-
-      Swal.fire({
-        icon: 'success',
-        title: language === 'es' ? '¡Guía generada!' : 'Guide generated!',
-        text: language === 'es' ? 'Tu guía paso a paso ha sido generada exitosamente.' : 'Your step-by-step guide has been generated successfully.',
-        timer: 2000,
-        showConfirmButton: false
-      });
-
-    } catch (err) {
-      console.error('Error generating guide:', err);
-      Swal.fire({
-        icon: 'error',
-        title: language === 'es' ? 'Error' : 'Error',
-        text: language === 'es' ? 'No se pudo generar la guía. Intenta de nuevo.' : 'Could not generate guide. Please try again.',
-      });
+      console.error('Error in autoFetchOrGenerateGuide:', err);
     } finally {
-      setIsGenerating(false);
+      setIsSimplifying(false);
     }
   };
 
-  // Guardar guía en Guías Simplificadas
-  const handleSaveGuide = async () => {
-    if (!guide || !document) {
-      return;
-    }
-
-    setIsSaving(true);
+  // Consultar la guía paso a paso manualmente (por si el usuario la quiere refrescar)
+  const fetchStepByStepGuide = async (docId: string) => {
+    setIsSimplifying(true);
     try {
       const { data, error } = await supabase
         .from('simplified_guides')
-        .upsert([
-          {
-            document_id: docId,
-            summary: guide.summary,
-            steps: guide.steps,
-            reading_level: guide.reading_level,
-            created_at: new Date().toISOString()
-          }
-        ], { onConflict: 'document_id' })
         .select('*')
-        .single();
+        .eq('document_id', docId)
+        .maybeSingle();
       
       if (error) {
-        throw error;
+        console.error('Error fetching guide:', error);
       }
       
-      setIsGuideSaved(true);
-      setGuide(prev => ({ ...prev!, id: data.id, created_at: data.created_at }));
-      
-      Swal.fire({
-        icon: 'success',
-        title: language === 'es' ? '¡Guía guardada!' : 'Guide saved!',
-        text: language === 'es' ? 'Tu guía ha sido guardada en "Guías Simplificadas".' : 'Your guide has been saved to "Simplified Guides".',
-        timer: 2000,
-        showConfirmButton: false
-      });
-
+      if (data) {
+        setSimplifiedGuide(data);
+      }
     } catch (err) {
-      console.error('Error saving guide:', err);
-      Swal.fire({
-        icon: 'error',
-        title: language === 'es' ? 'Error' : 'Error',
-        text: language === 'es' ? 'No se pudo guardar la guía. Intenta de nuevo.' : 'Could not save guide. Please try again.',
-      });
+      console.error('Error in fetchStepByStepGuide:', err);
     } finally {
-      setIsSaving(false);
+      setIsSimplifying(false);
     }
-  };
-
-  // Exportar guía como archivo de texto
-  const handleExportGuide = () => {
-    if (!guide || !document) return;
-    
-    const content = `${document.title}\n\n${guide.summary}\n\nPasos:\n${guide.steps.map((step, index) => `${index + 1}. ${step}`).join('\n\n')}`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${document.title.replace(/\s+/g, '-').toLowerCase()}-guia.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
-          <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
+        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
+          <BookOpen className="w-12 h-12 text-just-moss animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
             {language === 'es' ? 'Cargando Documento' : 'Loading Document'}
           </h2>
@@ -310,9 +254,9 @@ export default function SummaryPage({
             <h1 className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
               <BookOpen className="w-7 h-7 mr-3 text-just-moss" />
               {language === 'es' ? 'Resumen del Documento' : 'Document Summary'}
-              {guide?.jurisdiction && (
+              {simplifiedGuide?.jurisdiction && (
                 <span className="ml-3 text-lg font-normal text-just-hunter dark:text-gray-300">
-                  - {guide.jurisdiction}
+                  - {simplifiedGuide.jurisdiction}
                 </span>
               )}
             </h1>
@@ -322,53 +266,21 @@ export default function SummaryPage({
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          {/* Document Info */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-just-forest dark:text-just-white">{document?.title}</h2>
-                <div className="flex items-center space-x-4 text-just-gray dark:text-gray-400 mt-1">
-                  <span>{document?.document_type}</span>
-                  <span>•</span>
-                  <span>{language === 'es' ? 'Subido' : 'Uploaded'} {new Date(document?.upload_date || '').toLocaleDateString()}</span>
-                  {document?.detected_language && (
-                    <>
-                      <span>•</span>
-                      <span className="text-just-moss">
-                        {document.detected_language === 'es' ? 'Español' : 'English'}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* Status de la guía */}
-              {isGuideSaved && (
-                <div className="flex items-center text-green-600 dark:text-green-400">
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  <span className="font-medium text-sm">
-                    {language === 'es' ? 'Guía guardada' : 'Guide saved'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Jurisdiction Info */}
-          {guide?.jurisdiction && (
+          {simplifiedGuide?.jurisdiction && (
             <div className="mb-6 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
                   <MapPin className="w-5 h-5 mr-2 text-just-forest dark:text-just-moss" />
                   <span className="font-medium text-just-forest dark:text-just-moss">
-                    {guide.jurisdiction}
+                    {simplifiedGuide.jurisdiction}
                   </span>
                 </div>
-                {guide.legal_framework && (
+                {simplifiedGuide.legal_framework && (
                   <div className="flex items-center">
                     <Scale className="w-5 h-5 mr-2 text-just-hunter dark:text-gray-300" />
                     <span className="text-sm text-just-hunter dark:text-gray-300">
-                      {guide.legal_framework}
+                      {simplifiedGuide.legal_framework}
                     </span>
                   </div>
                 )}
@@ -376,144 +288,78 @@ export default function SummaryPage({
             </div>
           )}
 
-          {/* Document Summary */}
-          <div className="mb-6 p-6 bg-gradient-to-br from-just-moss/10 to-just-beige/60 dark:from-just-moss/20 dark:to-gray-700/40 rounded-2xl border border-just-moss/30 dark:border-just-moss/40 shadow-sm">
-            <h3 className="text-xl font-bold text-just-forest dark:text-just-moss mb-3 flex items-center">
-              <Sparkles className="w-5 h-5 mr-2 text-just-moss" />
-              {language === 'es' ? 'Resumen del Documento' : 'Document Summary'}
-            </h3>
-            <p className="text-just-hunter dark:text-gray-200 text-base leading-relaxed mb-4">
-              {docSummary.summary || (language === 'es' ? 'No se pudo generar un resumen.' : 'No summary available.')}
-            </p>
-            {docSummary.keyPoints.length > 0 && (
-              <div className="mb-2">
-                <h4 className="text-base font-semibold text-just-moss dark:text-just-moss mb-1">
-                  {language === 'es' ? 'Puntos clave:' : 'Key Points:'}
-                </h4>
-                <ul className="list-disc pl-6 space-y-1">
-                  {docSummary.keyPoints.map((point, idx) => (
-                    <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm">{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <p className="text-just-gray dark:text-gray-400 mb-6">
+            {simplifiedGuide?.summary || (language === 'es' ? 'Sigue estos pasos clave para cumplir con la legislación aplicable.' : 'Follow these key steps to comply with applicable legislation.')}
+          </p>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mb-6">
-            {!guide && (
-              <button
-                onClick={handleGenerateGuide}
-                className="bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-just-white mr-2"></div>
-                    {language === 'es' ? 'Generando...' : 'Generating...'}
-                  </>
-                ) : (
-                  <>
-                    <BookOpen className="w-5 h-5 mr-2" />
-                    {language === 'es' ? 'Generar Guía Paso a Paso' : 'Generate Step-by-Step Guide'}
-                  </>
-                )}
-              </button>
-            )}
-
-            {guide && !isGuideSaved && (
-              <button
-                onClick={handleSaveGuide}
-                className="bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700 transition-colors duration-200 flex items-center shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    {language === 'es' ? 'Guardando...' : 'Saving...'}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5 mr-2" />
-                    {language === 'es' ? 'Guardar en Guías Simplificadas' : 'Save to Simplified Guides'}
-                  </>
-                )}
-              </button>
-            )}
-
-            {guide && (
-              <button
-                onClick={handleExportGuide}
-                className="bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-6 py-3 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center shadow"
-              >
-                <Download className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Exportar Guía' : 'Export Guide'}
-              </button>
-            )}
-
-            {isGuideSaved && (
-              <button
-                onClick={() => window.location.href = '/guides'}
-                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-200 flex items-center shadow"
-              >
-                <BookOpen className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Ver en Guías Simplificadas' : 'View in Simplified Guides'}
-              </button>
-            )}
+            <button
+              onClick={() => fetchStepByStepGuide(docId)}
+              className="bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center shadow"
+              disabled={isSimplifying}
+            >
+              <BookOpen className="w-5 h-5 mr-2" />
+              {isSimplifying
+                ? (language === 'es' ? 'Regenerando...' : 'Regenerating...')
+                : (language === 'es' ? 'Regenerar guía' : 'Regenerate Guide')
+              }
+            </button>
           </div>
 
-          {/* Generated Guide Preview */}
-          {guide && guide.steps && guide.steps.length > 0 && (
-            <div className="prose prose-sm max-w-none mt-4 bg-gradient-to-br from-just-moss/10 to-just-beige/60 dark:from-just-moss/20 dark:to-gray-700/40 rounded-2xl border border-just-moss/30 dark:border-just-moss/40 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-just-forest dark:text-just-moss mb-2 flex items-center">
-                <BookOpen className="w-5 h-5 mr-2 text-just-moss" />
-                {language === 'es' ? 'Guía Paso a Paso Generada' : 'Generated Step-by-Step Guide'}
-                {guide.jurisdiction && (
-                  <span className="ml-2 text-sm font-normal text-just-hunter dark:text-gray-300">
-                    ({guide.jurisdiction})
-                  </span>
-                )}
-              </h3>
-              
-              <p className="text-just-hunter dark:text-gray-300 mb-4">{guide.summary}</p>
-              
-              <ol className="list-decimal pl-6 space-y-3">
-                {guide.steps.slice(0, 3).map((step: string, idx: number) => (
-                  <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm leading-relaxed">
-                    {step.length > 200 ? step.substring(0, 200) + '...' : step}
-                  </li>
-                ))}
-                {guide.steps.length > 3 && (
-                  <li className="text-just-moss font-medium text-sm">
-                    {language === 'es' 
-                      ? `... y ${guide.steps.length - 3} pasos más`
-                      : `... and ${guide.steps.length - 3} more steps`
-                    }
-                  </li>
-                )}
-              </ol>
-              
-              <div className="bg-just-white/20 px-3 py-2 rounded-lg mt-4 flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{guide.reading_level || 'B1'}
-                </span>
-                {guide.jurisdiction && (
-                  <span className="text-xs text-just-hunter dark:text-gray-300 opacity-75">
-                    {language === 'es' ? 'Específico para' : 'Specific to'} {guide.jurisdiction}
-                  </span>
-                )}
-              </div>
-              
-              {isGuideSaved && (
-                <div className="bg-green-100 dark:bg-green-900/30 px-3 py-2 rounded-lg mt-2 flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 mr-2" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    {language === 'es' ? '✓ Guía guardada en "Guías Simplificadas"' : '✓ Guide saved to "Simplified Guides"'}
-                  </span>
+          {/* Steps List - TEXTO COMPLETO SIN CORTES */}
+          {simplifiedGuide && simplifiedGuide.steps && simplifiedGuide.steps.length > 0 && (
+            <div className="space-y-6">
+              {simplifiedGuide.steps.map((step: string, idx: number) => (
+                <div 
+                  key={idx} 
+                  className="p-6 rounded-xl border-2 transition-all duration-200 border-just-sand dark:border-gray-600 bg-just-beige/30 dark:bg-gray-700/30"
+                >
+                  <div className="flex items-start space-x-4">
+                    <button
+                      className="flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors duration-200 mt-1 border-just-gray dark:border-gray-500 hover:border-just-moss dark:hover:border-just-moss"
+                    >
+                      <Clock className="w-5 h-5" />
+                    </button>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center mb-3">
+                        <span className="text-lg font-semibold text-just-moss mr-3">
+                          {language === 'es' ? 'Paso' : 'Step'} {idx + 1}
+                        </span>
+                      </div>
+                      
+                      {/* TEXTO COMPLETO SIN LÍMITES DE CARACTERES */}
+                      <div className="text-base leading-relaxed text-just-hunter dark:text-gray-300">
+                        <p className="whitespace-pre-wrap break-words">
+                          {step}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
+
+          {/* Footer Info */}
+          <div className="mt-8 pt-6 border-t border-just-sand dark:border-gray-700">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center space-x-4 text-sm text-just-gray dark:text-gray-400">
+                <span>
+                  {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{simplifiedGuide?.reading_level || 'B1'}
+                </span>
+                {simplifiedGuide?.jurisdiction && (
+                  <span>
+                    {language === 'es' ? 'Específico para' : 'Specific to'} {simplifiedGuide.jurisdiction}
+                  </span>
+                )}
+                <span className="text-xs bg-just-moss/20 dark:bg-just-moss/30 text-just-moss px-2 py-1 rounded-full">
+                  {language === 'es' ? 'Idioma: Español' : 'Language: English'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Botón Flotante Adicional para Volver al Panel */}

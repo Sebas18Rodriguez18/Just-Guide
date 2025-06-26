@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash, Home, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -12,7 +12,6 @@ interface SimplifiedGuide {
   document_title: string;
   document_type: string;
   summary: string;
-  steps: string[];
   reading_level: string;
   created_at: string;
   word_count: number;
@@ -33,81 +32,54 @@ export default function SimplifiedGuidesPage() {
     const loadGuides = async () => {
       try {
         setIsLoading(true);
-        
-        // Cargar guías con información de documentos
         const { data, error } = await supabase
           .from('simplified_guides')
           .select(`
-            id,
-            document_id,
-            summary,
-            steps,
-            reading_level,
-            created_at,
-            documents!inner (
+            *,
+            documents (
               title,
               document_type,
               user_id
             )
           `)
           .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error loading guides:', error);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Filtrar solo las guías del usuario actual y formatear datos
+        if (error) throw error;
         const userGuides = (data || [])
-          .filter((g: any) => {
+          .map((g: {
+            id: string;
+            document_id: string;
+            summary: string;
+            reading_level: string;
+            created_at: string;
+            documents: { title: string; document_type: string; user_id: string } | Array<{ title: string; document_type: string; user_id: string }>;
+          }) => {
             const doc = Array.isArray(g.documents) ? g.documents[0] : g.documents;
-            return doc && doc.user_id === userId;
-          })
-          .map((g: any) => {
-            const doc = Array.isArray(g.documents) ? g.documents[0] : g.documents;
-            const stepsArray = Array.isArray(g.steps) ? g.steps : [];
-            const summaryText = g.summary || '';
-            
+            if (!doc || doc.user_id !== userId) return null;
             return {
               id: g.id,
               document_id: g.document_id,
               document_title: doc.title,
               document_type: doc.document_type,
-              summary: summaryText,
-              steps: stepsArray,
-              reading_level: g.reading_level || 'B1',
+              summary: g.summary,
+              reading_level: g.reading_level,
               created_at: g.created_at,
-              word_count: summaryText ? summaryText.split(/\s+/).length : 0,
+              word_count: g.summary ? g.summary.split(/\s+/).length : 0,
             };
-          });
-        
+          })
+          .filter(Boolean) as SimplifiedGuide[];
         setGuides(userGuides);
-        
       } catch (error) {
         console.error('Failed to load guides:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    if (userId) {
-      loadGuides();
-    }
+    loadGuides();
   }, [userId]);
 
   const handleDeleteGuide = async (guideId: string) => {
     try {
-      const { error } = await supabase
-        .from('simplified_guides')
-        .delete()
-        .eq('id', guideId);
-      
-      if (error) {
-        console.error('Error deleting guide:', error);
-        return;
-      }
-      
+      await supabase.from('simplified_guides').delete().eq('id', guideId);
       setGuides((guides) => guides.filter((g) => g.id !== guideId));
     } catch (error) {
       console.error('Error deleting guide:', error);
@@ -116,19 +88,18 @@ export default function SimplifiedGuidesPage() {
 
   const filteredGuides = guides.filter(guide => {
     const matchesSearch = guide.document_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guide.document_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         guide.summary.toLowerCase().includes(searchTerm.toLowerCase());
+                         guide.document_type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterLevel === 'all' || guide.reading_level === filterLevel;
     return matchesSearch && matchesFilter;
   });
 
   const exportGuide = (guide: SimplifiedGuide) => {
-    const content = `${guide.document_title}\n\n${guide.summary}\n\nPasos:\n${guide.steps.map((step, index) => `${index + 1}. ${step}`).join('\n\n')}`;
+    const content = `${guide.document_title}\n\n${guide.summary}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${guide.document_title.replace(/\s+/g, '-').toLowerCase()}-guia-simplificada.txt`;
+    a.download = `${guide.document_title.replace(/\s+/g, '-').toLowerCase()}-simplified.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -154,27 +125,13 @@ export default function SimplifiedGuidesPage() {
       {/* Header */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="font-medium">{smartCapitalize(t.back, 'title', language)}</span>
-            </button>
-            
-            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              <Home className="w-5 h-5 mr-2" />
-              <span className="text-lg">
-                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
-              </span>
-            </button>
-          </div>
-          
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {smartCapitalize(t.back, 'title', language)}
+          </button>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-just-moss/20 dark:bg-just-moss/30 rounded-xl flex items-center justify-center mr-4">
@@ -185,8 +142,8 @@ export default function SimplifiedGuidesPage() {
                 <p className="text-just-gray dark:text-gray-400">
                   {smartCapitalize(
                     language === 'es' 
-                      ? `${guides.length} guías generadas automáticamente de tus documentos`
-                      : `${guides.length} guides automatically generated from your documents`,
+                      ? `${guides.length} guías simplificadas disponibles`
+                      : `${guides.length} simplified guides available`,
                     'sentence',
                     language
                   )}
@@ -206,7 +163,6 @@ export default function SimplifiedGuidesPage() {
           </div>
         </div>
       </div>
-      
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Filters and Search */}
@@ -236,7 +192,6 @@ export default function SimplifiedGuidesPage() {
             </select>
           </div>
         </div>
-
         {/* Guides List */}
         {filteredGuides.length === 0 ? (
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
@@ -244,21 +199,12 @@ export default function SimplifiedGuidesPage() {
             <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
               {smartCapitalize(language === 'es' ? 'no se encontraron guías' : 'no guides found', 'sentence', language)}
             </h3>
-            <p className="text-just-gray dark:text-gray-400 mb-6">
+            <p className="text-just-gray dark:text-gray-400">
               {searchTerm 
                 ? smartCapitalize(language === 'es' ? 'intenta con diferentes términos de búsqueda' : 'try different search terms', 'sentence', language)
-                : smartCapitalize(language === 'es' ? 'sube documentos DOCX para generar guías simplificadas automáticamente' : 'upload DOCX documents to automatically generate simplified guides', 'sentence', language)
+                : smartCapitalize(language === 'es' ? 'sube documentos para generar guías simplificadas' : 'upload documents to generate simplified guides', 'sentence', language)
               }
             </p>
-            {!searchTerm && (
-              <button
-                onClick={() => navigate('/upload')}
-                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300 flex items-center mx-auto"
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                {smartCapitalize(t.uploadDocument, 'title', language)}
-              </button>
-            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -278,8 +224,6 @@ export default function SimplifiedGuidesPage() {
                         <div className="flex items-center space-x-4 text-sm text-just-gray dark:text-gray-400">
                           <span>{smartCapitalize(guide.document_type, 'proper', language)}</span>
                           <span>•</span>
-                          <span>{guide.steps.length} {smartCapitalize(language === 'es' ? 'pasos' : 'steps', 'title', language)}</span>
-                          <span>•</span>
                           <span>{guide.word_count} {smartCapitalize(language === 'es' ? 'palabras' : 'words', 'title', language)}</span>
                           <span>•</span>
                           <span>{new Date(guide.created_at).toLocaleDateString()}</span>
@@ -292,41 +236,12 @@ export default function SimplifiedGuidesPage() {
                       </div>
                     </div>
                   </div>
-                  
                   {/* Guide Preview */}
                   <div className="mb-6">
                     <p className="text-just-hunter dark:text-gray-300 leading-relaxed line-clamp-3">
                       {guide.summary}
                     </p>
-                    
-                    {/* Preview de los primeros pasos */}
-                    {guide.steps.length > 0 && (
-                      <div className="mt-4 p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
-                        <h4 className="text-sm font-medium text-just-forest dark:text-just-moss mb-2">
-                          {smartCapitalize(language === 'es' ? 'primeros pasos:' : 'first steps:', 'title', language)}
-                        </h4>
-                        <ol className="list-decimal list-inside space-y-1 text-sm text-just-hunter dark:text-gray-300">
-                          {guide.steps.slice(0, 3).map((step, index) => (
-                            <li key={index} className="line-clamp-2">
-                              {step.length > 100 ? step.substring(0, 100) + '...' : step}
-                            </li>
-                          ))}
-                          {guide.steps.length > 3 && (
-                            <li className="text-just-moss font-medium">
-                              {smartCapitalize(
-                                language === 'es' 
-                                  ? `... y ${guide.steps.length - 3} pasos más`
-                                  : `... and ${guide.steps.length - 3} more steps`,
-                                'sentence',
-                                language
-                              )}
-                            </li>
-                          )}
-                        </ol>
-                      </div>
-                    )}
                   </div>
-                  
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-just-sand dark:border-gray-700">
                     <div className="flex items-center space-x-4">
@@ -362,17 +277,6 @@ export default function SimplifiedGuidesPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Botón Flotante Adicional para Volver al Panel */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
-          title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
-        >
-          <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
-        </button>
       </div>
     </div>
   );
