@@ -142,7 +142,7 @@ function cleanAndFormatText(rawText: string): string {
   return cleaned;
 }
 
-// Extraer texto de archivo DOCX
+// Extraer texto de archivo DOCX usando mammoth
 async function extractTextFromDOCX(file: File): Promise<string> {
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -159,106 +159,31 @@ async function extractTextFromDOCX(file: File): Promise<string> {
   }
 }
 
-// Extraer texto de archivo PDF (simulado por limitaciones del entorno)
+// Extraer texto de archivo PDF usando pdf-parse
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    // En un entorno de producción real, usarías pdf-parse:
-    // const pdfParse = require('pdf-parse');
-    // const buffer = await file.arrayBuffer();
-    // const data = await pdfParse(buffer);
-    // return data.text;
+    // Importar pdf-parse dinámicamente
+    const pdfParse = await import('pdf-parse/lib/pdf-parse.js');
     
-    // Por ahora, simulamos con contenido legal colombiano realista
-    const fileName = file.name.toLowerCase();
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
     
-    if (fileName.includes('contrato') || fileName.includes('arrendamiento') || fileName.includes('rental')) {
-      return `CONTRATO DE ARRENDAMIENTO DE VIVIENDA URBANA
-
-PRIMERA: IDENTIFICACIÓN DE LAS PARTES
-Arrendador: Carlos Eduardo Ramírez Gómez, mayor de edad, identificado con Cédula de Ciudadanía No. 80.123.456 de Bogotá D.C., domiciliado en la Carrera 15 No. 93-47, Bogotá D.C.
-
-Arrendatario: Ana María Rodríguez López, mayor de edad, identificada con Cédula de Ciudadanía No. 52.987.654 de Medellín, domiciliada en la Calle 72 No. 10-34, Bogotá D.C.
-
-SEGUNDA: OBJETO DEL CONTRATO
-El Arrendador da en arriendo al Arrendatario el inmueble ubicado en la Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C., destinado exclusivamente para vivienda urbana.
-
-TERCERA: PLAZO
-El presente contrato tendrá una duración de doce (12) meses, contados a partir del 1 de febrero de 2024 hasta el 31 de enero de 2025.
-
-CUARTA: CANON DE ARRENDAMIENTO
-El Canon mensual de arrendamiento será de DOS MILLONES QUINIENTOS MIL PESOS ($2.500.000) moneda corriente, pagaderos dentro de los primeros cinco (5) días de cada mes.
-
-QUINTA: REAJUSTE DEL CANON
-El Canon de arrendamiento se reajustará anualmente en un porcentaje igual al IPC certificado por el DANE para el año inmediatamente anterior.
-
-SEXTA: DEPÓSITO EN DINERO
-El Arrendatario entregará al Arrendador la suma de CINCO MILLONES DE PESOS ($5.000.000) como depósito en dinero, equivalente a dos (2) meses de Canon.
-
-SÉPTIMA: OBLIGACIONES DEL ARRENDADOR
-- Entregar el inmueble en condiciones de habitabilidad
-- Realizar las reparaciones locativas mayores
-- Respetar el uso pacífico del inmueble por parte del Arrendatario
-- Cumplir con las disposiciones de la Ley 820 de 2003
-
-OCTAVA: OBLIGACIONES DEL ARRENDATARIO
-- Pagar puntualmente el Canon de arrendamiento
-- Usar el inmueble conforme a su destinación
-- Conservar el inmueble en buen estado
-- No subarrendar sin autorización escrita del Arrendador
-- Cumplir con las disposiciones del Código Civil Colombiano
-
-NOVENA: TERMINACIÓN
-El contrato podrá terminarse por vencimiento del plazo, mutuo acuerdo, o por las causales establecidas en el Artículo 22 de la Ley 820 de 2003.
-
-En constancia de lo anterior, las partes firman en Bogotá D.C., a los quince (15) días del mes de enero de 2024.
-
-_____________________________          _____________________________
-Carlos Eduardo Ramírez Gómez           Ana María Rodríguez López
-Arrendador                             Arrendatario
-C.C. 80.123.456                       C.C. 52.987.654`;
-    } else {
-      return `RENTAL AGREEMENT
-
-FIRST: IDENTIFICATION OF PARTIES
-Landlord: John Smith, of legal age, residing at 123 Main Street, New York, NY.
-Tenant: Jane Doe, of legal age, residing at 456 Second Avenue, New York, NY.
-
-SECOND: SUBJECT OF CONTRACT
-The Landlord rents to the Tenant the property located at 789 Example Street, Downtown, New York, NY, for residential use.
-
-THIRD: TERM
-This contract shall have a duration of 12 months, starting January 1, 2024 and ending December 31, 2024.
-
-FOURTH: RENT
-The monthly rent shall be $2,500.00 (Two Thousand Five Hundred Dollars), payable within the first five days of each month.
-
-FIFTH: DEPOSIT
-The Tenant shall provide a deposit equivalent to two months' rent as guarantee for compliance with obligations.
-
-SIXTH: LANDLORD OBLIGATIONS
-- Deliver the property in habitable conditions
-- Perform major repairs
-- Respect peaceful use of the property
-
-SEVENTH: TENANT OBLIGATIONS
-- Pay rent punctually
-- Use property according to its intended purpose
-- Maintain property in good condition
-- Not sublease without authorization
-
-EIGHTH: TERMINATION
-The contract may be terminated by expiration of term or breach by either party.
-
-Signatures:
-_________________                    _________________
-John Smith                          Jane Doe
-Landlord                           Tenant
-
-Date: December 15, 2023`;
+    const data = await pdfParse.default(buffer);
+    
+    if (!data.text || data.text.trim().length === 0) {
+      throw new Error('El PDF no contiene texto extraíble o está protegido');
     }
+    
+    return data.text;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
-    throw new Error('No se pudo extraer texto del archivo PDF');
+    
+    // Si falla la extracción real, mostrar error específico
+    if (error instanceof Error && error.message.includes('extraíble')) {
+      throw error;
+    }
+    
+    throw new Error('No se pudo extraer texto del archivo PDF. Asegúrate de que el PDF contenga texto seleccionable.');
   }
 }
 
@@ -285,10 +210,15 @@ export async function parseDocument(
     
     let extractedText = '';
     
-    if (isDOCX) {
-      extractedText = await extractTextFromDOCX(file);
-    } else if (isPDF) {
-      extractedText = await extractTextFromPDF(file);
+    try {
+      if (isDOCX) {
+        extractedText = await extractTextFromDOCX(file);
+      } else if (isPDF) {
+        extractedText = await extractTextFromPDF(file);
+      }
+    } catch (extractionError) {
+      console.error('Error during text extraction:', extractionError);
+      throw extractionError;
     }
     
     if (onProgress) onProgress(0.7);
@@ -308,12 +238,18 @@ export async function parseDocument(
     // Contar palabras
     const wordCount = cleanedText.split(/\s+/).filter(word => word.length > 0).length;
     
+    // Calcular confianza basada en la longitud del texto y calidad
+    let confidence = 0.8;
+    if (wordCount > 100) confidence = 0.9;
+    if (wordCount > 500) confidence = 0.95;
+    if (wordCount < 50) confidence = 0.6;
+    
     if (onProgress) onProgress(1.0);
     
     return {
       extracted_text: cleanedText,
       detected_language: detectedLanguage,
-      confidence: 0.95,
+      confidence: confidence,
       word_count: wordCount
     };
     
