@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
+import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen, MapPin, Scale } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
-import { detectJurisdiction, detectLanguage, extractDocumentInfo, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
 import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
 import { summarizeDocument } from '../utils/summarizer';
@@ -21,8 +20,7 @@ interface Document {
   language: string;
   extracted_text: string;
   upload_date: string;
-  jurisdiction?: LegalFramework;
-  documentInfo?: any;
+  detected_language?: string;
 }
 
 interface SimplifiedGuide {
@@ -30,6 +28,8 @@ interface SimplifiedGuide {
   steps: string[];
   summary: string;
   reading_level: string;
+  jurisdiction?: string;
+  legal_framework?: string;
   created_at?: string;
 }
 
@@ -65,36 +65,37 @@ export default function SummaryPage({
         .eq('id', docId)
         .eq('user_id', userId)
         .single();
+      
       if (error || !data) {
         setError(language === 'es' ? 'No se encontró el documento.' : 'Document not found.');
         setIsLoading(false);
         return;
       }
-      const detectedJurisdiction = detectJurisdiction(data.extracted_text || '');
-      const detectedLanguage = detectLanguage(data.extracted_text || '');
-      const documentInfo = extractDocumentInfo(data.extracted_text || '', detectedJurisdiction);
+      
       const realDocument: Document = {
         id: data.id,
         title: data.title,
         document_type: data.document_type,
-        language: detectedLanguage,
+        language: data.language,
         extracted_text: data.extracted_text || '',
         upload_date: data.upload_date || data.created_at || '',
-        jurisdiction: detectedJurisdiction,
-        documentInfo: documentInfo
+        detected_language: data.detected_language
       };
+      
       setDocument(realDocument);
-      // Generar resumen y puntos clave simulando IA
+      
+      // Generar resumen y puntos clave
       if (data.extracted_text) {
-        setDocSummary(summarizeDocument(data.extracted_text, language));
+        const detectedLang = data.detected_language === 'es' ? 'es' : 'en';
+        setDocSummary(summarizeDocument(data.extracted_text, detectedLang));
       } else {
         setDocSummary({ summary: '', keyPoints: [] });
       }
+      
       // Buscar o generar la guía automáticamente
       await autoFetchOrGenerateGuide(data.id, data.extracted_text || '');
     } catch (err) {
       setError(language === 'es' ? 'Error al cargar el documento. Por favor intenta de nuevo.'
-        : language === 'fr' ? 'Échec du chargement du document. Veuillez réessayer.'
         : 'Failed to load document. Please try again.');
     } finally {
       setIsLoading(false);
@@ -121,9 +122,11 @@ export default function SummaryPage({
         setIsSimplifying(false);
         return;
       }
+      
       // Si no existe y hay texto, generar y guardar una nueva guía
       if (extractedText && extractedText.length > 0) {
-        const guide = await generateStepByStepGuide(extractedText, language);
+        const detectedLang = document?.detected_language === 'es' ? 'es' : 'en';
+        const guide = await generateStepByStepGuide(extractedText, detectedLang);
         const { data: insertData, error: insertError } = await supabase
           .from('simplified_guides')
           .insert([
@@ -142,7 +145,14 @@ export default function SummaryPage({
           console.error('Error inserting guide:', insertError);
         }
         
-        setSimplifiedGuide(insertData || guide);
+        // Agregar información de jurisdicción al guide
+        const enhancedGuide = {
+          ...(insertData || guide),
+          jurisdiction: guide.jurisdiction,
+          legal_framework: guide.legal_framework
+        };
+        
+        setSimplifiedGuide(enhancedGuide);
       }
     } catch (err) {
       console.error('Error in autoFetchOrGenerateGuide:', err);
@@ -235,10 +245,21 @@ export default function SummaryPage({
                   <span>{document?.document_type}</span>
                   <span>•</span>
                   <span>{language === 'es' ? 'Subido' : 'Uploaded'} {new Date(document?.upload_date || '').toLocaleDateString()}</span>
-                  {document?.jurisdiction && (
+                  {document?.detected_language && (
                     <>
                       <span>•</span>
-                      <span className="text-just-moss">{document.jurisdiction.country} ({document.jurisdiction.region})</span>
+                      <span className="text-just-moss">
+                        {document.detected_language === 'es' ? 'Español' : 'English'}
+                      </span>
+                    </>
+                  )}
+                  {simplifiedGuide?.jurisdiction && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center text-just-moss">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span>{simplifiedGuide.jurisdiction}</span>
+                      </div>
                     </>
                   )}
                 </div>
@@ -275,12 +296,13 @@ export default function SummaryPage({
             </div>
             <div className="p-6">
               <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap text-just-hunter dark:text-gray-300 font-mono text-sm leading-relaxed bg-just-beige/50 dark:bg-gray-700/50 p-4 rounded-xl border border-just-sand dark:border-gray-600">
+                <pre className="whitespace-pre-wrap text-just-hunter dark:text-gray-300 font-mono text-sm leading-relaxed bg-just-beige/50 dark:bg-gray-700/50 p-4 rounded-xl border border-just-sand dark:border-gray-600 max-h-96 overflow-y-auto">
                   {document?.extracted_text}
                 </pre>
               </div>
             </div>
           </div>
+
           {/* Simplified Summary / Step-by-step Guide */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
             <div className="p-6 border-b border-just-sand dark:border-gray-700">
@@ -289,8 +311,8 @@ export default function SummaryPage({
                 {t.simplifiedSummary}
               </h2>
               <p className="text-just-gray dark:text-gray-400 text-sm mt-1">
-                {language === 'es' ? 'Explicación en español claro a nivel B1'
-                  : 'Plain language explanation at B1 reading level'
+                {language === 'es' ? 'Análisis inteligente con pasos específicos por país'
+                  : 'Intelligent analysis with country-specific steps'
                 }
               </p>
             </div>
@@ -317,6 +339,32 @@ export default function SummaryPage({
                   </div>
                 )}
               </div>
+
+              {/* Información de Jurisdicción */}
+              {simplifiedGuide?.jurisdiction && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
+                  <div className="flex items-center mb-2">
+                    <Scale className="w-5 h-5 mr-2 text-just-forest dark:text-just-moss" />
+                    <h4 className="text-base font-semibold text-just-forest dark:text-just-moss">
+                      {language === 'es' ? 'Marco Legal Detectado' : 'Detected Legal Framework'}
+                    </h4>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm">
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-1 text-just-hunter dark:text-gray-300" />
+                      <span className="text-just-hunter dark:text-gray-300">
+                        <strong>{simplifiedGuide.jurisdiction}</strong>
+                      </span>
+                    </div>
+                    {simplifiedGuide.legal_framework && (
+                      <div className="text-just-hunter dark:text-gray-300">
+                        <span className="text-xs opacity-75">{simplifiedGuide.legal_framework}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Botón para refrescar la guía paso a paso */}
               <button
                 onClick={() => fetchStepByStepGuide(docId)}
@@ -325,26 +373,39 @@ export default function SummaryPage({
               >
                 <BookOpen className="w-5 h-5 mr-2" />
                 {isSimplifying
-                  ? (language === 'es' ? 'Generando guía...' : 'Generating guide...')
-                  : (language === 'es' ? 'Refrescar pasos recomendados' : 'Refresh Recommended Steps')
+                  ? (language === 'es' ? 'Generando pasos...' : 'Generating steps...')
+                  : (language === 'es' ? 'Actualizar pasos legales' : 'Update Legal Steps')
                 }
               </button>
+
               {/* Mostrar la guía si ya está cargada */}
               {simplifiedGuide && simplifiedGuide.steps && simplifiedGuide.steps.length > 0 && (
                 <div className="prose prose-sm max-w-none mt-4 bg-gradient-to-br from-just-moss/10 to-just-beige/60 dark:from-just-moss/20 dark:to-gray-700/40 rounded-2xl border border-just-moss/30 dark:border-just-moss/40 p-6 shadow-sm">
                   <h3 className="text-lg font-semibold text-just-forest dark:text-just-moss mb-2 flex items-center">
                     <BookOpen className="w-5 h-5 mr-2 text-just-moss" />
-                    {language === 'es' ? 'Pasos recomendados para cumplir el contrato' : 'Recommended Steps to Comply with the Contract'}
+                    {language === 'es' ? 'Pasos Legales Recomendados' : 'Recommended Legal Steps'}
+                    {simplifiedGuide.jurisdiction && (
+                      <span className="ml-2 text-sm font-normal text-just-hunter dark:text-gray-300">
+                        ({simplifiedGuide.jurisdiction})
+                      </span>
+                    )}
                   </h3>
-                  <ol className="list-decimal pl-6 space-y-2">
+                  <ol className="list-decimal pl-6 space-y-3">
                     {simplifiedGuide.steps.map((step: string, idx: number) => (
-                      <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm">{step}</li>
+                      <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm leading-relaxed">
+                        {step}
+                      </li>
                     ))}
                   </ol>
-                  <div className="bg-just-white/20 px-3 py-2 rounded-lg mt-4">
+                  <div className="bg-just-white/20 px-3 py-2 rounded-lg mt-4 flex items-center justify-between">
                     <span className="text-sm font-medium">
                       {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{simplifiedGuide.reading_level || 'B1'}
                     </span>
+                    {simplifiedGuide.jurisdiction && (
+                      <span className="text-xs text-just-hunter dark:text-gray-300 opacity-75">
+                        {language === 'es' ? 'Específico para' : 'Specific to'} {simplifiedGuide.jurisdiction}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -360,8 +421,8 @@ export default function SummaryPage({
               <BookOpen className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-2">
-              {language === 'es' ? '¿Tienes dudas sobre el contrato? Consulta los pasos recomendados arriba para cumplir con todas las condiciones.'
-                : 'Have questions about your contract? Check the recommended steps above to comply with all conditions.'
+              {language === 'es' ? 'Los pasos mostrados están adaptados específicamente para la legislación detectada en tu documento.'
+                : 'The steps shown are specifically adapted for the legislation detected in your document.'
               }
             </p>
           </div>
@@ -369,11 +430,11 @@ export default function SummaryPage({
           <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold">{t.understandingTerms}</h3>
-              <Sparkles className="w-8 h-8" />
+              <Scale className="w-8 h-8" />
             </div>
             <p className="text-just-white/80 mb-4">
-              {language === 'es' ? 'Nuestra IA ha traducido el lenguaje legal complejo en español claro basado en la legislación colombiana.'
-                : 'Our AI has translated complex legal language into plain language based on Colombian legislation.'
+              {language === 'es' ? 'Nuestra IA detecta automáticamente el país y genera pasos específicos según la legislación local aplicable.'
+                : 'Our AI automatically detects the country and generates specific steps according to applicable local legislation.'
               }
             </p>
             <div className="bg-just-white/20 px-3 py-2 rounded-lg">
