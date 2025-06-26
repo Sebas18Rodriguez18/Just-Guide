@@ -3,6 +3,7 @@ import { ArrowLeft, History, Calendar, CheckCircle, Clock, AlertCircle, FileText
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
+import { smartCapitalize } from '../utils/textCapitalization';
 import { supabase } from '../utils/supabaseClient';
 
 interface LegalHistoryEntry {
@@ -76,10 +77,10 @@ export default function LegalHistoryPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return t.completed;
-      case 'in-progress': return t.inProgress;
-      case 'pending': return t.pending;
-      default: return t.pending;
+      case 'completed': return smartCapitalize(t.completed, 'title', language);
+      case 'in-progress': return smartCapitalize(t.inProgress, 'title', language);
+      case 'pending': return smartCapitalize(t.pending, 'title', language);
+      default: return smartCapitalize(t.pending, 'title', language);
     }
   };
 
@@ -106,9 +107,9 @@ export default function LegalHistoryPage() {
       <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
           <History className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{t.loading}</h2>
+          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.loading, 'title', language)}</h2>
           <p className="text-just-gray dark:text-gray-400">
-            {language === 'es' ? 'Cargando tu historial legal...' : 'Loading your legal history...'}
+            {smartCapitalize(language === 'es' ? 'cargando tu historial legal...' : 'loading your legal history...', 'sentence', language)}
           </p>
         </div>
       </div>
@@ -125,7 +126,7 @@ export default function LegalHistoryPage() {
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
+            {smartCapitalize(t.back, 'title', language)}
           </button>
           
           <div className="flex items-center justify-between">
@@ -134,12 +135,15 @@ export default function LegalHistoryPage() {
                 <History className="w-6 h-6 text-just-brown" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{t.legalHistory}</h1>
+                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(t.legalHistory, 'title', language)}</h1>
                 <p className="text-just-gray dark:text-gray-400">
-                  {language === 'es' 
-                    ? `${history.length} procedimientos registrados`
-                    : `${history.length} procedures recorded`
-                  }
+                  {smartCapitalize(
+                    language === 'es' 
+                      ? `${history.length} procedimientos registrados`
+                      : `${history.length} procedures recorded`,
+                    'sentence',
+                    language
+                  )}
                 </p>
               </div>
             </div>
@@ -150,10 +154,10 @@ export default function LegalHistoryPage() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
             >
-              <option value="all">{language === 'es' ? 'Todos' : 'All'}</option>
-              <option value="completed">{t.completed}</option>
-              <option value="in-progress">{t.inProgress}</option>
-              <option value="pending">{t.pending}</option>
+              <option value="all">{smartCapitalize(language === 'es' ? 'todos' : 'all', 'title', language)}</option>
+              <option value="completed">{smartCapitalize(t.completed, 'title', language)}</option>
+              <option value="in-progress">{smartCapitalize(t.inProgress, 'title', language)}</option>
+              <option value="pending">{smartCapitalize(t.pending, 'title', language)}</option>
             </select>
           </div>
         </div>
@@ -165,13 +169,16 @@ export default function LegalHistoryPage() {
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
             <History className="w-16 h-16 text-just-gray dark:text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-              {language === 'es' ? 'No hay historial disponible' : 'No history available'}
+              {smartCapitalize(language === 'es' ? 'no hay historial disponible' : 'no history available', 'sentence', language)}
             </h3>
             <p className="text-just-gray dark:text-gray-400">
-              {language === 'es' 
-                ? 'Tus procedimientos legales aparecerán aquí una vez que comiences a usar JustGuide.'
-                : 'Your legal procedures will appear here once you start using JustGuide.'
-              }
+              {smartCapitalize(
+                language === 'es' 
+                  ? 'tus procedimientos legales aparecerán aquí una vez que comiences a usar JustGuide.'
+                  : 'your legal procedures will appear here once you start using JustGuide.',
+                'sentence',
+                language
+              )}
             </p>
           </div>
         ) : (
@@ -193,7 +200,7 @@ export default function LegalHistoryPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-just-forest dark:text-just-white mb-2">
-                          {entry.procedure_type}
+                          {smartCapitalize(entry.procedure_type, 'title', language)}
                         </h3>
                         <div className="flex items-center space-x-4 mb-3">
                           <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(entry.status)}`}>
@@ -216,14 +223,14 @@ export default function LegalHistoryPage() {
                       <div className="flex items-center space-x-4">
                         <div>
                           <p className="text-sm font-medium text-just-forest dark:text-just-white">
-                            {language === 'es' ? 'Resultado:' : 'Result:'}
+                            {smartCapitalize(language === 'es' ? 'resultado:' : 'result:', 'title', language)}
                           </p>
                           <p className="text-sm text-just-hunter dark:text-gray-300">{entry.result}</p>
                         </div>
                         {entry.entity && (
                           <div>
                             <p className="text-sm font-medium text-just-forest dark:text-just-white">
-                              {language === 'es' ? 'Entidad:' : 'Entity:'}
+                              {smartCapitalize(language === 'es' ? 'entidad:' : 'entity:', 'title', language)}
                             </p>
                             <p className="text-sm text-just-hunter dark:text-gray-300">{entry.entity}</p>
                           </div>
@@ -235,7 +242,7 @@ export default function LegalHistoryPage() {
                         <button
                           onClick={() => handleDeleteHistory(entry.id)}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 transition-colors duration-300"
-                          aria-label={language === 'es' ? 'Eliminar entrada' : 'Delete entry'}
+                          aria-label={smartCapitalize(language === 'es' ? 'eliminar entrada' : 'delete entry', 'sentence', language)}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

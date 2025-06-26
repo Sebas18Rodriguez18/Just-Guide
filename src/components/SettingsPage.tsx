@@ -3,6 +3,7 @@ import { ArrowLeft, Settings, Globe, Moon, Sun, User, Trash2, RotateCcw, Save, A
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
+import { smartCapitalize } from '../utils/textCapitalization';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -22,13 +23,13 @@ export default function SettingsPage() {
     setIsSaving(false);
     
     // Show success message (in a real app, you'd use a toast notification)
-    alert(language === 'es' ? 'Configuración guardada exitosamente' : 'Settings saved successfully');
+    alert(smartCapitalize(language === 'es' ? 'configuración guardada exitosamente' : 'settings saved successfully', 'sentence', language));
   };
 
   const handleDeleteAccount = async () => {
     setShowDeleteConfirm(false);
     // Aquí podrías agregar lógica real de borrado de cuenta
-    alert(language === 'es' ? 'Cuenta eliminada' : 'Account deleted');
+    alert(smartCapitalize(language === 'es' ? 'cuenta eliminada' : 'account deleted', 'sentence', language));
   };
 
   const handleResetPreferences = async () => {
@@ -37,7 +38,7 @@ export default function SettingsPage() {
     setTheme('light');
     setShowResetConfirm(false);
     
-    alert(language === 'es' ? 'Preferencias restablecidas' : 'Preferences reset');
+    alert(smartCapitalize(language === 'es' ? 'preferencias restablecidas' : 'preferences reset', 'sentence', language));
   };
 
   return (
@@ -50,7 +51,7 @@ export default function SettingsPage() {
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
+            {smartCapitalize(t.back, 'title', language)}
           </button>
           
           <div className="flex items-center">
@@ -58,9 +59,9 @@ export default function SettingsPage() {
               <Settings className="w-6 h-6 text-just-hunter" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{t.settings}</h1>
+              <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(t.settings, 'title', language)}</h1>
               <p className="text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Personaliza tu experiencia en JustGuide' : 'Customize your JustGuide experience'}
+                {smartCapitalize(language === 'es' ? 'personaliza tu experiencia en JustGuide' : 'customize your JustGuide experience', 'sentence', language)}
               </p>
             </div>
           </div>
@@ -75,14 +76,14 @@ export default function SettingsPage() {
             <div className="flex items-center mb-6">
               <User className="w-5 h-5 text-just-forest dark:text-just-moss mr-2" />
               <h2 className="text-xl font-semibold text-just-forest dark:text-just-white">
-                {language === 'es' ? 'Perfil' : 'Profile'}
+                {smartCapitalize(language === 'es' ? 'perfil' : 'profile', 'title', language)}
               </h2>
             </div>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
-                  {t.fullName}
+                  {smartCapitalize(t.fullName, 'title', language)}
                 </label>
                 <input
                   type="text"
@@ -94,7 +95,7 @@ export default function SettingsPage() {
               
               <div>
                 <label className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
-                  {t.email}
+                  {smartCapitalize(t.email, 'title', language)}
                 </label>
                 <input
                   type="email"
@@ -111,7 +112,7 @@ export default function SettingsPage() {
             <div className="flex items-center mb-6">
               <Settings className="w-5 h-5 text-just-forest dark:text-just-moss mr-2" />
               <h2 className="text-xl font-semibold text-just-forest dark:text-just-white">
-                {language === 'es' ? 'Preferencias' : 'Preferences'}
+                {smartCapitalize(language === 'es' ? 'preferencias' : 'preferences', 'title', language)}
               </h2>
             </div>
             
@@ -121,7 +122,7 @@ export default function SettingsPage() {
                 <div className="flex items-center mb-3">
                   <Globe className="w-5 h-5 text-just-moss mr-2" />
                   <label className="block text-sm font-medium text-just-forest dark:text-just-white">
-                    {t.language}
+                    {smartCapitalize(t.language, 'title', language)}
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                   >
                     <div className="text-left">
                       <p className="font-medium">English</p>
-                      <p className="text-sm opacity-75">Default language</p>
+                      <p className="text-sm opacity-75">{smartCapitalize(language === 'es' ? 'idioma predeterminado' : 'default language', 'sentence', language)}</p>
                     </div>
                   </button>
                   
@@ -149,7 +150,7 @@ export default function SettingsPage() {
                   >
                     <div className="text-left">
                       <p className="font-medium">Español</p>
-                      <p className="text-sm opacity-75">Idioma principal</p>
+                      <p className="text-sm opacity-75">{smartCapitalize(language === 'es' ? 'idioma principal' : 'main language', 'sentence', language)}</p>
                     </div>
                   </button>
                 </div>
@@ -164,7 +165,7 @@ export default function SettingsPage() {
                     <Sun className="w-5 h-5 text-just-moss mr-2" />
                   )}
                   <label className="block text-sm font-medium text-just-forest dark:text-just-white">
-                    {language === 'es' ? 'Tema' : 'Theme'}
+                    {smartCapitalize(language === 'es' ? 'tema' : 'theme', 'title', language)}
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -179,9 +180,9 @@ export default function SettingsPage() {
                     <div className="flex items-center">
                       <Sun className="w-5 h-5 mr-3" />
                       <div className="text-left">
-                        <p className="font-medium">{t.lightMode}</p>
+                        <p className="font-medium">{smartCapitalize(t.lightMode, 'title', language)}</p>
                         <p className="text-sm opacity-75">
-                          {language === 'es' ? 'Tema claro' : 'Light theme'}
+                          {smartCapitalize(language === 'es' ? 'tema claro' : 'light theme', 'sentence', language)}
                         </p>
                       </div>
                     </div>
@@ -198,9 +199,9 @@ export default function SettingsPage() {
                     <div className="flex items-center">
                       <Moon className="w-5 h-5 mr-3" />
                       <div className="text-left">
-                        <p className="font-medium">{t.darkMode}</p>
+                        <p className="font-medium">{smartCapitalize(t.darkMode, 'title', language)}</p>
                         <p className="text-sm opacity-75">
-                          {language === 'es' ? 'Tema oscuro' : 'Dark theme'}
+                          {smartCapitalize(language === 'es' ? 'tema oscuro' : 'dark theme', 'sentence', language)}
                         </p>
                       </div>
                     </div>
@@ -213,7 +214,7 @@ export default function SettingsPage() {
           {/* Actions Section */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
             <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-6">
-              {language === 'es' ? 'Acciones' : 'Actions'}
+              {smartCapitalize(language === 'es' ? 'acciones' : 'actions', 'title', language)}
             </h2>
             
             <div className="space-y-4">
@@ -226,12 +227,12 @@ export default function SettingsPage() {
                 {isSaving ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-just-white mr-2"></div>
-                    {language === 'es' ? 'Guardando...' : 'Saving...'}
+                    {smartCapitalize(language === 'es' ? 'guardando...' : 'saving...', 'sentence', language)}
                   </>
                 ) : (
                   <>
                     <Save className="w-5 h-5 mr-2" />
-                    {t.save}
+                    {smartCapitalize(t.save, 'title', language)}
                   </>
                 )}
               </button>
@@ -242,7 +243,7 @@ export default function SettingsPage() {
                 className="w-full bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-6 py-3 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-300 flex items-center justify-center"
               >
                 <RotateCcw className="w-5 h-5 mr-2" />
-                {t.resetPreferences}
+                {smartCapitalize(t.resetPreferences, 'title', language)}
               </button>
 
               {/* Delete Account */}
@@ -251,7 +252,7 @@ export default function SettingsPage() {
                 className="w-full bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-6 py-3 rounded-xl font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-300 flex items-center justify-center"
               >
                 <Trash2 className="w-5 h-5 mr-2" />
-                {t.deleteAccount}
+                {smartCapitalize(t.deleteAccount, 'title', language)}
               </button>
             </div>
           </div>
@@ -265,27 +266,30 @@ export default function SettingsPage() {
             <div className="flex items-center mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
               <h3 className="text-lg font-semibold text-just-forest dark:text-just-white">
-                {language === 'es' ? 'Eliminar Cuenta' : 'Delete Account'}
+                {smartCapitalize(language === 'es' ? 'eliminar cuenta' : 'delete account', 'title', language)}
               </h3>
             </div>
             <p className="text-just-gray dark:text-gray-400 mb-6">
-              {language === 'es' 
-                ? '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.'
-                : 'Are you sure you want to delete your account? This action cannot be undone.'
-              }
+              {smartCapitalize(
+                language === 'es' 
+                  ? '¿estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.'
+                  : 'are you sure you want to delete your account? This action cannot be undone.',
+                'sentence',
+                language
+              )}
             </p>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
               >
-                {t.cancel}
+                {smartCapitalize(t.cancel, 'title', language)}
               </button>
               <button
                 onClick={handleDeleteAccount}
                 className="flex-1 bg-red-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-700 transition-colors duration-200"
               >
-                {language === 'es' ? 'Eliminar' : 'Delete'}
+                {smartCapitalize(language === 'es' ? 'eliminar' : 'delete', 'title', language)}
               </button>
             </div>
           </div>
@@ -299,27 +303,30 @@ export default function SettingsPage() {
             <div className="flex items-center mb-4">
               <RotateCcw className="w-6 h-6 text-just-moss mr-3" />
               <h3 className="text-lg font-semibold text-just-forest dark:text-just-white">
-                {t.resetPreferences}
+                {smartCapitalize(t.resetPreferences, 'title', language)}
               </h3>
             </div>
             <p className="text-just-gray dark:text-gray-400 mb-6">
-              {language === 'es' 
-                ? '¿Quieres restablecer todas las preferencias a sus valores predeterminados?'
-                : 'Do you want to reset all preferences to their default values?'
-              }
+              {smartCapitalize(
+                language === 'es' 
+                  ? '¿quieres restablecer todas las preferencias a sus valores predeterminados?'
+                  : 'do you want to reset all preferences to their default values?',
+                'sentence',
+                language
+              )}
             </p>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowResetConfirm(false)}
                 className="flex-1 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
               >
-                {t.cancel}
+                {smartCapitalize(t.cancel, 'title', language)}
               </button>
               <button
                 onClick={handleResetPreferences}
                 className="flex-1 bg-just-moss text-white px-4 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200"
               >
-                {language === 'es' ? 'Restablecer' : 'Reset'}
+                {smartCapitalize(language === 'es' ? 'restablecer' : 'reset', 'title', language)}
               </button>
             </div>
           </div>
