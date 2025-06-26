@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash } from 'lucide-react';
+import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -15,6 +15,7 @@ interface SimplifiedGuide {
   reading_level: string;
   created_at: string;
   word_count: number;
+  steps: string[];
 }
 
 export default function SimplifiedGuidesPage() {
@@ -32,6 +33,8 @@ export default function SimplifiedGuidesPage() {
     const loadGuides = async () => {
       try {
         setIsLoading(true);
+        
+        // Obtener todas las guías del usuario a través de sus documentos
         const { data, error } = await supabase
           .from('simplified_guides')
           .select(`
@@ -40,50 +43,61 @@ export default function SimplifiedGuidesPage() {
             summary,
             reading_level,
             created_at,
-            documents (
+            steps,
+            documents!inner (
               title,
               document_type,
               user_id
             )
           `)
+          .eq('documents.user_id', userId)
           .order('created_at', { ascending: false });
-        if (error) throw error;
-        const userGuides = (data || [])
-          .map((g: {
-            id: string;
-            document_id: string;
-            summary: string;
-            reading_level: string;
-            created_at: string;
-            documents: { title: string; document_type: string; user_id: string } | Array<{ title: string; document_type: string; user_id: string }>;
-          }) => {
-            const doc = Array.isArray(g.documents) ? g.documents[0] : g.documents;
-            if (!doc || doc.user_id !== userId) return null;
-            return {
-              id: g.id,
-              document_id: g.document_id,
-              document_title: doc.title,
-              document_type: doc.document_type,
-              summary: g.summary,
-              reading_level: g.reading_level,
-              created_at: g.created_at,
-              word_count: g.summary ? g.summary.split(/\s+/).length : 0,
-            };
-          })
-          .filter(Boolean) as SimplifiedGuide[];
+        
+        if (error) {
+          console.error('Error loading guides:', error);
+          setGuides([]);
+          return;
+        }
+        
+        // Transformar los datos para el componente
+        const userGuides = (data || []).map((g: any) => ({
+          id: g.id,
+          document_id: g.document_id,
+          document_title: g.documents.title,
+          document_type: g.documents.document_type,
+          summary: g.summary,
+          reading_level: g.reading_level,
+          created_at: g.created_at,
+          word_count: g.summary ? g.summary.split(/\s+/).length : 0,
+          steps: g.steps || []
+        }));
+        
         setGuides(userGuides);
       } catch (error) {
         console.error('Failed to load guides:', error);
+        setGuides([]);
       } finally {
         setIsLoading(false);
       }
     };
-    loadGuides();
+    
+    if (userId) {
+      loadGuides();
+    }
   }, [userId]);
 
   const handleDeleteGuide = async (guideId: string) => {
     try {
-      await supabase.from('simplified_guides').delete().eq('id', guideId);
+      const { error } = await supabase
+        .from('simplified_guides')
+        .delete()
+        .eq('id', guideId);
+      
+      if (error) {
+        console.error('Error deleting guide:', error);
+        return;
+      }
+      
       setGuides((guides) => guides.filter((g) => g.id !== guideId));
     } catch (error) {
       console.error('Error deleting guide:', error);
@@ -98,7 +112,7 @@ export default function SimplifiedGuidesPage() {
   });
 
   const exportGuide = (guide: SimplifiedGuide) => {
-    const content = `${guide.document_title}\n\n${guide.summary}`;
+    const content = `${guide.document_title}\n\n${guide.summary}\n\nPasos:\n${guide.steps.map((step, i) => `${i + 1}. ${step}`).join('\n')}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -129,13 +143,28 @@ export default function SimplifiedGuidesPage() {
       {/* Header */}
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {smartCapitalize(t.back, 'title', language)}
-          </button>
+          {/* Botones de Navegación Prominentes */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="font-medium">{smartCapitalize(t.back, 'title', language)}</span>
+            </button>
+            
+            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="text-lg">
+                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+              </span>
+            </button>
+          </div>
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-just-moss/20 dark:bg-just-moss/30 rounded-xl flex items-center justify-center mr-4">
@@ -167,6 +196,7 @@ export default function SimplifiedGuidesPage() {
           </div>
         </div>
       </div>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Filters and Search */}
@@ -196,6 +226,7 @@ export default function SimplifiedGuidesPage() {
             </select>
           </div>
         </div>
+
         {/* Guides List */}
         {filteredGuides.length === 0 ? (
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
@@ -203,12 +234,18 @@ export default function SimplifiedGuidesPage() {
             <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
               {smartCapitalize(language === 'es' ? 'no se encontraron guías' : 'no guides found', 'sentence', language)}
             </h3>
-            <p className="text-just-gray dark:text-gray-400">
+            <p className="text-just-gray dark:text-gray-400 mb-6">
               {searchTerm 
                 ? smartCapitalize(language === 'es' ? 'intenta con diferentes términos de búsqueda' : 'try different search terms', 'sentence', language)
-                : smartCapitalize(language === 'es' ? 'sube documentos para generar guías simplificadas' : 'upload documents to generate simplified guides', 'sentence', language)
+                : smartCapitalize(language === 'es' ? 'sube documentos para generar guías simplificadas automáticamente' : 'upload documents to automatically generate simplified guides', 'sentence', language)
               }
             </p>
+            <button
+              onClick={() => navigate('/upload')}
+              className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
+            >
+              {smartCapitalize(t.uploadDocument, 'title', language)}
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -230,6 +267,8 @@ export default function SimplifiedGuidesPage() {
                           <span>•</span>
                           <span>{guide.word_count} {smartCapitalize(language === 'es' ? 'palabras' : 'words', 'title', language)}</span>
                           <span>•</span>
+                          <span>{guide.steps.length} {smartCapitalize(language === 'es' ? 'pasos' : 'steps', 'title', language)}</span>
+                          <span>•</span>
                           <span>{new Date(guide.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
@@ -240,12 +279,14 @@ export default function SimplifiedGuidesPage() {
                       </div>
                     </div>
                   </div>
+                  
                   {/* Guide Preview */}
                   <div className="mb-6">
                     <p className="text-just-hunter dark:text-gray-300 leading-relaxed line-clamp-3">
                       {guide.summary}
                     </p>
                   </div>
+                  
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-just-sand dark:border-gray-700">
                     <div className="flex items-center space-x-4">
@@ -281,6 +322,17 @@ export default function SimplifiedGuidesPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Botón Flotante Adicional para Volver al Panel */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
+          title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
+        >
+          <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+        </button>
       </div>
     </div>
   );
