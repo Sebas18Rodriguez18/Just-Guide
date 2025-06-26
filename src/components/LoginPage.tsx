@@ -1,50 +1,52 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Sparkles, Globe, Users, Award } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
 import HackathonBadge from './HackathonBadge';
+import { supabase } from '../utils/supabaseClient';
+import Swal from 'sweetalert2';
 
-interface LoginPageProps {
-  onLogin: () => void;
-  onNavigateToRegister: () => void;
-  onNavigateToForgotPassword: () => void;
-  language: Language;
-}
-
-export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToForgotPassword, language }: LoginPageProps) {
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { setUser, setIsAuthenticated, language } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
   const t = getTranslations(language);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin();
-    }, 1500);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    setIsLoading(false);
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
+        text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
+      });
+      return;
+    }
+    if (data.user) {
+      setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
+      setIsAuthenticated(true);
+      Swal.fire({
+        icon: 'success',
+        title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
+        text: language === 'es' ? 'Inicio de sesión exitoso.' : 'Login successful.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      navigate('/dashboard');
+    }
   };
 
   const impactStats = [
-    {
-      icon: Users,
-      value: '15.4K+',
-      label: language === 'es' ? 'Usuarios Globales' : 'Global Users'
-    },
-    {
-      icon: Globe,
-      value: '25+',
-      label: language === 'es' ? 'Países' : 'Countries'
-    },
-    {
-      icon: Award,
-      value: '94%',
-      label: language === 'es' ? 'Éxito' : 'Success Rate'
-    }
+    { icon: Users, value: '15.4K+', label: language === 'es' ? 'Usuarios Globales' : 'Global Users' },
+    { icon: Globe, value: '25+', label: language === 'es' ? 'Países' : 'Countries' },
+    { icon: Award, value: '94%', label: language === 'es' ? 'Éxito' : 'Success Rate' }
   ];
 
   return (
@@ -53,7 +55,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
       <div className="fixed bottom-4 right-4 z-50">
         <HackathonBadge />
       </div>
-
       {/* Left Side - Branding & Impact */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-just-forest to-just-hunter p-12 text-just-white flex-col justify-between">
         <div>
@@ -66,7 +67,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
             </div>
             <h1 className="text-3xl font-bold">JustGuide</h1>
           </div>
-
           {/* Mission Statement */}
           <div className="mb-12">
             <h2 className="text-4xl font-bold mb-4">
@@ -82,7 +82,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
               }
             </p>
           </div>
-
           {/* Impact Stats */}
           <div className="grid grid-cols-3 gap-6">
             {impactStats.map((stat, index) => {
@@ -99,7 +98,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
             })}
           </div>
         </div>
-
         {/* Features */}
         <div className="space-y-4">
           <div className="flex items-center">
@@ -116,7 +114,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
           </div>
         </div>
       </div>
-
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
@@ -132,7 +129,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
               {language === 'es' ? 'Tu compañero de confianza para la claridad legal' : 'Your trusted companion for legal clarity'}
             </p>
           </div>
-
           {/* Welcome Header */}
           <div className="text-center mb-8 animate-fade-in">
             <h2 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">
@@ -142,7 +138,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
               {language === 'es' ? 'Continúa simplificando documentos legales' : 'Continue simplifying legal documents'}
             </p>
           </div>
-
           {/* Login Form */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-slide-up">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -166,7 +161,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
                   />
                 </div>
               </div>
-
               {/* Password Input */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
@@ -194,18 +188,16 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
                   </button>
                 </div>
               </div>
-
               {/* Forgot Password Link */}
               <div className="text-right">
                 <button
                   type="button"
-                  onClick={onNavigateToForgotPassword}
+                  onClick={() => navigate('/forgot-password')}
                   className="text-sm text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown transition-colors duration-200 font-medium"
                 >
                   {t.forgotPassword}
                 </button>
               </div>
-
               {/* Submit Button */}
               <button
                 type="submit"
@@ -222,13 +214,12 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
                 )}
               </button>
             </form>
-
             {/* Register Link */}
             <div className="mt-6 text-center">
               <p className="text-just-gray dark:text-gray-400">
                 {language === 'es' ? '¿No tienes una cuenta?' : "Don't have an account?"}{' '}
                 <button
-                  onClick={onNavigateToRegister}
+                  onClick={() => navigate('/register')}
                   className="text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown font-medium transition-colors duration-200"
                 >
                   {t.createAccount}
@@ -236,7 +227,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToF
               </p>
             </div>
           </div>
-
           {/* Mobile Impact Stats */}
           <div className="lg:hidden mt-8 grid grid-cols-3 gap-4">
             {impactStats.map((stat, index) => {

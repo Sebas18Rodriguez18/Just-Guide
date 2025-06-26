@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Search, Filter, Eye, Download, Calendar, FileText, Sparkles } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
-
-interface SimplifiedGuidesPageProps {
-  onNavigateBack: () => void;
-  onNavigateToGuide: (docId: string) => void;
-  userId: string;
-  language: Language;
-}
+import { useState, useEffect } from 'react';
+import { ArrowLeft, BookOpen, Search, Eye, Download, Calendar, Sparkles, Trash } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
+import { supabase } from '../utils/supabaseClient';
 
 interface SimplifiedGuide {
   id: string;
@@ -20,12 +16,10 @@ interface SimplifiedGuide {
   word_count: number;
 }
 
-export default function SimplifiedGuidesPage({ 
-  onNavigateBack, 
-  onNavigateToGuide, 
-  userId, 
-  language 
-}: SimplifiedGuidesPageProps) {
+export default function SimplifiedGuidesPage() {
+  const navigate = useNavigate();
+  const { user, language } = useAppContext();
+  const userId = user?.id || '';
   const [guides, setGuides] = useState<SimplifiedGuide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,48 +28,64 @@ export default function SimplifiedGuidesPage({
   const t = getTranslations(language);
 
   useEffect(() => {
+    const loadGuides = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('simplified_guides')
+          .select(`
+            id,
+            document_id,
+            summary,
+            reading_level,
+            created_at,
+            documents (
+              title,
+              document_type,
+              user_id
+            )
+          `)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        const userGuides = (data || [])
+          .map((g: {
+            id: string;
+            document_id: string;
+            summary: string;
+            reading_level: string;
+            created_at: string;
+            documents: { title: string; document_type: string; user_id: string } | Array<{ title: string; document_type: string; user_id: string }>;
+          }) => {
+            const doc = Array.isArray(g.documents) ? g.documents[0] : g.documents;
+            if (!doc || doc.user_id !== userId) return null;
+            return {
+              id: g.id,
+              document_id: g.document_id,
+              document_title: doc.title,
+              document_type: doc.document_type,
+              summary: g.summary,
+              reading_level: g.reading_level,
+              created_at: g.created_at,
+              word_count: g.summary ? g.summary.split(/\s+/).length : 0,
+            };
+          })
+          .filter(Boolean) as SimplifiedGuide[];
+        setGuides(userGuides);
+      } catch (error) {
+        console.error('Failed to load guides:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     loadGuides();
   }, [userId]);
 
-  const loadGuides = async () => {
+  const handleDeleteGuide = async (guideId: string) => {
     try {
-      setIsLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockGuides: SimplifiedGuide[] = [
-        {
-          id: 'guide-1',
-          document_id: 'doc-1',
-          document_title: language === 'es' ? 'Contrato de Arrendamiento' : 'Rental Agreement',
-          document_type: language === 'es' ? 'Contrato' : 'Contract',
-          summary: language === 'es' 
-            ? 'Este es un contrato de renta entre Juan Pérez (propietario) y María López (inquilino). La casa está en Calle Ejemplo 789 y se renta por $15,000 pesos al mes...'
-            : 'This is a rental contract between Juan Pérez (landlord) and María López (tenant). The house is at Calle Ejemplo 789 and rents for $15,000 pesos per month...',
-          reading_level: 'B1',
-          created_at: '2024-01-15T10:30:00Z',
-          word_count: 450
-        },
-        {
-          id: 'guide-2',
-          document_id: 'doc-3',
-          document_title: language === 'es' ? 'Testamento' : 'Will',
-          document_type: language === 'es' ? 'Testamento' : 'Will',
-          summary: language === 'es'
-            ? 'Este testamento explica cómo se repartirán los bienes de una persona después de su muerte. Es importante entender cada sección...'
-            : 'This will explains how a person\'s assets will be distributed after their death. It\'s important to understand each section...',
-          reading_level: 'B1',
-          created_at: '2024-01-13T09:15:00Z',
-          word_count: 320
-        }
-      ];
-
-      setGuides(mockGuides);
+      await supabase.from('simplified_guides').delete().eq('id', guideId);
+      setGuides((guides) => guides.filter((g) => g.id !== guideId));
     } catch (error) {
-      console.error('Failed to load guides:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error deleting guide:', error);
     }
   };
 
@@ -119,13 +129,12 @@ export default function SimplifiedGuidesPage({
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
-            onClick={onNavigateBack}
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {t.back}
           </button>
-          
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-just-moss/20 dark:bg-just-moss/30 rounded-xl flex items-center justify-center mr-4">
@@ -141,7 +150,6 @@ export default function SimplifiedGuidesPage({
                 </p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-2">
               <div className="bg-just-moss/10 dark:bg-just-moss/20 px-3 py-2 rounded-xl">
                 <div className="flex items-center">
@@ -155,7 +163,6 @@ export default function SimplifiedGuidesPage({
           </div>
         </div>
       </div>
-
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Filters and Search */}
@@ -172,7 +179,6 @@ export default function SimplifiedGuidesPage({
                 className="w-full pl-10 pr-4 py-2 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
               />
             </div>
-
             {/* Filter */}
             <select
               value={filterLevel}
@@ -186,7 +192,6 @@ export default function SimplifiedGuidesPage({
             </select>
           </div>
         </div>
-
         {/* Guides List */}
         {filteredGuides.length === 0 ? (
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
@@ -225,32 +230,28 @@ export default function SimplifiedGuidesPage({
                         </div>
                       </div>
                     </div>
-                    
                     <div className="flex items-center space-x-2">
                       <div className="bg-just-moss/10 dark:bg-just-moss/20 px-3 py-1 rounded-full">
                         <span className="text-xs font-medium text-just-moss">{guide.reading_level}</span>
                       </div>
                     </div>
                   </div>
-
                   {/* Guide Preview */}
                   <div className="mb-6">
                     <p className="text-just-hunter dark:text-gray-300 leading-relaxed line-clamp-3">
                       {guide.summary}
                     </p>
                   </div>
-
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-just-sand dark:border-gray-700">
                     <div className="flex items-center space-x-4">
                       <button
-                        onClick={() => onNavigateToGuide(guide.document_id)}
+                        onClick={() => navigate(`/guides/${guide.document_id}`)}
                         className="bg-just-moss text-just-white px-6 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         {language === 'es' ? 'Ver Guía Completa' : 'View Full Guide'}
                       </button>
-                      
                       <button
                         onClick={() => exportGuide(guide)}
                         className="bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center"
@@ -258,8 +259,14 @@ export default function SimplifiedGuidesPage({
                         <Download className="w-4 h-4 mr-2" />
                         {language === 'es' ? 'Exportar' : 'Export'}
                       </button>
+                      <button
+                        onClick={() => handleDeleteGuide(guide.id)}
+                        className="bg-red-500 text-just-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors duration-200 flex items-center"
+                      >
+                        <Trash className="w-4 h-4 mr-2" />
+                        {language === 'es' ? 'Eliminar' : 'Delete'}
+                      </button>
                     </div>
-
                     <div className="flex items-center text-sm text-just-gray dark:text-gray-400">
                       <Calendar className="w-4 h-4 mr-1" />
                       {language === 'es' ? 'Creado' : 'Created'} {new Date(guide.created_at).toLocaleDateString()}

@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Sparkles, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
 import { detectJurisdiction, detectLanguage, extractDocumentInfo, adaptContentForJurisdiction, LegalFramework } from '../utils/jurisdictionLogic';
+import { supabase } from '../utils/supabaseClient';
+import { generateStepByStepGuide } from '../utils/guideGenerator';
+import { summarizeDocument } from '../utils/summarizer';
+import { useNavigate } from 'react-router-dom';
 
 interface SummaryPageProps {
   onNavigateBack: () => void;
-  onNavigateToGuide: (docId: string) => void;
   docId: string;
   userId: string;
   language: Language;
@@ -23,104 +26,72 @@ interface Document {
 }
 
 interface SimplifiedGuide {
-  id: string;
+  id?: string;
+  steps: string[];
   summary: string;
   reading_level: string;
+  created_at?: string;
 }
 
 export default function SummaryPage({ 
   onNavigateBack, 
-  onNavigateToGuide, 
   docId, 
   userId,
   language 
 }: SummaryPageProps) {
+  const navigate = useNavigate();
   const [document, setDocument] = useState<Document | null>(null);
   const [simplifiedGuide, setSimplifiedGuide] = useState<SimplifiedGuide | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSimplifying, setIsSimplifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [docSummary, setDocSummary] = useState<{ summary: string; keyPoints: string[] }>({ summary: '', keyPoints: [] });
 
   const t = getTranslations(language);
 
   useEffect(() => {
     loadDocument();
+    setSimplifiedGuide(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId]);
 
+  // Cargar documento y mostrar resumen real
   const loadDocument = async () => {
     try {
       setIsLoading(true);
-      
-      // Simulate fetching document data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sample Colombian rental contract text
-      const colombianContractText = `CONTRATO DE ARRENDAMIENTO DE VIVIENDA URBANA
-
-PRIMERA: IDENTIFICACIÓN DE LAS PARTES
-Arrendador: Carlos Eduardo Ramírez Gómez, mayor de edad, identificado con cédula de ciudadanía No. 80.123.456 de Bogotá D.C., domiciliado en la Carrera 15 No. 93-47, Bogotá D.C.
-
-Arrendatario: Ana María Rodríguez López, mayor de edad, identificada con cédula de ciudadanía No. 52.987.654 de Medellín, domiciliada en la Calle 72 No. 10-34, Bogotá D.C.
-
-SEGUNDA: OBJETO DEL CONTRATO
-El arrendador da en arriendo al arrendatario el inmueble ubicado en la Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C., destinado exclusivamente para vivienda urbana.
-
-TERCERA: PLAZO
-El presente contrato tendrá una duración de doce (12) meses, contados a partir del 1 de febrero de 2024 hasta el 31 de enero de 2025.
-
-CUARTA: CANON DE ARRENDAMIENTO
-El canon mensual de arrendamiento será de DOS MILLONES QUINIENTOS MIL PESOS ($2.500.000) moneda corriente, pagaderos dentro de los primeros cinco (5) días de cada mes.
-
-QUINTA: REAJUSTE DEL CANON
-El canon de arrendamiento se reajustará anualmente en un porcentaje igual al IPC certificado por el DANE para el año inmediatamente anterior.
-
-SEXTA: DEPÓSITO EN DINERO
-El arrendatario entregará al arrendador la suma de CINCO MILLONES DE PESOS ($5.000.000) como depósito en dinero, equivalente a dos (2) meses de canon.
-
-SÉPTIMA: OBLIGACIONES DEL ARRENDADOR
-- Entregar el inmueble en condiciones de habitabilidad
-- Realizar las reparaciones locativas mayores
-- Respetar el uso pacífico del inmueble por parte del arrendatario
-- Cumplir con las disposiciones de la Ley 820 de 2003
-
-OCTAVA: OBLIGACIONES DEL ARRENDATARIO
-- Pagar puntualmente el canon de arrendamiento
-- Usar el inmueble conforme a su destinación
-- Conservar el inmueble en buen estado
-- No subarrendar sin autorización escrita del arrendador
-- Cumplir con las disposiciones del Código Civil Colombiano
-
-NOVENA: TERMINACIÓN
-El contrato podrá terminarse por vencimiento del plazo, mutuo acuerdo, o por las causales establecidas en el artículo 22 de la Ley 820 de 2003.
-
-En constancia de lo anterior, las partes firman en Bogotá D.C., a los quince (15) días del mes de enero de 2024.
-
-_____________________________          _____________________________
-Carlos Eduardo Ramírez Gómez           Ana María Rodríguez López
-Arrendador                             Arrendatario
-C.C. 80.123.456                       C.C. 52.987.654`;
-
-      // Detect jurisdiction and language from the document
-      const detectedJurisdiction = detectJurisdiction(colombianContractText);
-      const detectedLanguage = detectLanguage(colombianContractText);
-      const documentInfo = extractDocumentInfo(colombianContractText, detectedJurisdiction);
-
-      const mockDocument: Document = {
-        id: docId,
-        title: "Contrato de Arrendamiento de Vivienda Urbana",
-        document_type: "Contrato de Arrendamiento",
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', docId)
+        .eq('user_id', userId)
+        .single();
+      if (error || !data) {
+        setError(language === 'es' ? 'No se encontró el documento.' : 'Document not found.');
+        setIsLoading(false);
+        return;
+      }
+      const detectedJurisdiction = detectJurisdiction(data.extracted_text || '');
+      const detectedLanguage = detectLanguage(data.extracted_text || '');
+      const documentInfo = extractDocumentInfo(data.extracted_text || '', detectedJurisdiction);
+      const realDocument: Document = {
+        id: data.id,
+        title: data.title,
+        document_type: data.document_type,
         language: detectedLanguage,
-        extracted_text: colombianContractText,
-        upload_date: new Date().toISOString(),
+        extracted_text: data.extracted_text || '',
+        upload_date: data.upload_date || data.created_at || '',
         jurisdiction: detectedJurisdiction,
         documentInfo: documentInfo
       };
-
-      setDocument(mockDocument);
-      
-      // Auto-generate simplified summary
-      await generateSimplifiedSummary(mockDocument);
-      
+      setDocument(realDocument);
+      // Generar resumen y puntos clave simulando IA
+      if (data.extracted_text) {
+        setDocSummary(summarizeDocument(data.extracted_text, language));
+      } else {
+        setDocSummary({ summary: '', keyPoints: [] });
+      }
+      // Buscar o generar la guía automáticamente
+      await autoFetchOrGenerateGuide(data.id, data.extracted_text || '');
     } catch (err) {
       setError(language === 'es' ? 'Error al cargar el documento. Por favor intenta de nuevo.'
         : language === 'fr' ? 'Échec du chargement du document. Veuillez réessayer.'
@@ -130,91 +101,49 @@ C.C. 80.123.456                       C.C. 52.987.654`;
     }
   };
 
-  const generateSimplifiedSummary = async (doc: Document) => {
-    try {
-      setIsSimplifying(true);
-      
-      // Simulate calling legal-simplifier function
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Generate content based on actual document information
-      const { names, amounts, addresses, laws, articles, duration } = doc.documentInfo || {};
-      
-      const landlordName = names && names.length > 0 ? names[0] : 'Carlos Eduardo Ramírez Gómez';
-      const tenantName = names && names.length > 1 ? names[1] : 'Ana María Rodríguez López';
-      const propertyAddress = addresses && addresses.length > 0 ? addresses[0] : 'Carrera 11 No. 85-23, Apartamento 501, Bogotá D.C.';
-      const monthlyRent = amounts && amounts.length > 0 ? amounts[0] : '$2.500.000';
-      const contractDuration = duration || '12 meses';
-      const relevantLaws = laws && laws.length > 0 ? laws.join(', ') : 'Ley 820 de 2003';
-      const relevantArticles = articles && articles.length > 0 ? articles.join(', ') : 'artículo 22';
-
-      const mockSimplifiedGuide: SimplifiedGuide = {
-        id: 'guide-' + Date.now(),
-        summary: `## 1. Información de las personas
-
-**Arrendador (Propietario):** ${landlordName} vive en Bogotá D.C.
-**Arrendatario (Inquilino):** ${tenantName} vive en Bogotá D.C.
-
-## 2. Qué se acuerda
-
-${landlordName} le arrienda a ${tenantName} un apartamento ubicado en ${propertyAddress}. Este inmueble es exclusivamente para vivienda.
-
-## 3. Tiempo del acuerdo
-
-El contrato dura ${contractDuration} completos. Empieza el 1 de febrero de 2024 y termina el 31 de enero de 2025.
-
-## 4. Dinero y pagos
-
-${tenantName} debe pagar ${monthlyRent} pesos cada mes. Tiene que pagar en los primeros 5 días de cada mes.
-
-## 5. Reajuste del canon
-
-El valor del arriendo se ajusta cada año según el IPC (Índice de Precios al Consumidor) que certifica el DANE.
-
-## 6. Depósito de garantía
-
-${tenantName} debe dar $5.000.000 pesos (equivalente a 2 meses de arriendo) como depósito de garantía. Este dinero se devuelve al final si no hay daños.
-
-## 7. Obligaciones del arrendador (${landlordName})
-
-- Entregar el apartamento en buenas condiciones para vivir
-- Hacer reparaciones grandes cuando sea necesario
-- No molestar a ${tenantName} mientras vive ahí
-- Cumplir con la ${relevantLaws}
-
-## 8. Obligaciones del arrendatario (${tenantName})
-
-- Pagar el arriendo a tiempo cada mes
-- Usar el apartamento solo para vivir
-- Cuidar bien el apartamento
-- No arrendar a otras personas sin permiso escrito
-- Cumplir con el Código Civil Colombiano
-
-## 9. Cómo termina el acuerdo
-
-El contrato termina cuando:
-- Se acaba el tiempo (31 de enero de 2025)
-- Las dos personas están de acuerdo en terminarlo
-- Se cumple alguna de las causales del ${relevantArticles} de la ${relevantLaws}
-
-**Marco Legal:** Este contrato está regido por la ${relevantLaws} y el Código Civil Colombiano.
-
-**Nota Jurisdiccional:** Colombia (Nacional) - Esta jurisdicción sigue el derecho civil, donde los códigos escritos son primarios.`,
-        reading_level: 'B1'
-      };
-
-      setSimplifiedGuide(mockSimplifiedGuide);
-      
-    } catch (err) {
-      setError(language === 'es' ? 'Error al generar el resumen simplificado. Por favor intenta de nuevo.'
-        : 'Failed to generate simplified summary. Please try again.');
-    } finally {
+  // Buscar o generar la guía paso a paso automáticamente
+  const autoFetchOrGenerateGuide = async (docId: string, extractedText: string) => {
+    setIsSimplifying(true);
+    // Buscar si ya existe la guía en Supabase
+    const { data } = await supabase
+      .from('simplified_guides')
+      .select('*')
+      .eq('document_id', docId)
+      .single();
+    if (data) {
+      setSimplifiedGuide(data);
       setIsSimplifying(false);
+      return;
     }
+    // Si no existe y hay texto, generar y guardar una nueva guía
+    if (extractedText && extractedText.length > 0) {
+      const guide = await generateStepByStepGuide(extractedText, language);
+      const insertResult = await supabase.from('simplified_guides').insert([
+        {
+          document_id: docId,
+          steps: guide.steps,
+          summary: guide.summary,
+          reading_level: guide.reading_level,
+          created_at: new Date().toISOString()
+        }
+      ]).select('*').single();
+      setSimplifiedGuide(insertResult.data || guide);
+    }
+    setIsSimplifying(false);
   };
 
-  const handleGenerateGuide = () => {
-    onNavigateToGuide(docId);
+  // Consultar la guía paso a paso manualmente (por si el usuario la quiere refrescar)
+  const fetchStepByStepGuide = async (docId: string) => {
+    setIsSimplifying(true);
+    const { data } = await supabase
+      .from('simplified_guides')
+      .select('*')
+      .eq('document_id', docId)
+      .single();
+    if (data) {
+      setSimplifiedGuide(data);
+    }
+    setIsSimplifying(false);
   };
 
   if (isLoading) {
@@ -288,7 +217,7 @@ El contrato termina cuando:
             </div>
             
             <button
-              onClick={handleGenerateGuide}
+              onClick={() => navigate(`/guides/${docId}`)}
               className="bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 flex items-center"
             >
               <BookOpen className="w-5 h-5 mr-2" />
@@ -323,8 +252,7 @@ El contrato termina cuando:
               </div>
             </div>
           </div>
-
-          {/* Simplified Summary */}
+          {/* Simplified Summary / Step-by-step Guide */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
             <div className="p-6 border-b border-just-sand dark:border-gray-700">
               <h2 className="text-xl font-semibold text-just-forest dark:text-just-white flex items-center">
@@ -338,38 +266,57 @@ El contrato termina cuando:
               </p>
             </div>
             <div className="p-6">
-              {isSimplifying ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 text-just-moss animate-spin mx-auto mb-4" />
-                  <p className="text-just-gray dark:text-gray-400">
-                    {language === 'es' ? 'Generando resumen simplificado...'
-                      : 'Generating simplified summary...'
-                    }
-                  </p>
-                </div>
-              ) : simplifiedGuide ? (
-                <div className="prose prose-sm max-w-none">
-                  <div 
-                    className="text-just-hunter dark:text-gray-300 leading-relaxed"
-                    dangerouslySetInnerHTML={{ 
-                      __html: simplifiedGuide.summary
-                        .replace(/## /g, '<h3 class="text-lg font-semibold text-just-forest dark:text-just-white mt-6 mb-3">')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-just-forest dark:text-just-white">$1</strong>')
-                        .replace(/\n\n/g, '</p><p class="mb-4">')
-                        .replace(/^/, '<p class="mb-4">')
-                        .replace(/$/, '</p>')
-                        .replace(/- /g, '• ')
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-8 h-8 text-just-gray dark:text-gray-400 mx-auto mb-4" />
-                  <p className="text-just-gray dark:text-gray-400">
-                    {language === 'es' ? 'No hay resumen simplificado disponible'
-                      : 'No simplified summary available'
-                    }
-                  </p>
+              {/* Mostrar resumen mejorado */}
+              <div className="mb-6 p-6 bg-gradient-to-br from-just-moss/10 to-just-beige/60 dark:from-just-moss/20 dark:to-gray-700/40 rounded-2xl border border-just-moss/30 dark:border-just-moss/40 shadow-sm">
+                <h3 className="text-xl font-bold text-just-forest dark:text-just-moss mb-3 flex items-center">
+                  <Sparkles className="w-5 h-5 mr-2 text-just-moss" />
+                  {language === 'es' ? 'Resumen del Documento' : 'Document Summary'}
+                </h3>
+                <p className="text-just-hunter dark:text-gray-200 text-base leading-relaxed mb-4">
+                  {docSummary.summary || (language === 'es' ? 'No se pudo generar un resumen.' : 'No summary available.')}
+                </p>
+                {docSummary.keyPoints.length > 0 && (
+                  <div className="mb-2">
+                    <h4 className="text-base font-semibold text-just-moss dark:text-just-moss mb-1">
+                      {language === 'es' ? 'Puntos clave:' : 'Key Points:'}
+                    </h4>
+                    <ul className="list-disc pl-6 space-y-1">
+                      {docSummary.keyPoints.map((point, idx) => (
+                        <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm">{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              {/* Botón para refrescar la guía paso a paso */}
+              <button
+                onClick={() => fetchStepByStepGuide(docId)}
+                className="bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 mb-4 flex items-center shadow"
+                disabled={isSimplifying}
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                {isSimplifying
+                  ? (language === 'es' ? 'Generando guía...' : 'Generating guide...')
+                  : (language === 'es' ? 'Refrescar pasos recomendados' : 'Refresh Recommended Steps')
+                }
+              </button>
+              {/* Mostrar la guía si ya está cargada */}
+              {simplifiedGuide && simplifiedGuide.steps && simplifiedGuide.steps.length > 0 && (
+                <div className="prose prose-sm max-w-none mt-4 bg-gradient-to-br from-just-moss/10 to-just-beige/60 dark:from-just-moss/20 dark:to-gray-700/40 rounded-2xl border border-just-moss/30 dark:border-just-moss/40 p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-just-forest dark:text-just-moss mb-2 flex items-center">
+                    <BookOpen className="w-5 h-5 mr-2 text-just-moss" />
+                    {language === 'es' ? 'Pasos recomendados para cumplir el contrato' : 'Recommended Steps to Comply with the Contract'}
+                  </h3>
+                  <ol className="list-decimal pl-6 space-y-2">
+                    {simplifiedGuide.steps.map((step: string, idx: number) => (
+                      <li key={idx} className="text-just-hunter dark:text-gray-300 text-sm">{step}</li>
+                    ))}
+                  </ol>
+                  <div className="bg-just-white/20 px-3 py-2 rounded-lg mt-4">
+                    <span className="text-sm font-medium">
+                      {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{simplifiedGuide.reading_level || 'B1'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -383,17 +330,11 @@ El contrato termina cuando:
               <h3 className="text-xl font-semibold">{t.needMoreHelp}</h3>
               <BookOpen className="w-8 h-8" />
             </div>
-            <p className="text-just-white/80 mb-4">
-              {language === 'es' ? 'Obtén una guía detallada paso a paso que te guíe a través de cada sección de tu contrato de arrendamiento colombiano.'
-                : 'Get a detailed step-by-step guide that walks you through each section of your Colombian rental contract.'
+            <p className="text-just-white/80 mb-2">
+              {language === 'es' ? '¿Tienes dudas sobre el contrato? Consulta los pasos recomendados arriba para cumplir con todas las condiciones.'
+                : 'Have questions about your contract? Check the recommended steps above to comply with all conditions.'
               }
             </p>
-            <button 
-              onClick={handleGenerateGuide}
-              className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200"
-            >
-              {t.generateGuide}
-            </button>
           </div>
 
           <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg">

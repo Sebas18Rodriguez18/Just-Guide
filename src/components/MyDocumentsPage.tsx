@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Search, Filter, Calendar, Eye, Download, MoreVertical, Upload, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
-
-interface MyDocumentsPageProps {
-  onNavigateBack: () => void;
-  onNavigateToSummary: (docId: string) => void;
-  onNavigateToUpload: () => void;
-  userId: string;
-  language: Language;
-}
+import { useState, useEffect } from 'react';
+import { ArrowLeft, FileText, Search, Eye, Download, MoreVertical, Upload, CheckCircle, Clock, AlertCircle, Trash } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
+import { supabase } from '../utils/supabaseClient';
 
 interface Document {
   id: string;
@@ -21,13 +16,10 @@ interface Document {
   simplified: boolean;
 }
 
-export default function MyDocumentsPage({ 
-  onNavigateBack, 
-  onNavigateToSummary, 
-  onNavigateToUpload,
-  userId, 
-  language 
-}: MyDocumentsPageProps) {
+export default function MyDocumentsPage() {
+  const navigate = useNavigate();
+  const { user, language } = useAppContext();
+  const userId = user?.id || '';
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,65 +28,34 @@ export default function MyDocumentsPage({
 
   const t = getTranslations(language);
 
-  useEffect(() => {
-    loadDocuments();
-  }, [userId]);
-
   const loadDocuments = async () => {
     try {
       setIsLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockDocuments: Document[] = [
-        {
-          id: 'doc-1',
-          title: language === 'es' ? 'Contrato de Arrendamiento' : 'Rental Agreement',
-          document_type: language === 'es' ? 'Contrato' : 'Contract',
-          language: 'es',
-          upload_date: '2024-01-15T10:30:00Z',
-          status: 'completed',
-          file_size: '2.4 MB',
-          simplified: true
-        },
-        {
-          id: 'doc-2',
-          title: language === 'es' ? 'Demanda Civil' : 'Civil Complaint',
-          document_type: language === 'es' ? 'Demanda' : 'Legal Filing',
-          language: 'es',
-          upload_date: '2024-01-14T14:20:00Z',
-          status: 'processing',
-          file_size: '1.8 MB',
-          simplified: false
-        },
-        {
-          id: 'doc-3',
-          title: language === 'es' ? 'Testamento' : 'Will',
-          document_type: language === 'es' ? 'Testamento' : 'Will',
-          language: 'es',
-          upload_date: '2024-01-13T09:15:00Z',
-          status: 'completed',
-          file_size: '3.1 MB',
-          simplified: true
-        },
-        {
-          id: 'doc-4',
-          title: language === 'es' ? 'Poder Notarial' : 'Power of Attorney',
-          document_type: language === 'es' ? 'Poder' : 'Authorization',
-          language: 'es',
-          upload_date: '2024-01-12T16:45:00Z',
-          status: 'failed',
-          file_size: '0.9 MB',
-          simplified: false
-        }
-      ];
-
-      setDocuments(mockDocuments);
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('upload_date', { ascending: false });
+      if (error) throw error;
+      setDocuments(data || []);
     } catch (error) {
       console.error('Failed to load documents:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) loadDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      await supabase.from('documents').delete().eq('id', docId);
+      setDocuments((docs) => docs.filter((d) => d.id !== docId));
+    } catch (error) {
+      console.error('Error deleting document:', error);
     }
   };
 
@@ -165,7 +126,7 @@ export default function MyDocumentsPage({
       <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
-            onClick={onNavigateBack}
+            onClick={() => navigate(-1)}
             className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -189,7 +150,7 @@ export default function MyDocumentsPage({
             </div>
             
             <button
-              onClick={onNavigateToUpload}
+              onClick={() => navigate('/upload')}
               className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 flex items-center"
             >
               <Upload className="w-5 h-5 mr-2" />
@@ -256,7 +217,7 @@ export default function MyDocumentsPage({
               }
             </p>
             <button
-              onClick={onNavigateToUpload}
+              onClick={() => navigate('/upload')}
               className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
             >
               {t.uploadDocument}
@@ -319,7 +280,7 @@ export default function MyDocumentsPage({
                   <div className="flex items-center space-x-2">
                     {doc.status === 'completed' && (
                       <button
-                        onClick={() => onNavigateToSummary(doc.id)}
+                        onClick={() => navigate(`/summary/${doc.id}`)}
                         className="flex-1 bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-brown transition-colors duration-200 flex items-center justify-center"
                       >
                         <Eye className="w-4 h-4 mr-2" />
@@ -345,6 +306,12 @@ export default function MyDocumentsPage({
                     )}
                     <button className="p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200">
                       <Download className="w-4 h-4 text-just-hunter dark:text-gray-300" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="p-2 rounded-xl bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200"
+                    >
+                      <Trash className="w-4 h-4 text-red-600 dark:text-red-200" />
                     </button>
                   </div>
                 </div>

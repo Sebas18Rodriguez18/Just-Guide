@@ -1,14 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle, Loader2, ArrowLeft, Info, Eye } from 'lucide-react';
-import { Language, getTranslations } from '../utils/i18n';
+import { Upload, Loader2, ArrowLeft, Info, Eye, AlertCircle, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { getTranslations } from '../utils/i18n';
 import { parseDocumentWithOCR } from '../utils/ocrService';
-
-interface UploadDocumentPageProps {
-  onNavigateBack: () => void;
-  onNavigateToSummary: (docId: string) => void;
-  userId: string;
-  language: Language;
-}
+import { supabase } from '../utils/supabaseClient';
+import { generateStepByStepGuide } from '../utils/guideGenerator';
+import Swal from 'sweetalert2';
 
 interface UploadState {
   status: 'idle' | 'uploading' | 'processing' | 'success' | 'error';
@@ -18,19 +16,16 @@ interface UploadState {
   ocrProgress?: number;
 }
 
-export default function UploadDocumentPage({ 
-  onNavigateBack, 
-  onNavigateToSummary, 
-  userId,
-  language 
-}: UploadDocumentPageProps) {
+export default function UploadDocumentPage() {
+  const navigate = useNavigate();
+  const { user, language } = useAppContext();
+  const userId = user?.id || '';
   const [uploadState, setUploadState] = useState<UploadState>({
     status: 'idle',
     progress: 0,
     message: ''
   });
   const [dragActive, setDragActive] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = getTranslations(language);
@@ -45,7 +40,6 @@ export default function UploadDocumentPage({
 
   const validateFile = (file: File): string | null => {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    
     if (file.size > maxSize) {
       return language === 'es' ? 'El archivo debe ser menor a 10MB' 
         : language === 'fr' ? 'Le fichier doit faire moins de 10 Mo'
@@ -74,41 +68,61 @@ export default function UploadDocumentPage({
     return null;
   };
 
-  const uploadToSupabase = async (file: File): Promise<string> => {
-    // Simulate Supabase storage upload
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`https://example.com/storage/documents/${userId}/${Date.now()}-${file.name}`);
-      }, 1500);
-    });
+  // Eliminar referencias a currentUser, usar solo user del contexto
+  const uploadToSupabase = async (file: File): Promise<{ publicUrl: string, filePath: string }> => {
+    if (!user) {
+      throw new Error(language === 'es' ? 'Debes iniciar sesión para subir documentos.' : 'You must be logged in to upload documents.');
+    }
+    const filePath = `${user.id}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from('documents').upload(filePath, file);
+    if (error) throw error;
+    let publicUrl = '';
+    const { data: signedData, error: signedError } = await supabase.storage.from('documents').createSignedUrl(filePath, 60 * 60);
+    if (signedError) {
+      const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+      publicUrl = publicUrlData.publicUrl;
+    } else {
+      publicUrl = signedData.signedUrl;
+    }
+    return { publicUrl, filePath };
+  };
+
+  // Reemplazar createDocumentRecord para insertar en Supabase
+  type DocumentInsert = {
+    title: string;
+    document_type: string;
+    language: string;
+    file_url: string;
+    user_id: string;
+    upload_date: string;
+    status?: string;
   };
 
   const createDocumentRecord = async (file: File, fileUrl: string): Promise<string> => {
-    // Simulate creating document record
-    const documentData = {
-      title: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension
+    const documentData: DocumentInsert = {
+      title: file.name.replace(/\.[^/.]+$/, ''),
       document_type: file.type.includes('pdf') ? 'PDF' : 
                     file.type.includes('word') ? 'DOCX' : 'Image',
-      language: language, // Use selected language
+      language: language,
       file_url: fileUrl,
       user_id: userId,
-      upload_date: new Date().toISOString()
+      upload_date: new Date().toISOString(),
+      status: 'in-progress',
     };
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve('doc-' + Date.now()); // Mock document ID
-      }, 500);
-    });
+    const { data, error } = await supabase.from('documents').insert([documentData]).select('id').single();
+    if (error) throw new Error(error.message);
+    return data.id;
   };
 
+  // Reemplazar updateDocumentWithParsedData para actualizar en Supabase
   const updateDocumentWithParsedData = async (docId: string, extractedText: string, detectedLanguage: string): Promise<void> => {
-    // Simulate updating document with parsed data
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 500);
-    });
+    const { error } = await supabase.from('documents').update({
+      extracted_text: extractedText,
+      detected_language: detectedLanguage,
+      status: 'completed',
+      // processed_at eliminado porque no existe en la tabla
+    }).eq('id', docId);
+    if (error) throw new Error(error.message);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -122,18 +136,24 @@ export default function UploadDocumentPage({
       });
       return;
     }
-
     try {
-      // Step 1: Upload file
+      if (!user) {
+        setUploadState({
+          status: 'error',
+          progress: 0,
+          message: '',
+          error: language === 'es' ? 'Debes iniciar sesión para subir documentos.' : 'You must be logged in to upload documents.'
+        });
+        return;
+      }
+      // Step 2: Upload file
       setUploadState({
         status: 'uploading',
         progress: 25,
         message: t.uploading
       });
-
-      const fileUrl = await uploadToSupabase(file);
-
-      // Step 2: Create document record
+      const { publicUrl } = await uploadToSupabase(file);
+      // Step 3: Create document record
       setUploadState({
         status: 'uploading',
         progress: 50,
@@ -146,10 +166,8 @@ export default function UploadDocumentPage({
           : language === 'hi' ? 'दस्तावेज़ रिकॉर्ड बना रहे हैं...'
           : 'Creating document record...'
       });
-
-      const docId = await createDocumentRecord(file, fileUrl);
-
-      // Step 3: Parse document with real OCR
+      const docId = await createDocumentRecord(file, publicUrl);
+      // Step 4: Parse document with real OCR
       setUploadState({
         status: 'processing',
         progress: 60,
@@ -179,7 +197,7 @@ export default function UploadDocumentPage({
         throw new Error('Document text quality too low for reliable processing');
       }
 
-      // Step 4: Update document with parsed data
+      // Step 5: Update document with parsed data
       setUploadState({
         status: 'processing',
         progress: 90,
@@ -195,7 +213,39 @@ export default function UploadDocumentPage({
 
       await updateDocumentWithParsedData(docId, extracted_text, detected_language);
 
-      // Step 5: Success
+      // Step 6: Generar y guardar la guía paso a paso con datos reales
+      setUploadState({
+        status: 'processing',
+        progress: 95,
+        message: language === 'es'
+          ? 'Generando guía paso a paso...'
+          : language === 'fr'
+          ? 'Génération du guide étape par étape...'
+          : language === 'de'
+          ? 'Schritt-für-Schritt-Anleitung wird erstellt...'
+          : language === 'pt'
+          ? 'Gerando guia passo a passo...'
+          : language === 'ar'
+          ? 'جارٍ إنشاء الدليل خطوة بخطوة...'
+          : language === 'zh'
+          ? '正在生成分步指南...'
+          : language === 'hi'
+          ? 'स्टेप-बाय-स्टेप गाइड बना रहे हैं...'
+          : 'Generating step-by-step guide...'
+      });
+
+      const guide = await generateStepByStepGuide(extracted_text, language);
+      await supabase.from('simplified_guides').insert([
+        {
+          document_id: docId,
+          steps: guide.steps,
+          summary: guide.summary,
+          reading_level: guide.reading_level,
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+      // Step 7: Success
       setUploadState({
         status: 'success',
         progress: 100,
@@ -211,22 +261,24 @@ export default function UploadDocumentPage({
 
       // Redirect to summary page after a brief delay
       setTimeout(() => {
-        onNavigateToSummary(docId);
+        navigate(`/summary/${docId}`);
       }, 1500);
 
     } catch (error) {
-      const errorMessage = error instanceof Error && error.message.includes('quality too low')
-        ? (language === 'es' ? 'La calidad del texto en el documento es demasiado baja. Por favor, intenta con una imagen más clara o un documento de mejor calidad.'
-          : language === 'fr' ? 'La qualité du texte dans le document est trop faible. Veuillez essayer avec une image plus claire ou un document de meilleure qualité.'
-          : 'Document text quality is too low. Please try with a clearer image or better quality document.')
-        : error instanceof Error && error.message === 'Document unreadable' 
-        ? (language === 'es' ? 'Este documento no se pudo leer. Por favor intenta con un archivo diferente o asegúrate de que el documento contenga texto legible.'
-          : language === 'fr' ? 'Ce document n\'a pas pu être lu. Veuillez essayer avec un fichier différent ou assurez-vous que le document contient du texte lisible.'
-          : 'This document could not be read. Please try a different file or ensure the document contains readable text.')
-        : (language === 'es' ? 'Error al procesar el documento. Por favor intenta de nuevo.'
-          : language === 'fr' ? 'Échec du traitement du document. Veuillez réessayer.'
-          : 'Failed to process document. Please try again.');
-
+      let errorMessage = '';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        errorMessage = language === 'es' ? 'Error desconocido al procesar el documento.' : 'Unknown error processing document.';
+      }
+      // Mostrar notificación clara
+      Swal.fire({
+        icon: 'error',
+        title: language === 'es' ? 'Error al subir documento' : 'Error uploading document',
+        text: errorMessage
+      });
       setUploadState({
         status: 'error',
         progress: 0,
@@ -263,301 +315,75 @@ export default function UploadDocumentPage({
     }
   };
 
-  const resetUpload = () => {
-    setUploadState({
-      status: 'idle',
-      progress: 0,
-      message: ''
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={onNavigateBack}
-            className="inline-flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 mb-4"
+    <div className="min-h-screen flex items-center justify-center bg-just-beige dark:bg-gray-900 px-4 py-8">
+      <div className="w-full max-w-xl mx-auto">
+        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-just-forest dark:text-just-white mb-4 flex items-center">
+            <Upload className="w-6 h-6 mr-2 text-just-moss" /> {t.uploadDocument}
+          </h2>
+          <div
+            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 mb-6 transition-colors duration-200 ${dragActive ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20' : 'border-just-sand dark:border-gray-700 bg-just-beige/50 dark:bg-gray-900/30'}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t.back}
-          </button>
-          
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-just-forest dark:bg-just-moss rounded-2xl mb-4 shadow-lg">
-              <Upload className="w-8 h-8 text-just-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">
-              {t.uploadTitle}
-            </h1>
-            <p className="text-just-hunter dark:text-gray-300 text-lg">
-              {language === 'es' ? 'Sube tu documento legal y nuestra IA lo simplificará usando OCR avanzado'
-                : language === 'fr' ? 'Téléchargez votre document juridique et notre IA le simplifiera avec OCR avancé'
-                : 'Upload your legal document and our AI will simplify it using advanced OCR'
-              }
+            <p className="text-just-hunter dark:text-gray-300 mb-2 text-center">
+              {language === 'es' ? 'Arrastra y suelta aquí o selecciona un archivo.' : 'Drag and drop here or select a file.'}
             </p>
-          </div>
-        </div>
-
-        {/* Welcome Guide */}
-        {showWelcome && uploadState.status === 'idle' && (
-          <div className="bg-gradient-to-r from-just-moss/10 to-just-brown/10 dark:from-just-moss/20 dark:to-just-brown/20 rounded-2xl p-6 mb-6 border border-just-moss/20">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-just-forest dark:text-just-white mb-2 flex items-center">
-                  <Eye className="w-5 h-5 mr-2" />
-                  {language === 'es' ? '¡Bienvenido a JustGuide!' : 'Welcome to JustGuide!'}
-                </h3>
-                <p className="text-just-hunter dark:text-gray-300 text-sm mb-3">
-                  {language === 'es' 
-                    ? 'Estás a punto de experimentar cómo la IA puede transformar documentos legales complejos en guías claras y accionables.'
-                    : 'You\'re about to experience how AI can transform complex legal documents into clear, actionable guides.'
-                  }
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="bg-just-moss/20 text-just-forest dark:text-just-moss px-2 py-1 rounded-lg text-xs font-medium">
-                    {language === 'es' ? 'OCR Inteligente' : 'Smart OCR'}
-                  </span>
-                  <span className="bg-just-brown/20 text-just-forest dark:text-just-brown px-2 py-1 rounded-lg text-xs font-medium">
-                    {language === 'es' ? 'Multiidioma' : 'Multilingual'}
-                  </span>
-                  <span className="bg-just-forest/20 text-just-forest dark:text-just-forest px-2 py-1 rounded-lg text-xs font-medium">
-                    {language === 'es' ? 'Jurisdicción Inteligente' : 'Smart Jurisdiction'}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowWelcome(false)}
-                className="text-just-gray hover:text-just-forest dark:hover:text-just-white transition-colors duration-200 ml-4"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Upload Area */}
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-6">
-          {uploadState.status === 'idle' && (
-            <div
-              className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
-                dragActive 
-                  ? 'border-just-moss bg-just-moss/10 dark:bg-just-moss/20 scale-105' 
-                  : 'border-just-sand dark:border-gray-600 hover:border-just-moss hover:bg-just-moss/5 dark:hover:bg-just-moss/10'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+            <input
+              type="file"
+              accept=".pdf, .docx, .jpg, .jpeg, .png, .gif"
+              onChange={handleFileSelect}
+              ref={fileInputRef}
+              className="hidden"
+            />
+            <button
+              className="mt-2 bg-just-moss text-just-white px-4 py-2 rounded-xl font-medium hover:bg-just-forest transition-colors duration-200 flex items-center"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadState.status === 'uploading'}
             >
-              <div className="w-16 h-16 bg-just-sand dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-just-hunter dark:text-gray-400" />
-              </div>
-              
-              <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {t.dropDocument}
-              </h3>
-              <p className="text-just-gray dark:text-gray-400 mb-6">
-                {language === 'es' ? 'o haz clic para buscar tus archivos'
-                  : language === 'fr' ? 'ou cliquez pour parcourir vos fichiers'
-                  : language === 'de' ? 'oder klicken Sie, um Ihre Dateien zu durchsuchen'
-                  : language === 'pt' ? 'ou clique para navegar pelos seus arquivos'
-                  : language === 'ar' ? 'أو انقر لتصفح ملفاتك'
-                  : language === 'zh' ? '或点击浏览您的文件'
-                  : language === 'hi' ? 'या अपनी फ़ाइलों को ब्राउज़ करने के लिए क्लिक करें'
-                  : 'or click to browse your files'
-                }
-              </p>
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-all duration-300 hover:scale-105"
-              >
-                {t.chooseFile}
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.jpg,.jpeg,.png,.gif"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              <p className="text-sm text-just-gray dark:text-gray-400 mt-4">
-                {language === 'es' ? 'Formatos: PDF, DOCX, JPG, PNG, GIF (máx 10MB) • OCR inteligente incluido'
-                  : 'Formats: PDF, DOCX, JPG, PNG, GIF (max 10MB) • Smart OCR included'
-                }
-              </p>
+              {uploadState.status === 'uploading' ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Upload className="w-5 h-5 mr-2" />} 
+              {uploadState.status === 'uploading' ? t.uploading : t.uploadDocument}
+            </button>
+          </div>
+          {uploadState.status !== 'idle' && (
+            <div className="mb-4">
+              {uploadState.status === 'uploading' && (
+                <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
+                  <div className="bg-just-moss h-3 rounded-full transition-all duration-300" style={{ width: `${uploadState.progress}%` }}></div>
+                </div>
+              )}
+              {uploadState.status === 'error' && (
+                <div className="flex items-center text-red-600 dark:text-red-400 mt-2">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>{uploadState.error}</span>
+                </div>
+              )}
+              {uploadState.status === 'success' && (
+                <div className="flex items-center text-green-600 dark:text-green-400 mt-2">
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  <span>{language === 'es' ? '¡Documento procesado exitosamente!' : 'Document processed successfully!'}</span>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Processing States */}
-          {(uploadState.status === 'uploading' || uploadState.status === 'processing') && (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-just-moss/20 dark:bg-just-moss/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Loader2 className="w-8 h-8 text-just-moss animate-spin" />
-              </div>
-              
-              <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {uploadState.status === 'uploading' ? t.uploading : 
-                 language === 'es' ? 'Procesando con IA' : 'Processing with AI'}
-              </h3>
-              <p className="text-just-gray dark:text-gray-400 mb-6">
-                {uploadState.message}
-              </p>
-              
-              {/* Progress Bar */}
-              <div className="w-full bg-just-sand dark:bg-gray-700 rounded-full h-3 mb-4 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-just-moss to-just-brown h-3 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${uploadState.progress}%` }}
-                ></div>
-              </div>
-              
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-just-gray dark:text-gray-400">
-                  {uploadState.progress}% {language === 'es' ? 'completado' : 'complete'}
-                </span>
-                {uploadState.ocrProgress !== undefined && (
-                  <span className="text-just-moss font-medium">
-                    OCR: {Math.round(uploadState.ocrProgress * 100)}%
-                  </span>
-                )}
-              </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-moss transition-colors duration-200 mt-2"
+          >
+            <ArrowLeft className="w-5 h-5 mr-1" /> {language === 'es' ? 'Volver al inicio' : 'Back to Home'}
+          </button>
+          <div className="flex justify-center mt-6 space-x-4">
+            <div className="flex items-center text-just-hunter dark:text-gray-400">
+              <Info className="w-5 h-5 mr-1" />
+              <span className="text-xs">PDF, DOCX, JPG, PNG, GIF</span>
             </div>
-          )}
-
-          {/* Success State */}
-          {uploadState.status === 'success' && (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              
-              <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {t.success}
-              </h3>
-              <p className="text-just-gray dark:text-gray-400 mb-4">
-                {uploadState.message}
-              </p>
-              <p className="text-sm text-just-moss font-medium">
-                {language === 'es' ? 'Redirigiendo al resumen...'
-                  : 'Redirecting to summary...'
-                }
-              </p>
-            </div>
-          )}
-
-          {/* Error State */}
-          {uploadState.status === 'error' && (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8 text-red-600" />
-              </div>
-              
-              <h3 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-                {language === 'es' ? 'Error en el Procesamiento'
-                  : 'Processing Failed'
-                }
-              </h3>
-              <p className="text-red-600 dark:text-red-400 mb-6">
-                {uploadState.error}
-              </p>
-              
-              <button
-                onClick={resetUpload}
-                className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
-              >
-                {t.tryAgain}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Enhanced Help Section */}
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-          <h4 className="font-semibold text-just-forest dark:text-just-white mb-3 flex items-center">
-            <Info className="w-5 h-5 mr-2" />
-            {language === 'es' ? 'Tecnología Avanzada de IA'
-              : 'Advanced AI Technology'
-            }
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
-              <div className="w-8 h-8 bg-just-moss/20 dark:bg-just-moss/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-just-moss font-bold">1</span>
-              </div>
-              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
-                {language === 'es' ? 'OCR Inteligente' : 'Smart OCR'}
-              </h5>
-              <p className="text-xs text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Extrae texto de imágenes y documentos escaneados con precisión'
-                  : 'Extracts text from images and scanned documents with precision'
-                }
-              </p>
-            </div>
-            
-            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
-              <div className="w-8 h-8 bg-just-brown/20 dark:bg-just-brown/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-just-brown font-bold">2</span>
-              </div>
-              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
-                {language === 'es' ? 'IA Legal' : 'Legal AI'}
-              </h5>
-              <p className="text-xs text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Simplifica términos legales complejos según tu jurisdicción'
-                  : 'Simplifies complex legal terms based on your jurisdiction'
-                }
-              </p>
-            </div>
-            
-            <div className="text-center p-4 bg-just-beige/50 dark:bg-gray-700/50 rounded-xl">
-              <div className="w-8 h-8 bg-just-forest/20 dark:bg-just-forest/30 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-just-forest font-bold">3</span>
-              </div>
-              <h5 className="font-medium text-just-forest dark:text-just-white mb-1">
-                {language === 'es' ? 'Guía Personalizada' : 'Personal Guide'}
-              </h5>
-              <p className="text-xs text-just-gray dark:text-gray-400">
-                {language === 'es' ? 'Genera pasos específicos basados en tu documento'
-                  : 'Generates specific steps based on your document'
-                }
-              </p>
+            <div className="flex items-center text-just-hunter dark:text-gray-400">
+              <Eye className="w-5 h-5 mr-1" />
+              <span className="text-xs">{language === 'es' ? 'Privado y seguro' : 'Private & secure'}</span>
             </div>
           </div>
-        </div>
-
-        {/* Tips Section */}
-        <div className="bg-gradient-to-r from-just-moss/10 to-just-brown/10 dark:from-just-moss/20 dark:to-just-brown/20 rounded-2xl p-6">
-          <h4 className="font-semibold text-just-forest dark:text-just-white mb-3">
-            💡 {language === 'es' ? 'Consejos para mejores resultados'
-              : 'Tips for best results'
-            }
-          </h4>
-          <ul className="space-y-2 text-just-gray dark:text-gray-400 text-sm">
-            <li className="flex items-start">
-              <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Para imágenes: usa buena iluminación y enfoque nítido'
-                : 'For images: use good lighting and sharp focus'
-              }
-            </li>
-            <li className="flex items-start">
-              <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Los documentos en español, inglés, francés y portugués tienen mejor precisión'
-                : 'Documents in Spanish, English, French, and Portuguese have better accuracy'
-              }
-            </li>
-            <li className="flex items-start">
-              <span className="text-just-moss mr-2">•</span>
-              {language === 'es' ? 'Los archivos PDF nativos se procesan más rápido que las imágenes'
-                : 'Native PDF files process faster than images'
-              }
-            </li>
-          </ul>
         </div>
       </div>
     </div>
