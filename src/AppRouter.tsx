@@ -11,6 +11,8 @@ import ForgotPasswordPage from './components/ForgotPasswordPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import SummaryPage from './components/SummaryPage';
 import GuidePage from './components/GuidePage';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAppContext } from './contexts/AppContext';
 
 function GuidePageWrapper() {
   const { docId } = useParams();
@@ -25,6 +27,22 @@ function GuidePageWrapper() {
       language={language}
       onNavigateBack={() => navigate(`/summary/${docId}`)}
       onNavigateToDashboard={() => navigate('/dashboard')}
+    />
+  );
+}
+
+function SummaryPageWrapper() {
+  const { docId } = useParams();
+  const navigate = useNavigate();
+  const { user, language } = useAppContext();
+  if (!docId || !user) return null;
+  return (
+    <SummaryPage
+      docId={docId}
+      userId={user.id}
+      language={language}
+      onNavigateBack={() => navigate('/dashboard')}
+      onNavigateToGuide={() => navigate('/guides')}
     />
   );
 }
@@ -46,25 +64,6 @@ function RoutedPages() {
       <Route path="/summary/:docId" element={<SummaryPageWrapper />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  );
-}
-
-// Wrapper para pasar props de contexto a SummaryPage
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAppContext } from './contexts/AppContext';
-function SummaryPageWrapper() {
-  const { docId } = useParams();
-  const navigate = useNavigate();
-  const { user, language } = useAppContext();
-  if (!docId || !user) return null;
-  return (
-    <SummaryPage
-      docId={docId}
-      userId={user.id}
-      language={language}
-      onNavigateBack={() => navigate('/dashboard')}
-      onNavigateToGuide={() => navigate('/guides')}
-    />
   );
 }
 

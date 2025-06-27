@@ -3,6 +3,8 @@ import { supabase } from '../utils/supabaseClient';
 import { generateStepByStepGuide } from '../utils/guideGenerator';
 import { ArrowLeft, Home, BookOpen, MapPin, Scale, CheckCircle, Clock } from 'lucide-react';
 import { Language, getTranslations } from '../utils/i18n';
+import { smartCapitalize } from '../utils/textCapitalization';
+import VoicePlayer from './VoicePlayer';
 
 interface GuidePageProps {
   onNavigateBack: () => void;
@@ -186,10 +188,10 @@ export default function GuidePage({
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
           <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
           <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-            {language === 'es' ? 'Generando tu Guía Paso a Paso' : 'Generating Your Step-by-Step Guide'}
+            {smartCapitalize(language === 'es' ? 'generando tu guía paso a paso' : 'generating your step-by-step guide', 'sentence', language)}
           </h2>
           <p className="text-just-gray dark:text-gray-400">
-            {language === 'es' ? 'Analizando tu documento y detectando jurisdicción...' : 'Analyzing your document and detecting jurisdiction...'}
+            {smartCapitalize(language === 'es' ? 'analizando tu documento y detectando jurisdicción...' : 'analyzing your document and detecting jurisdiction...', 'sentence', language)}
           </p>
         </div>
       </div>
@@ -208,7 +210,7 @@ export default function GuidePage({
               className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="font-medium">{t.back}</span>
+              <span className="font-medium">{smartCapitalize(t.back, 'sentence', language)}</span>
             </button>
             
             {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
@@ -218,7 +220,7 @@ export default function GuidePage({
             >
               <Home className="w-5 h-5 mr-2" />
               <span className="text-lg">
-                {language === 'es' ? 'Volver al Panel' : 'Back to Dashboard'}
+                {smartCapitalize(language === 'es' ? 'volver al panel' : 'back to dashboard', 'sentence', language)}
               </span>
             </button>
           </div>
@@ -227,7 +229,7 @@ export default function GuidePage({
           <div className="text-center">
             <h1 className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
               <BookOpen className="w-7 h-7 mr-3 text-just-moss" />
-              {language === 'es' ? 'Guía Paso a Paso' : 'Step-by-Step Guide'}
+              {smartCapitalize(language === 'es' ? 'guía paso a paso' : 'step-by-step guide', 'sentence', language)}
               {guide?.jurisdiction && (
                 <span className="ml-3 text-lg font-normal text-just-hunter dark:text-gray-300">
                   - {guide.jurisdiction}
@@ -266,7 +268,7 @@ export default function GuidePage({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-just-forest dark:text-just-white">
-                {language === 'es' ? 'Progreso' : 'Progress'}: {completedCount}/{totalSteps}
+                {smartCapitalize(language === 'es' ? 'progreso' : 'progress', 'sentence', language)}: {completedCount}/{totalSteps}
               </span>
               <span className="text-sm text-just-gray dark:text-gray-400">
                 {Math.round(progressPercentage)}%
@@ -280,9 +282,18 @@ export default function GuidePage({
             </div>
           </div>
 
-          <p className="text-just-gray dark:text-gray-400 mb-6">
-            {guide?.summary || (language === 'es' ? 'Sigue estos pasos clave para cumplir con la legislación aplicable.' : 'Follow these key steps to comply with applicable legislation.')}
-          </p>
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-just-gray dark:text-gray-400">
+              {guide?.summary || (smartCapitalize(language === 'es' ? 'sigue estos pasos clave para cumplir con la legislación aplicable.' : 'follow these key steps to comply with applicable legislation.', 'sentence', language))}
+            </p>
+            {guide?.summary && (
+              <VoicePlayer 
+                text={guide.summary} 
+                language={language}
+                size="md"
+              />
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mb-6">
@@ -293,8 +304,8 @@ export default function GuidePage({
             >
               <BookOpen className="w-5 h-5 mr-2" />
               {isRefreshing
-                ? (language === 'es' ? 'Regenerando...' : 'Regenerating...')
-                : (language === 'es' ? 'Regenerar guía' : 'Regenerate Guide')
+                ? (smartCapitalize(language === 'es' ? 'regenerando...' : 'regenerating...', 'sentence', language))
+                : (smartCapitalize(language === 'es' ? 'regenerar guía' : 'regenerate guide', 'sentence', language))
               }
             </button>
             
@@ -304,7 +315,7 @@ export default function GuidePage({
                 className="bg-green-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-green-700 transition-colors duration-200 flex items-center"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Marcar todos' : 'Mark All Complete'}
+                {smartCapitalize(language === 'es' ? 'marcar todos' : 'mark all complete', 'sentence', language)}
               </button>
             )}
           </div>
@@ -338,15 +349,22 @@ export default function GuidePage({
                     </button>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center mb-3">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="text-lg font-semibold text-just-moss mr-3">
-                          {language === 'es' ? 'Paso' : 'Step'} {idx + 1}
+                          {smartCapitalize(language === 'es' ? 'paso' : 'step', 'sentence', language)} {idx + 1}
                         </span>
-                        {completedSteps[idx] && (
-                          <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full font-medium">
-                            {language === 'es' ? 'Completado' : 'Completed'}
-                          </span>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {completedSteps[idx] && (
+                            <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full font-medium">
+                              {smartCapitalize(language === 'es' ? 'completado' : 'completed', 'sentence', language)}
+                            </span>
+                          )}
+                          <VoicePlayer 
+                            text={step} 
+                            language={language}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                       
                       {/* TEXTO COMPLETO SIN LÍMITES DE CARACTERES */}
@@ -371,15 +389,15 @@ export default function GuidePage({
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center space-x-4 text-sm text-just-gray dark:text-gray-400">
                 <span>
-                  {language === 'es' ? 'Nivel de Lectura: ' : 'Reading Level: '}{guide?.reading_level || 'B1'}
+                  {smartCapitalize(language === 'es' ? 'nivel de lectura: ' : 'reading level: ', 'sentence', language)}{guide?.reading_level || 'B1'}
                 </span>
                 {guide?.jurisdiction && (
                   <span>
-                    {language === 'es' ? 'Específico para' : 'Specific to'} {guide.jurisdiction}
+                    {smartCapitalize(language === 'es' ? 'específico para' : 'specific to', 'sentence', language)} {guide.jurisdiction}
                   </span>
                 )}
                 <span className="text-xs bg-just-moss/20 dark:bg-just-moss/30 text-just-moss px-2 py-1 rounded-full">
-                  {language === 'es' ? 'Idioma: Español' : 'Language: English'}
+                  {language === 'es' ? 'Idioma: español' : 'Language: English'}
                 </span>
               </div>
               
@@ -387,7 +405,7 @@ export default function GuidePage({
                 <div className="flex items-center text-green-600 dark:text-green-400">
                   <CheckCircle className="w-5 h-5 mr-2" />
                   <span className="font-medium">
-                    {language === 'es' ? '¡Todos los pasos completados!' : 'All steps completed!'}
+                    {smartCapitalize(language === 'es' ? '¡todos los pasos completados!' : 'all steps completed!', 'sentence', language)}
                   </span>
                 </div>
               )}
@@ -400,7 +418,7 @@ export default function GuidePage({
           <button
             onClick={onNavigateToDashboard}
             className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
-            title={language === 'es' ? 'Volver al Panel Principal' : 'Back to Main Dashboard'}
+            title={smartCapitalize(language === 'es' ? 'volver al panel principal' : 'back to main dashboard', 'sentence', language)}
           >
             <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
           </button>
