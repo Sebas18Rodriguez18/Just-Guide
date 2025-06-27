@@ -29,10 +29,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     initializeTheme();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        // Handle authentication errors (like invalid refresh token)
+        setUser(null);
+        setIsAuthenticated(false);
+        return;
+      }
+      
       if (data?.user) {
         setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
         setIsAuthenticated(true);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
       }
     });
   }, []);
