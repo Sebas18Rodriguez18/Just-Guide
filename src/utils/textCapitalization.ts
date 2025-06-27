@@ -82,7 +82,7 @@ export function capitalizeTitle(title: string, language: 'es' | 'en' = 'es'): st
 }
 
 /**
- * Capitaliza oraciones correctamente
+ * Capitaliza oraciones correctamente - SOLO primera letra de la oración
  * Capitaliza después de puntos, signos de exclamación e interrogación
  */
 export function capitalizeSentences(text: string): string {
@@ -142,18 +142,20 @@ export function capitalizeProperNouns(text: string, language: 'es' | 'en' = 'es'
 
 /**
  * Función principal para capitalizar texto de manera inteligente
- * Combina todas las reglas de capitalización
+ * SIEMPRE usa capitalización de oraciones (sentence-style) por defecto
  */
 export function smartCapitalize(text: string, type: 'title' | 'sentence' | 'proper' = 'sentence', language: 'es' | 'en' = 'es'): string {
   if (!text || typeof text !== 'string') return '';
   
   switch (type) {
     case 'title':
-      return capitalizeTitle(text, language);
+      // Para títulos, usar capitalización de oraciones pero con nombres propios
+      return capitalizeSentences(capitalizeProperNouns(text, language));
     case 'proper':
       return capitalizeProperNouns(text, language);
     case 'sentence':
     default:
+      // Capitalización de oraciones: solo primera letra y después de puntuación
       return capitalizeSentences(capitalizeProperNouns(text, language));
   }
 }
@@ -165,7 +167,7 @@ export function smartCapitalize(text: string, type: 'title' | 'sentence' | 'prop
 export function capitalizeUI(text: string, language: 'es' | 'en' = 'es'): string {
   if (!text || typeof text !== 'string') return '';
   
-  // Para títulos principales como "JustGuide - Documentos legales simplificados"
+  // Para títulos principales como "JustGuide - documentos legales simplificados"
   if (text.includes('JustGuide')) {
     return text
       .split(' - ')
@@ -173,14 +175,15 @@ export function capitalizeUI(text: string, language: 'es' | 'en' = 'es'): string
         if (index === 0) {
           return part; // Mantener "JustGuide" como está
         } else {
-          return capitalizeTitle(part, language);
+          // Usar capitalización de oraciones para el resto
+          return smartCapitalize(part, 'sentence', language);
         }
       })
       .join(' - ');
   }
   
-  // Para otros textos de UI
-  return capitalizeTitle(text, language);
+  // Para otros textos de UI, usar capitalización de oraciones
+  return smartCapitalize(text, 'sentence', language);
 }
 
 /**
