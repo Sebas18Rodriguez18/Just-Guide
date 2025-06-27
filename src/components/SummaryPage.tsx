@@ -69,7 +69,7 @@ export default function SummaryPage({
         .single();
       
       if (error || !data) {
-        setError(language === 'es' ? 'No se encontró el documento.' : 'Document not found.');
+        setError(smartCapitalize(language === 'es' ? 'no se encontró el documento.' : 'document not found.', 'sentence', language));
         setIsLoading(false);
         return;
       }
@@ -96,8 +96,12 @@ export default function SummaryPage({
       // Buscar o generar la guía automáticamente
       await autoFetchOrGenerateGuide(data.id, data.extracted_text || '');
     } catch (err) {
-      setError(language === 'es' ? 'Error al cargar el documento. Por favor intenta de nuevo.'
-        : 'Failed to load document. Please try again.');
+      setError(smartCapitalize(
+        language === 'es' ? 'error al cargar el documento. Por favor intenta de nuevo.'
+          : 'failed to load document. Please try again.',
+        'sentence',
+        language
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -205,31 +209,32 @@ export default function SummaryPage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header with Navigation */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <button
-            onClick={onNavigateBack}
-            className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="font-medium">{smartCapitalize(t.back, 'sentence', language)}</span>
-          </button>
-          
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            <Home className="w-5 h-5 mr-2" />
-            <span className="text-lg">
-              {smartCapitalize(language === 'es' ? 'volver al panel' : 'back to dashboard', 'sentence', language)}
-            </span>
-          </button>
-        </div>
+      {/* Header Mejorado con Botones Más Visibles */}
+      <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Botones de Navegación Prominentes */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <button
+              onClick={onNavigateBack}
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="font-medium">{smartCapitalize(t.back, 'sentence', language)}</span>
+            </button>
+            
+            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              <span className="text-lg">
+                {smartCapitalize(language === 'es' ? 'volver al panel' : 'back to dashboard', 'sentence', language)}
+              </span>
+            </button>
+          </div>
 
-        {/* Document Info Header */}
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
+          {/* Información del Documento */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-just-forest dark:bg-just-moss rounded-xl flex items-center justify-center mr-4">
@@ -272,7 +277,10 @@ export default function SummaryPage({
             </button>
           </div>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Original Text */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
@@ -302,19 +310,10 @@ export default function SummaryPage({
           {/* Simplified Summary / Step-by-step Guide */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
             <div className="p-6 border-b border-just-sand dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-just-forest dark:text-just-white flex items-center">
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  {smartCapitalize(t.simplifiedSummary, 'sentence', language)}
-                </h2>
-                {docSummary.summary && (
-                  <VoicePlayer 
-                    text={docSummary.summary} 
-                    language={language}
-                    size="md"
-                  />
-                )}
-              </div>
+              <h2 className="text-xl font-semibold text-just-forest dark:text-just-white flex items-center">
+                <Sparkles className="w-5 h-5 mr-2" />
+                {smartCapitalize(t.simplifiedSummary, 'sentence', language)}
+              </h2>
               <p className="text-just-gray dark:text-gray-400 text-sm mt-1">
                 {smartCapitalize(
                   language === 'es' ? 'análisis inteligente con pasos específicos por país'
@@ -341,7 +340,7 @@ export default function SummaryPage({
                   )}
                 </div>
                 <p className="text-just-hunter dark:text-gray-200 text-base leading-relaxed mb-4">
-                  {docSummary.summary || (language === 'es' ? 'No se pudo generar un resumen.' : 'No summary available.')}
+                  {docSummary.summary || (smartCapitalize(language === 'es' ? 'no se pudo generar un resumen.' : 'no summary available.', 'sentence', language))}
                 </p>
                 {docSummary.keyPoints.length > 0 && (
                   <div className="mb-2">
@@ -481,6 +480,17 @@ export default function SummaryPage({
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Botón Flotante Adicional para Volver al Panel */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
+            title={smartCapitalize(language === 'es' ? 'volver al panel principal' : 'back to main dashboard', 'sentence', language)}
+          >
+            <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+          </button>
         </div>
       </div>
     </div>

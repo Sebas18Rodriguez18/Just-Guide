@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { VoiceService } from '../utils/voiceService';
 import { Language } from '../utils/i18n';
 
