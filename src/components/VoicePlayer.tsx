@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Play, Pause } from 'lucide-react';
-import { VoiceService } from '../utils/voiceService';
 import { Language } from '../utils/i18n';
 
 interface VoicePlayerProps {
@@ -14,7 +13,6 @@ export default function VoicePlayer({ text, language, className = '', size = 'md
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const voiceService = VoiceService.getInstance();
 
   const sizeClasses = {
     sm: 'w-6 h-6 p-1',
@@ -30,37 +28,60 @@ export default function VoicePlayer({ text, language, className = '', size = 'md
 
   const handlePlayPause = async () => {
     if (isPlaying) {
-      voiceService.pause();
+      // Stop speech synthesis
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setIsPlaying(false);
     } else {
-      if (voiceService.getIsPlaying()) {
-        voiceService.stop();
-      }
-      
       setIsLoading(true);
       setProgress(0);
       
       try {
-        await voiceService.playText(
-          text,
-          language,
-          (progressValue) => setProgress(progressValue * 100),
-          () => {
+        // Use browser's built-in speech synthesis
+        if ('speechSynthesis' in window) {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+          
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = language === 'es' ? 'es-ES' : 'en-US';
+          utterance.rate = 0.9;
+          utterance.pitch = 1.0;
+          
+          // Find appropriate voice
+          const voices = window.speechSynthesis.getVoices();
+          const voice = voices.find(v => v.lang.startsWith(language)) || voices[0];
+          if (voice) utterance.voice = voice;
+          
+          // Set up events
+          utterance.onstart = () => {
+            setIsPlaying(true);
+            setIsLoading(false);
+            setProgress(10);
+          };
+          
+          utterance.onboundary = () => {
+            setProgress(prev => Math.min(prev + 10, 90));
+          };
+          
+          utterance.onend = () => {
+            setIsPlaying(false);
+            setProgress(100);
+            setTimeout(() => setProgress(0), 500);
+          };
+          
+          utterance.onerror = () => {
             setIsPlaying(false);
             setIsLoading(false);
             setProgress(0);
-          },
-          (error) => {
-            console.error('Voice playback error:', error);
-            setIsPlaying(false);
-            setIsLoading(false);
-            setProgress(0);
-          }
-        );
-        setIsPlaying(true);
+          };
+          
+          window.speechSynthesis.speak(utterance);
+        } else {
+          throw new Error('Speech synthesis not supported');
+        }
       } catch (error) {
         console.error('Voice synthesis error:', error);
-      } finally {
         setIsLoading(false);
       }
     }
