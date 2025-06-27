@@ -22,7 +22,7 @@ interface UploadState {
   aiProgress?: number;
 }
 
-export default function UploadDocumentPage() {
+export default function EnhancedUploadPage() {
   const navigate = useNavigate();
   const { user, language } = useAppContext();
   const userId = user?.id || '';
@@ -336,24 +336,27 @@ export default function UploadDocumentPage() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      setSelectedFile(files[0]);
+  const handleFileSelect = (files: FileList | File[]) => {
+    const file = Array.isArray(files) ? files[0] : files[0];
+    if (file) {
+      setSelectedFile(file);
       
       // Create preview for images
-      if (files[0].type.includes('image')) {
-        const url = URL.createObjectURL(files[0]);
+      if (file.type.includes('image')) {
+        const url = URL.createObjectURL(file);
         setPreviewUrl(url);
       } else {
         setPreviewUrl(null);
       }
       
-      handleFileUpload(files[0]);
+      handleFileUpload(file);
     }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    handleFileSelect(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -366,20 +369,9 @@ export default function UploadDocumentPage() {
     setDragActive(false);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      setSelectedFile(files[0]);
-      
-      // Create preview for images
-      if (files[0].type.includes('image')) {
-        const url = URL.createObjectURL(files[0]);
-        setPreviewUrl(url);
-      } else {
-        setPreviewUrl(null);
-      }
-      
-      handleFileUpload(files[0]);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFileSelect(e.target.files);
     }
   };
 
@@ -533,7 +525,7 @@ export default function UploadDocumentPage() {
               <input
                 type="file"
                 accept=".docx,.pdf,.jpg,.jpeg,.png,.tiff,.tif"
-                onChange={handleFileSelect}
+                onChange={handleInputChange}
                 ref={fileInputRef}
                 className="hidden"
               />

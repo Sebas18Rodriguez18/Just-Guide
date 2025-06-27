@@ -9,6 +9,8 @@ import { supabase } from '../utils/supabaseClient';
 import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
 import Swal from 'sweetalert2';
 import HackathonBadge from './HackathonBadge';
+import AnalyticsDashboard from './AnalyticsDashboard';
+import { AnalyticsService } from '../utils/analyticsService';
 
 // Solo idiomas soportados: español e inglés
 const languageNames: Record<string, string> = {
@@ -35,6 +37,15 @@ export default function DashboardPage() {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const t = getTranslations(language);
+  const analytics = AnalyticsService.getInstance();
+
+  // Set user ID for analytics
+  useEffect(() => {
+    if (user?.id) {
+      analytics.setUserId(user.id);
+      analytics.trackEvent('dashboard_view', { userName: user.name });
+    }
+  }, [user]);
 
   // Enhanced stats with global impact
   const stats = {
@@ -106,10 +117,10 @@ export default function DashboardPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return t.completed;
-      case 'in-progress': return t.inProgress;
-      case 'pending': return t.pending;
-      default: return t.pending;
+      case 'completed': return smartCapitalize(t.completed, 'sentence', language);
+      case 'in-progress': return smartCapitalize(t.inProgress, 'sentence', language);
+      case 'pending': return smartCapitalize(t.pending, 'sentence', language);
+      default: return smartCapitalize(t.pending, 'sentence', language);
     }
   };
 
@@ -118,24 +129,30 @@ export default function DashboardPage() {
     switch (itemId) {
       case 'upload':
         navigate('/upload');
+        analytics.trackUserEngagement('navigation', 'upload_page');
         break;
       case 'documents':
         navigate('/documents');
+        analytics.trackUserEngagement('navigation', 'documents_page');
         break;
       case 'simplified':
         navigate('/guides');
+        analytics.trackUserEngagement('navigation', 'guides_page');
         break;
       case 'settings':
         navigate('/settings');
+        analytics.trackUserEngagement('navigation', 'settings_page');
         break;
       default:
         setActiveTab(itemId);
+        analytics.trackUserEngagement('tab_change', itemId);
     }
     setSidebarOpen(false);
   };
 
   // Logout usando contexto
   const handleLogout = async () => {
+    analytics.trackEvent('user_logout');
     await supabase.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
@@ -154,8 +171,8 @@ export default function DashboardPage() {
         if (!error && data && data.length === 0) {
           Swal.fire({
             icon: 'info',
-            title: language === 'es' ? 'Sin documentos' : 'No documents',
-            text: language === 'es' ? 'Aún no has subido ningún documento.' : 'You have not uploaded any documents yet.',
+            title: smartCapitalize(language === 'es' ? 'sin documentos' : 'no documents', 'sentence', language),
+            text: smartCapitalize(language === 'es' ? 'aún no has subido ningún documento.' : 'you have not uploaded any documents yet.', 'sentence', language),
             timer: 2500,
             showConfirmButton: false
           });
@@ -221,7 +238,7 @@ export default function DashboardPage() {
                     }`}
                   >
                     <Icon className="w-5 h-5 mr-3" />
-                    {item.label}
+                    {smartCapitalize(item.label, 'sentence', language)}
                   </button>
                 </li>
               );
@@ -279,6 +296,7 @@ export default function DashboardPage() {
                         onClick={() => {
                           setLanguage(code as 'es' | 'en');
                           setShowLanguageMenu(false);
+                          analytics.trackEvent('language_change', { from: language, to: code });
                         }}
                         className={`w-full px-4 py-3 text-left hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl ${
                           language === code ? 'bg-just-moss/20 dark:bg-just-moss/30 text-just-forest dark:text-just-moss' : 'text-just-hunter dark:text-gray-300'
@@ -296,7 +314,10 @@ export default function DashboardPage() {
 
               {/* Dark Mode Toggle */}
               <button
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                onClick={() => {
+                  setTheme(theme === 'light' ? 'dark' : 'light');
+                  analytics.trackEvent('theme_change', { from: theme, to: theme === 'light' ? 'dark' : 'light' });
+                }}
                 className="p-2 rounded-xl bg-just-sand dark:bg-gray-700 hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-colors duration-200"
               >
                 {theme === 'dark' ? (
@@ -321,7 +342,7 @@ export default function DashboardPage() {
                 onClick={handleLogout}
                 className="hidden lg:block px-4 py-2 text-just-hunter dark:text-gray-300 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
               >
-                {t.logout}
+                {smartCapitalize(t.logout, 'sentence', language)}
               </button>
             </div>
           </div>
@@ -375,7 +396,7 @@ export default function DashboardPage() {
                 <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.totalDocuments}</p>
+                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{smartCapitalize(t.totalDocuments, 'sentence', language)}</p>
                       <p className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white">{stats.totalDocuments}</p>
                     </div>
                     <div className="w-10 lg:w-12 h-10 lg:h-12 bg-just-forest/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
@@ -387,7 +408,7 @@ export default function DashboardPage() {
                 <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.processedThisMonth}</p>
+                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{smartCapitalize(t.processedThisMonth, 'sentence', language)}</p>
                       <p className="text-2xl lg:text-3xl font-bold text-just-moss dark:text-just-moss">{stats.processedThisMonth}</p>
                     </div>
                     <div className="w-10 lg:w-12 h-10 lg:h-12 bg-just-moss/10 dark:bg-just-moss/20 rounded-xl flex items-center justify-center">
@@ -399,7 +420,7 @@ export default function DashboardPage() {
                 <div className="bg-just-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{t.successRate}</p>
+                      <p className="text-just-gray dark:text-gray-400 text-sm font-medium">{smartCapitalize(t.successRate, 'sentence', language)}</p>
                       <p className="text-2xl lg:text-3xl font-bold text-green-600">{stats.successRate}%</p>
                     </div>
                     <div className="w-10 lg:w-12 h-10 lg:h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
@@ -413,42 +434,48 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <div className="bg-gradient-to-br from-just-forest to-just-hunter rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.uploadNew, 'title', language)}</h3>
+                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.uploadNew, 'sentence', language)}</h3>
                     <Upload className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {smartCapitalize(
                       language === 'es'
-                        ? 'sube archivos PDF o DOCX en español o inglés. Nuestro sistema extrae el texto y lo capitaliza correctamente.'
-                        : 'upload PDF or DOCX files in Spanish or English. Our system extracts text and capitalizes it correctly.',
+                        ? 'sube archivos PDF, DOCX o imágenes en español o inglés. Nuestro sistema extrae el texto y lo capitaliza correctamente.'
+                        : 'upload PDF, DOCX or image files in Spanish or English. Our system extracts text and capitalizes it correctly.',
                       'sentence',
                       language
                     )}
                   </p>
                   <button
-                    onClick={() => navigate('/upload')}
+                    onClick={() => {
+                      navigate('/upload');
+                      analytics.trackUserEngagement('button_click', 'upload_document');
+                    }}
                     className="bg-just-white text-just-forest px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200"
                   >
-                    {t.uploadDocument}
+                    {smartCapitalize(t.uploadDocument, 'sentence', language)}
                   </button>
                 </div>
 
                 <div className="bg-gradient-to-br from-just-moss to-just-brown rounded-2xl p-6 text-just-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.aiPoweredSimplification, 'title', language)}</h3>
-                    <Sparkles className="w-6 lg:w-8 h-6 lg:h-8" />
+                    <h3 className="text-lg lg:text-xl font-semibold">{smartCapitalize(t.aiPoweredSimplification, 'sentence', language)}</h3>
+                    <Zap className="w-6 lg:w-8 h-6 lg:h-8" />
                   </div>
                   <p className="text-just-white/80 mb-4 text-sm lg:text-base">
                     {smartCapitalize(
                       language === 'es'
-                        ? 'tecnología de IA optimizada para documentos legales en español e inglés con capitalización inteligente.'
-                        : 'AI technology optimized for legal documents in Spanish and English with intelligent capitalization.',
+                        ? 'tecnología de IA optimizada para documentos legales en español e inglés con capitalización inteligente y síntesis de voz.'
+                        : 'AI technology optimized for legal documents in Spanish and English with intelligent capitalization and voice synthesis.',
                       'sentence',
                       language
                     )}
                   </p>
-                  <button className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200">
-                    {smartCapitalize(language === 'es' ? 'aprende más' : 'learn more', 'title', language)}
+                  <button 
+                    className="bg-just-white text-just-moss px-4 py-2 rounded-xl font-medium hover:bg-just-beige transition-colors duration-200"
+                    onClick={() => analytics.trackUserEngagement('button_click', 'learn_more_ai')}
+                  >
+                    {smartCapitalize(language === 'es' ? 'aprende más' : 'learn more', 'sentence', language)}
                   </button>
                 </div>
               </div>
@@ -457,7 +484,7 @@ export default function DashboardPage() {
               <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
                 <div className="p-4 lg:p-6 border-b border-just-sand dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg lg:text-xl font-semibold text-just-forest dark:text-just-white">{t.recentDocuments}</h3>
+                    <h3 className="text-lg lg:text-xl font-semibold text-just-forest dark:text-just-white">{smartCapitalize(t.recentDocuments, 'sentence', language)}</h3>
                     <div className="flex items-center space-x-2">
                       <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200">
                         <Search className="w-4 h-4 text-just-hunter dark:text-gray-400" />
@@ -479,7 +506,7 @@ export default function DashboardPage() {
                           </div>
                           <div>
                             <h4 className="font-medium text-just-forest dark:text-just-white">
-                              {smartCapitalize(doc.title, 'title', language)}
+                              {smartCapitalize(doc.title, 'sentence', language)}
                             </h4>
                             <p className="text-sm text-just-gray dark:text-gray-400">
                               {smartCapitalize(String(doc.type ?? ''), 'proper', language)} • {smartCapitalize(String(doc.jurisdiction ?? ''), 'proper', language)}
@@ -496,7 +523,10 @@ export default function DashboardPage() {
                             <p className="text-xs text-just-gray dark:text-gray-400 mt-1">{String(doc.date ?? '')}</p>
                           </div>
 
-                          <button className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 self-end sm:self-auto">
+                          <button 
+                            className="p-2 rounded-lg hover:bg-just-sand dark:hover:bg-gray-700 transition-colors duration-200 self-end sm:self-auto"
+                            onClick={() => analytics.trackUserEngagement('document_action', doc.id)}
+                          >
                             <MoreVertical className="w-4 h-4 text-just-hunter dark:text-gray-400" />
                           </button>
                         </div>
@@ -505,6 +535,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Analytics Dashboard */}
+              <AnalyticsDashboard />
 
               {/* Friendly message when no documents */}
               {documents.length === 0 && (
@@ -521,18 +554,21 @@ export default function DashboardPage() {
                   </h3>
                   <p className="text-just-gray dark:text-gray-400 mb-4">
                     {smartCapitalize(
-                      language === 'es' ? 'sube tu primer documento PDF o DOCX para comenzar' : 'upload your first PDF or DOCX document to get started',
+                      language === 'es' ? 'sube tu primer documento PDF, DOCX o imagen para comenzar' : 'upload your first PDF, DOCX or image document to get started',
                       'sentence',
                       language
                     )}
                   </p>
                   <button
-                    onClick={() => navigate('/upload')}
+                    onClick={() => {
+                      navigate('/upload');
+                      analytics.trackUserEngagement('button_click', 'upload_first_document');
+                    }}
                     className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
                   >
                     {smartCapitalize(
                       language === 'es' ? 'sube tu primer documento' : 'upload your first document',
-                      'title',
+                      'sentence',
                       language
                     )}
                   </button>
@@ -568,7 +604,7 @@ export default function DashboardPage() {
                 >
                   {smartCapitalize(
                     language === 'es' ? 'sube tu primer documento' : 'upload your first document',
-                    'title',
+                    'sentence',
                     language
                   )}
                 </button>
