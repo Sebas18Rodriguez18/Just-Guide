@@ -16,50 +16,90 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isTokenChecked, setIsTokenChecked] = useState(false);
 
-  // Parse hash parameters from URL
+  // Parse hash parameters from URL and check token validity
   useEffect(() => {
-    // Check if we have error parameters in the URL
-    const searchParams = new URLSearchParams(location.search);
-    const errorCode = searchParams.get('error_code');
-    const errorDescription = searchParams.get('error_description');
-    
-    if (errorCode && errorDescription) {
-      setError(decodeURIComponent(errorDescription));
-      
-      Swal.fire({
-        icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: decodeURIComponent(errorDescription),
-        confirmButtonText: smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to login', 'sentence', language)
-      }).then(() => {
-        navigate('/login');
-      });
-      return;
-    }
+    const checkToken = async () => {
+      try {
+        // Check if we have error parameters in the URL
+        const searchParams = new URLSearchParams(location.search);
+        const errorCode = searchParams.get('error_code');
+        const errorDescription = searchParams.get('error_description');
+        
+        if (errorCode || errorDescription) {
+          const errorMsg = errorDescription 
+            ? decodeURIComponent(errorDescription) 
+            : (language === 'es' ? 'Ha ocurrido un error durante el restablecimiento.' : 'An error occurred during reset.');
+          
+          setError(errorMsg);
+          setIsTokenChecked(true);
+          
+          Swal.fire({
+            icon: 'error',
+            title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+            text: errorMsg,
+            confirmButtonText: smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to login', 'sentence', language)
+          }).then(() => {
+            navigate('/login');
+          });
+          return;
+        }
 
-    // Extract access token from URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get('access_token');
-    
-    if (token) {
-      setAccessToken(token);
-    } else {
-      setError(language === 'es' 
-        ? 'Token de acceso no encontrado. Por favor solicita un nuevo enlace de restablecimiento.' 
-        : 'Access token not found. Please request a new reset link.');
-      
-      Swal.fire({
-        icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language),
-        text: language === 'es' 
-          ? 'El enlace de restablecimiento es inválido o ha expirado. Por favor solicita un nuevo enlace.' 
-          : 'The reset link is invalid or has expired. Please request a new reset link.',
-        confirmButtonText: smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)
-      }).then(() => {
-        navigate('/forgot-password');
-      });
-    }
+        // Get hash parameters (access_token, etc.)
+        const hash = location.hash;
+        if (!hash || hash.length < 2) {
+          throw new Error(language === 'es' 
+            ? 'Enlace de restablecimiento inválido o expirado.' 
+            : 'Invalid or expired reset link.');
+        }
+        
+        // Extract the access token from the hash
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const token = hashParams.get('access_token');
+        
+        if (!token) {
+          throw new Error(language === 'es' 
+            ? 'Token de acceso no encontrado en el enlace.' 
+            : 'Access token not found in the link.');
+        }
+        
+        // Verify the token by setting the session
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: '',
+        });
+        
+        if (sessionError) {
+          throw sessionError;
+        }
+        
+        // If we get here, the token is valid
+        setAccessToken(token);
+        setIsTokenChecked(true);
+        
+      } catch (err: any) {
+        console.error('Token validation error:', err);
+        
+        const errorMessage = err.message || (language === 'es' 
+          ? 'El enlace de restablecimiento es inválido o ha expirado.' 
+          : 'The reset link is invalid or has expired.');
+        
+        setError(errorMessage);
+        setIsTokenChecked(true);
+        
+        Swal.fire({
+          icon: 'error',
+          title: smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language),
+          text: errorMessage,
+          confirmButtonText: smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)
+        }).then(() => {
+          navigate('/forgot-password');
+        });
+      }
+    };
+
+    checkToken();
   }, [location, language, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,14 +123,6 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
     
     try {
-      // Set session with the access token
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: '',
-      });
-      
-      if (sessionError) throw sessionError;
-      
       // Update password
       const { error } = await supabase.auth.updateUser({ password });
       
@@ -142,6 +174,30 @@ export default function ResetPasswordPage() {
       }
     }
   };
+
+  // Show loading state while checking token
+  if (!isTokenChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-just-moss rounded-2xl mb-4 shadow-lg">
+              <Lock className="w-8 h-8 text-just-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-just-forest mb-2">
+              {smartCapitalize(language === 'es' ? 'verificando enlace' : 'verifying link', 'title', language)}
+            </h1>
+            <p className="text-just-hunter text-lg">
+              {smartCapitalize(language === 'es' ? 'por favor espera mientras verificamos tu enlace...' : 'please wait while we verify your link...', 'sentence', language)}
+            </p>
+          </div>
+          <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up flex justify-center">
+            <div className="w-12 h-12 border-4 border-just-moss border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (error && !accessToken) {
     return (
