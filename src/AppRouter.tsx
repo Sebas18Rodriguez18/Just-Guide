@@ -12,6 +12,7 @@ import ResetPasswordPage from './components/ResetPasswordPage';
 import SummaryPage from './components/SummaryPage';
 import GuidePage from './components/GuidePage';
 import AuthRedirectPage from './components/AuthRedirectPage';
+import ConfirmEmailPage from './components/ConfirmEmailPage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext';
 
@@ -64,6 +65,7 @@ function RoutedPages() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/summary/:docId" element={<SummaryPageWrapper />} />
       <Route path="/auth/callback" element={<AuthRedirectPage />} />
+      <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
