@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { smartCapitalize } from '../utils/textCapitalization';
-import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function AuthRedirectPage() {
@@ -33,34 +32,6 @@ export default function AuthRedirectPage() {
         // Handle email confirmation
         if (type === 'email_confirmation') {
           // Get hash parameters (access_token, etc.)
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          
-          if (!accessToken) {
-            throw new Error(language === 'es' ? 'Token de acceso no encontrado' : 'Access token not found');
-          }
-          
-          // Set session with the access token
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: '',
-          });
-          
-          if (sessionError) throw sessionError;
-          
-          // Get user data
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          
-          if (userError) throw userError;
-          
-          if (user) {
-            // Set user in context
-            setUser({ 
-              id: user.id, 
-              name: user.user_metadata?.full_name || user.email || '' 
-            });
-            setIsAuthenticated(true);
-          }
           
           setStatus('success');
           setMessage(language === 'es' 
@@ -117,7 +88,6 @@ export default function AuthRedirectPage() {
           <h1 className="text-3xl font-bold text-just-forest mb-2">
             {status === 'loading' && smartCapitalize(language === 'es' ? 'procesando...' : 'processing...', 'title', language)}
             {status === 'success' && smartCapitalize(language === 'es' ? '¡éxito!' : 'success!', 'title', language)}
-            {status === 'error' && smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language)}
           </h1>
           <p className="text-just-hunter text-lg">
             {status === 'loading' 
@@ -144,12 +114,6 @@ export default function AuthRedirectPage() {
                   ? 'serás redirigido automáticamente en unos segundos...' 
                   : 'you will be automatically redirected in a few seconds...', 'sentence', language)}
               </p>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="bg-just-moss text-just-white py-3 px-6 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
-              >
-                {smartCapitalize(language === 'es' ? 'ir al panel' : 'go to dashboard', 'sentence', language)}
-              </button>
             </div>
           )}
           
@@ -161,24 +125,9 @@ export default function AuthRedirectPage() {
               <p className="text-red-600">
                 {message}
               </p>
-              <button
-                onClick={() => navigate('/login')}
-                className="bg-just-moss text-just-white py-3 px-6 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
-              >
-                {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to login', 'sentence', language)}
-              </button>
             </div>
           )}
           
-          <div className="mt-6">
-            <button
-              onClick={() => navigate('/login')}
-              className="inline-flex items-center text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to sign in', 'sentence', language)}
-            </button>
-          </div>
         </div>
       </div>
     </div>
