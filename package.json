@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
-    "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.344.0",
     "mammoth": "^1.6.0",
@@ -27,7 +26,6 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.6.2",
     "sweetalert2": "^11.22.0",
-    "tesseract.js": "^5.0.4",
     "@huggingface/inference": "^2.6.4"
   },
   "devDependencies": {

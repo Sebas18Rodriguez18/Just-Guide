@@ -7,6 +7,7 @@ import { summarizeDocument } from '../utils/summarizer';
 import { useNavigate } from 'react-router-dom';
 import { smartCapitalize } from '../utils/textCapitalization';
 import VoicePlayer from './VoicePlayer';
+import Navbar from './Navbar';
 
 interface SummaryPageProps {
   onNavigateBack: () => void;
@@ -170,20 +171,23 @@ export default function SummaryPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
-          <Loader2 className="w-12 h-12 text-just-moss animate-spin mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-            {smartCapitalize(language === 'es' ? 'cargando documento' : 'loading document', 'sentence', language)}
-          </h2>
-          <p className="text-just-gray dark:text-gray-400">
-            {smartCapitalize(
-              language === 'es' ? 'por favor espera mientras preparamos el resumen de tu documento...'
-                : 'please wait while we prepare your document summary...',
-              'sentence',
-              language
-            )}
-          </p>
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900">
+        <Navbar />
+        <div className="flex items-center justify-center p-8">
+          <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
+            <Loader2 className="w-12 h-12 text-just-moss animate-spin mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
+              {smartCapitalize(language === 'es' ? 'cargando documento' : 'loading document', 'sentence', language)}
+            </h2>
+            <p className="text-just-gray dark:text-gray-400">
+              {smartCapitalize(
+                language === 'es' ? 'por favor espera mientras preparamos el resumen de tu documento...'
+                  : 'please wait while we prepare your document summary...',
+                'sentence',
+                language
+              )}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -191,17 +195,20 @@ export default function SummaryPage({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.error, 'sentence', language)}</h2>
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <button
-            onClick={onNavigateBack}
-            className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
-          >
-            {smartCapitalize(t.back, 'sentence', language)}
-          </button>
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900">
+        <Navbar />
+        <div className="flex items-center justify-center p-8">
+          <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">{smartCapitalize(t.error, 'sentence', language)}</h2>
+            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+            <button
+              onClick={onNavigateBack}
+              className="bg-just-brown dark:bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-forest dark:hover:bg-just-brown transition-colors duration-300"
+            >
+              {smartCapitalize(t.back, 'sentence', language)}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -209,78 +216,75 @@ export default function SummaryPage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Header Mejorado con Botones Más Visibles */}
-      <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Botones de Navegación Prominentes */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+      <Navbar />
+      
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="flex items-start">
             <button
               onClick={onNavigateBack}
-              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md mr-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               <span className="font-medium">{smartCapitalize(t.back, 'sentence', language)}</span>
             </button>
             
-            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
             <button
               onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
             >
-              <Home className="w-5 h-5 mr-2" />
-              <span className="text-lg">
-                {smartCapitalize(language === 'es' ? 'volver al panel' : 'back to dashboard', 'sentence', language)}
+              <Home className="w-4 h-4 mr-2" />
+              <span className="font-medium">
+                {smartCapitalize(language === 'es' ? 'panel' : 'dashboard', 'sentence', language)}
               </span>
             </button>
           </div>
+          
+          <button
+            onClick={() => navigate(`/guides/${docId}`)}
+            className="bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 flex items-center self-start lg:self-auto"
+          >
+            <BookOpen className="w-5 h-5 mr-2" />
+            {smartCapitalize(t.generateGuide, 'sentence', language)}
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </button>
+        </div>
 
-          {/* Información del Documento */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-just-forest dark:bg-just-moss rounded-xl flex items-center justify-center mr-4">
-                <FileText className="w-6 h-6 text-just-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(document?.title || '', 'sentence', language)}</h1>
-                <div className="flex items-center space-x-4 text-just-gray dark:text-gray-400">
-                  <span>{smartCapitalize(document?.document_type || '', 'sentence', language)}</span>
-                  <span>•</span>
-                  <span>{smartCapitalize(language === 'es' ? 'subido' : 'uploaded', 'sentence', language)} {new Date(document?.upload_date || '').toLocaleDateString()}</span>
-                  {document?.detected_language && (
-                    <>
-                      <span>•</span>
-                      <span className="text-just-moss">
-                        {document.detected_language === 'es' ? 'Español' : 'English'}
-                      </span>
-                    </>
-                  )}
-                  {simplifiedGuide?.jurisdiction && (
-                    <>
-                      <span>•</span>
-                      <div className="flex items-center text-just-moss">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>{simplifiedGuide.jurisdiction}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
+        {/* Información del Documento */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-just-forest dark:bg-just-moss rounded-xl flex items-center justify-center mr-4">
+              <FileText className="w-6 h-6 text-just-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-just-forest dark:text-just-white">{smartCapitalize(document?.title || '', 'sentence', language)}</h1>
+              <div className="flex items-center space-x-4 text-just-gray dark:text-gray-400">
+                <span>{smartCapitalize(document?.document_type || '', 'sentence', language)}</span>
+                <span>•</span>
+                <span>{smartCapitalize(language === 'es' ? 'subido' : 'uploaded', 'sentence', language)} {new Date(document?.upload_date || '').toLocaleDateString()}</span>
+                {document?.detected_language && (
+                  <>
+                    <span>•</span>
+                    <span className="text-just-moss">
+                      {document.detected_language === 'es' ? 'Español' : 'English'}
+                    </span>
+                  </>
+                )}
+                {simplifiedGuide?.jurisdiction && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center text-just-moss">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>{simplifiedGuide.jurisdiction}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            
-            <button
-              onClick={() => navigate(`/guides/${docId}`)}
-              className="bg-just-moss text-just-white px-6 py-3 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 flex items-center"
-            >
-              <BookOpen className="w-5 h-5 mr-2" />
-              {smartCapitalize(t.generateGuide, 'sentence', language)}
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Original Text */}
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg">
@@ -480,17 +484,6 @@ export default function SummaryPage({
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Botón Flotante Adicional para Volver al Panel */}
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
-            title={smartCapitalize(language === 'es' ? 'volver al panel principal' : 'back to main dashboard', 'sentence', language)}
-          >
-            <Home className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
-          </button>
         </div>
       </div>
     </div>
