@@ -5,14 +5,17 @@ import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import { supabase } from '../utils/supabaseClient';
+import Swal from 'sweetalert2';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { language, theme, setLanguage, setTheme, user } = useAppContext();
+  const { language, theme, setLanguage, setTheme, user, setUser, setIsAuthenticated } = useAppContext();
   const [activeTab, setActiveTab] = useState('general');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const t = getTranslations(language);
 
@@ -29,14 +32,70 @@ export default function SettingsPage() {
     
     setIsSaving(false);
     
-    // Show success message (in a real app, you'd use a toast notification)
-    alert(smartCapitalize(language === 'es' ? 'configuración guardada exitosamente' : 'settings saved successfully', 'sentence', language));
+    // Show success message
+    Swal.fire({
+      icon: 'success',
+      title: smartCapitalize(language === 'es' ? 'configuración guardada' : 'settings saved', 'sentence', language),
+      text: smartCapitalize(language === 'es' ? 'tus preferencias han sido actualizadas exitosamente.' : 'your preferences have been successfully updated.', 'sentence', language),
+      timer: 2000,
+      showConfirmButton: false
+    });
   };
 
   const handleDeleteAccount = async () => {
-    setShowDeleteConfirm(false);
-    // Aquí podrías agregar lógica real de borrado de cuenta
-    alert(smartCapitalize(language === 'es' ? 'cuenta eliminada' : 'account deleted', 'sentence', language));
+    setIsDeleting(true);
+    
+    try {
+      if (!user?.id) {
+        throw new Error('User ID not found');
+      }
+      
+      // Delete user from Supabase Auth
+      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Close the confirmation modal
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+      
+      // Show success message
+      Swal.fire({
+        icon: 'success',
+        title: smartCapitalize(language === 'es' ? 'cuenta eliminada' : 'account deleted', 'sentence', language),
+        text: smartCapitalize(language === 'es' ? 'tu cuenta ha sido eliminada exitosamente.' : 'your account has been successfully deleted.', 'sentence', language),
+        timer: 3000,
+        showConfirmButton: false
+      });
+      
+      // Sign out the user
+      await supabase.auth.signOut();
+      
+      // Update app context
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      // Redirect to login page
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+      
+    } catch (error) {
+      setIsDeleting(false);
+      console.error('Error deleting account:', error);
+      
+      // Show error message
+      Swal.fire({
+        icon: 'error',
+        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'sentence', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'no se pudo eliminar la cuenta. Por favor intenta de nuevo más tarde.' 
+          : 'could not delete account. Please try again later.', 'sentence', language),
+        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+      });
+    }
   };
 
   const handleResetPreferences = async () => {
@@ -45,7 +104,15 @@ export default function SettingsPage() {
     setTheme('light');
     setShowResetConfirm(false);
     
-    alert(smartCapitalize(language === 'es' ? 'preferencias restablecidas' : 'preferences reset', 'sentence', language));
+    Swal.fire({
+      icon: 'success',
+      title: smartCapitalize(language === 'es' ? 'preferencias restablecidas' : 'preferences reset', 'sentence', language),
+      text: smartCapitalize(language === 'es' 
+        ? 'tus preferencias han sido restablecidas a los valores predeterminados.' 
+        : 'your preferences have been reset to default values.', 'sentence', language),
+      timer: 2000,
+      showConfirmButton: false
+    });
   };
 
   return (
@@ -327,9 +394,17 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-700 transition-colors duration-200"
+                disabled={isDeleting}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {smartCapitalize(language === 'es' ? 'eliminar' : 'delete', 'sentence', language)}
+                {isDeleting ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {smartCapitalize(language === 'es' ? 'eliminando...' : 'deleting...', 'sentence', language)}
+                  </div>
+                ) : (
+                  smartCapitalize(language === 'es' ? 'eliminar' : 'delete', 'sentence', language)
+                )}
               </button>
             </div>
           </div>
