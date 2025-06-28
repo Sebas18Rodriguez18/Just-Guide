@@ -47,14 +47,14 @@ export default function RegisterPage() {
     }
     setIsLoading(true);
     
-    // First, check if user already exists in our users table
+    // Check if user already exists using maybeSingle() to avoid PGRST116 error
     const { data: existingUser, error: checkError } = await supabase
       .from('users')
       .select('email')
       .eq('email', formData.email)
-      .single();
+      .maybeSingle();
     
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows found, which is what we want
+    if (checkError) {
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error de verificación' : 'verification error', 'title', language),
@@ -88,12 +88,16 @@ export default function RegisterPage() {
       return;
     }
     
-    // Now try to sign up with Supabase Auth
+    // Sign up with Supabase Auth - the trigger will handle creating the user profile
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        data: { full_name: formData.fullName },
+        data: { 
+          full_name: formData.fullName,
+          language: language,
+          literacy_level: 'basic'
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
       }
     });
@@ -131,37 +135,6 @@ export default function RegisterPage() {
     }
     
     if (data.user) {
-      // Only try to insert into users table if auth signup was successful and user doesn't exist
-      const now = new Date().toISOString();
-      const insertResult = await supabase.from('users').insert([
-        {
-          id: data.user.id,
-          name: formData.fullName,
-          email: formData.email,
-          hashed_password: 'supabase_auth',
-          language: language,
-          literacy_level: 'basic',
-          uploaded_documents: [],
-          history: {},
-          created_at: now,
-          updated_at: now
-        }
-      ]);
-      
-      if (insertResult.error) {
-        // This should be rare now since we check beforehand, but handle just in case
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error de base de datos' : 'database error', 'title', language),
-          text: smartCapitalize(language === 'es' 
-            ? 'Ocurrió un error al crear tu perfil. Por favor intenta de nuevo.' 
-            : 'An error occurred while creating your profile. Please try again.', 
-            'sentence', language),
-        });
-        setIsLoading(false);
-        return;
-      }
-      
       // Show success message about email confirmation
       Swal.fire({
         icon: 'success',
