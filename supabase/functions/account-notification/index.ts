@@ -13,8 +13,8 @@ const corsHeaders = {
 
 interface EmailRequest {
   to: string;
-  subject: string;
-  message: string;
+  subject?: string;
+  message?: string;
   language?: string;
   type: 'account_deletion' | 'welcome' | 'password_reset';
 }
@@ -203,7 +203,6 @@ async function sendEmailNotification(request: EmailRequest): Promise<{ success: 
     
     console.log('Sending email notification:');
     console.log(`To: ${request.to}`);
-    console.log(`Subject: ${request.subject}`);
     console.log(`Type: ${request.type}`);
     
     // Get the base URL for links
@@ -214,6 +213,9 @@ async function sendEmailNotification(request: EmailRequest): Promise<{ success: 
     
     // Get template based on notification type
     const template = emailTemplates[request.type][lang];
+    
+    // Use template subject if not provided
+    const subject = request.subject || template.subject;
     
     let emailContent = '';
     
@@ -232,7 +234,7 @@ async function sendEmailNotification(request: EmailRequest): Promise<{ success: 
         emailContent = template.message(resetUrl);
         break;
       default:
-        emailContent = request.message;
+        emailContent = request.message || '';
     }
     
     // In a real implementation, you would send the email here
@@ -247,7 +249,7 @@ async function sendEmailNotification(request: EmailRequest): Promise<{ success: 
       body: JSON.stringify({
         personalizations: [{ to: [{ email: request.to }] }],
         from: { email: 'notifications@justguide.com', name: 'JustGuide' },
-        subject: template.subject,
+        subject: subject,
         content: [{ type: 'text/html', value: emailContent }]
       })
     });
@@ -294,15 +296,6 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: 'Invalid email format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-    
-    // Get template subject based on type and language
-    const lang = requestData.language === 'es' ? 'es' : 'en';
-    const template = emailTemplates[requestData.type][lang];
-    
-    // Use template subject if not provided
-    if (!requestData.subject && template) {
-      requestData.subject = template.subject;
     }
     
     const result = await sendEmailNotification(requestData);

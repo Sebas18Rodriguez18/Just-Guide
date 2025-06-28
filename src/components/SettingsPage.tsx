@@ -50,40 +50,47 @@ export default function SettingsPage() {
       const userEmail = user && typeof user === 'object' && 'email' in user ? (user as { email?: string }).email : '';
       
       // Call the RPC function to delete the user completely
-      const { error: deleteError } = await supabase.rpc('delete_user_completely');
+      const { error: deleteError } = await supabase.rpc('delete_user_completely', {});
       
       if (deleteError) {
         console.error('Error deleting account:', deleteError);
         throw deleteError;
       }
       
-      // Close the confirmation dialog
-      setShowDeleteConfirm(false);
-      
       // Send notification email if we have the email
       if (userEmail) {
         try {
-          // This would typically be handled by a server-side function
-          // For demo purposes, we'll just log it
-          console.log(`Sending account deletion confirmation email to: ${userEmail}`);
+          // Call the account-notification edge function to send the email
+          const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/account-notification`;
           
-          // In a real implementation, you would call an edge function to send the email
-          // const { error } = await supabase.functions.invoke('send-email', {
-          //   body: {
-          //     to: userEmail,
-          //     subject: language === 'es' ? 'Tu cuenta ha sido eliminada' : 'Your account has been deleted',
-          //     template: 'account-deletion',
-          //     data: {
-          //       language,
-          //       registerUrl: `${window.location.origin}/register`
-          //     }
-          //   }
-          // });
+          await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: userEmail,
+              type: 'account_deletion',
+              language: language,
+            }),
+          });
+          
+          console.log(`Notification email sent to: ${userEmail}`);
         } catch (emailError) {
           console.error('Error sending notification email:', emailError);
           // Continue with account deletion even if email fails
         }
       }
+      
+      // Sign out the user
+      await supabase.auth.signOut();
+      
+      // Clear local state
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      // Close the confirmation dialog
+      setShowDeleteConfirm(false);
       
       // Show success message
       Swal.fire({
@@ -98,11 +105,6 @@ export default function SettingsPage() {
         // Redirect to login page
         navigate('/login');
       });
-      
-      // Clear local state
-      setUser(null);
-      setIsAuthenticated(false);
-      
     } catch (error: any) {
       console.error('Error deleting account:', error);
       
