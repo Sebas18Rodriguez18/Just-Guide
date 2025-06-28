@@ -49,19 +49,6 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      // First, check if the email exists in auth
-      const { data: { user: existingUser }, error: checkError } = await supabase.auth.getUser();
-      
-      // If there's an error checking the user, handle it
-      if (checkError && checkError.message !== 'Failed to get user') {
-        throw checkError;
-      }
-      
-      // If the user is already logged in, log them out first
-      if (existingUser) {
-        await supabase.auth.signOut();
-      }
-      
       // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -75,28 +62,21 @@ export default function RegisterPage() {
       if (error) {
         // Special handling for "User already registered" error
         if (error.message.includes('already registered')) {
-          // Try to delete the auth user first
-          try {
-            // We can't directly delete users without admin rights, so we'll guide the user
-            Swal.fire({
-              icon: 'info',
-              title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
-              text: smartCapitalize(language === 'es' 
-                ? 'Este correo ya está registrado pero no tiene una cuenta activa. Por favor, solicita un restablecimiento de contraseña para activar tu cuenta.' 
-                : 'This email is already registered but doesn\'t have an active account. Please request a password reset to activate your account.', 
-                'sentence', language),
-              confirmButtonText: smartCapitalize(language === 'es' ? 'ir a recuperar contraseña' : 'go to password recovery', 'sentence', language)
-            }).then((result) => {
-              if (result.isConfirmed) {
-                navigate('/forgot-password');
-              }
-            });
-            setIsLoading(false);
-            return;
-          } catch (deleteError) {
-            console.error('Error handling existing auth user:', deleteError);
-            throw error; // Throw the original error
-          }
+          Swal.fire({
+            icon: 'info',
+            title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+            text: smartCapitalize(language === 'es' 
+              ? 'Este correo ya está registrado pero no tiene una cuenta activa. Por favor, solicita un restablecimiento de contraseña para activar tu cuenta.' 
+              : 'This email is already registered but doesn\'t have an active account. Please request a password reset to activate your account.', 
+              'sentence', language),
+            confirmButtonText: smartCapitalize(language === 'es' ? 'ir a recuperar contraseña' : 'go to password recovery', 'sentence', language)
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate('/forgot-password');
+            }
+          });
+          setIsLoading(false);
+          return;
         } else {
           throw error;
         }
