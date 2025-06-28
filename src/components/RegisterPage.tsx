@@ -47,7 +47,48 @@ export default function RegisterPage() {
     }
     setIsLoading(true);
     
-    // First, try to sign up with Supabase Auth
+    // First, check if user already exists in our users table
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('email')
+      .eq('email', formData.email)
+      .single();
+    
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows found, which is what we want
+      Swal.fire({
+        icon: 'error',
+        title: smartCapitalize(language === 'es' ? 'error de verificación' : 'verification error', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'Ocurrió un error al verificar el correo. Por favor intenta de nuevo.' 
+          : 'An error occurred while verifying the email. Please try again.', 
+          'sentence', language),
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    if (existingUser) {
+      // User already exists in our database
+      Swal.fire({
+        icon: 'warning',
+        title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
+          : 'This email address is already registered. Please try logging in or use a different email address.', 
+          'sentence', language),
+        showCancelButton: true,
+        confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
+        cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/login');
+        }
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    // Now try to sign up with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -90,7 +131,7 @@ export default function RegisterPage() {
     }
     
     if (data.user) {
-      // Only try to insert into users table if auth signup was successful
+      // Only try to insert into users table if auth signup was successful and user doesn't exist
       const now = new Date().toISOString();
       const insertResult = await supabase.from('users').insert([
         {
@@ -108,28 +149,7 @@ export default function RegisterPage() {
       ]);
       
       if (insertResult.error) {
-        // Handle duplicate key error specifically
-        if (insertResult.error.message.includes('duplicate key value violates unique constraint "users_email_key"')) {
-          Swal.fire({
-            icon: 'warning',
-            title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
-            text: smartCapitalize(language === 'es' 
-              ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
-              : 'This email address is already registered. Please try logging in or use a different email address.', 
-              'sentence', language),
-            showCancelButton: true,
-            confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
-            cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
-          }).then((result) => {
-            if (result.isConfirmed) {
-              navigate('/login');
-            }
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Handle other database errors
+        // This should be rare now since we check beforehand, but handle just in case
         Swal.fire({
           icon: 'error',
           title: smartCapitalize(language === 'es' ? 'error de base de datos' : 'database error', 'title', language),
