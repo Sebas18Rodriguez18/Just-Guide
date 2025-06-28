@@ -50,6 +50,7 @@ export default function SettingsPage() {
       const { error: deleteError } = await supabase.rpc('delete_user_completely');
       
       if (deleteError) {
+        console.error('Error deleting account:', deleteError);
         throw deleteError;
       }
       

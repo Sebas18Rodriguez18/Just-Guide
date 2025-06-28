@@ -16,19 +16,39 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setIsLoading(false);
-    if (error) {
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setEmailSent(true);
+      
+      // Show success message
+      Swal.fire({
+        icon: 'success',
+        title: smartCapitalize(language === 'es' ? 'correo enviado' : 'email sent', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? `Hemos enviado un enlace de recuperación a ${email}. Por favor revisa tu bandeja de entrada y también la carpeta de spam.` 
+          : `We've sent a recovery link to ${email}. Please check your inbox and also your spam folder.`, 
+          'sentence', language),
+        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+      });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
         text: error.message || (language === 'es' ? 'No se pudo enviar el correo de restablecimiento.' : 'Could not send reset email.'),
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    setEmailSent(true);
   };
 
   const handleTryAgain = () => {

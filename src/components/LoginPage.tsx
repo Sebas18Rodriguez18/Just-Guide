@@ -132,27 +132,38 @@ export default function LoginPage() {
       }).then(async (result) => {
         if (result.isConfirmed) {
           // Resend confirmation email
-          const { error: resendError } = await supabase.auth.resend({
-            type: 'signup',
-            email,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+          try {
+            const { error: resendError } = await supabase.auth.resend({
+              type: 'signup',
+              email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+              }
+            });
+            
+            if (resendError) {
+              Swal.fire({
+                icon: 'error',
+                title: language === 'es' ? 'Error' : 'Error',
+                text: resendError.message
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: language === 'es' ? 'Correo enviado' : 'Email Sent',
+                text: language === 'es'
+                  ? 'Hemos enviado un nuevo correo de confirmación. Por favor revisa tu bandeja de entrada y también tu carpeta de spam.'
+                  : 'We have sent a new confirmation email. Please check your inbox and also your spam folder.'
+              });
             }
-          });
-          
-          if (resendError) {
+          } catch (err) {
+            console.error('Error resending confirmation email:', err);
             Swal.fire({
               icon: 'error',
               title: language === 'es' ? 'Error' : 'Error',
-              text: resendError.message
-            });
-          } else {
-            Swal.fire({
-              icon: 'success',
-              title: language === 'es' ? 'Correo enviado' : 'Email Sent',
-              text: language === 'es'
-                ? 'Hemos enviado un nuevo correo de confirmación. Por favor revisa tu bandeja de entrada.'
-                : 'We have sent a new confirmation email. Please check your inbox.'
+              text: language === 'es' 
+                ? 'No se pudo reenviar el correo de confirmación.' 
+                : 'Could not resend confirmation email.'
             });
           }
         }
