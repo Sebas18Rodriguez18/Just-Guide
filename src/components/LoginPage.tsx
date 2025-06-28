@@ -86,11 +86,30 @@ export default function LoginPage() {
         return;
       }
       
+      // Handle invalid credentials with more helpful message
+      if (error.message.includes('Invalid login credentials')) {
+        Swal.fire({
+          icon: 'error',
+          title: language === 'es' ? 'Credenciales incorrectas' : 'Invalid Credentials',
+          html: language === 'es' 
+            ? 'Las credenciales ingresadas no son válidas. Por favor verifica:<br><br>• Tu correo electrónico<br>• Tu contraseña<br>• Que hayas confirmado tu correo si te registraste recientemente'
+            : 'The credentials you entered are not valid. Please check:<br><br>• Your email address<br>• Your password<br>• That you have confirmed your email if you recently registered',
+          showCancelButton: true,
+          confirmButtonText: language === 'es' ? 'Ir a registro' : 'Go to Register',
+          cancelButtonText: language === 'es' ? 'Intentar de nuevo' : 'Try Again'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/register');
+          }
+        });
+        return;
+      }
+      
       // Handle other errors
       Swal.fire({
         icon: 'error',
         title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
-        text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
+        text: error.message || (language === 'es' ? 'Ocurrió un error inesperado. Por favor intenta de nuevo.' : 'An unexpected error occurred. Please try again.'),
       });
       return;
     }

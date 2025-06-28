@@ -46,6 +46,8 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
+    
+    // First, try to sign up with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -54,16 +56,41 @@ export default function RegisterPage() {
         emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
       }
     });
+    
     if (error) {
+      // Handle email already registered error
+      if (error.message.includes('User already registered')) {
+        Swal.fire({
+          icon: 'warning',
+          title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+          text: smartCapitalize(language === 'es' 
+            ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
+            : 'This email address is already registered. Please try logging in or use a different email address.', 
+            'sentence', language),
+          showCancelButton: true,
+          confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
+          cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/login');
+          }
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Handle other auth errors
       Swal.fire({
         icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+        title: smartCapitalize(language === 'es' ? 'error de registro' : 'registration error', 'title', language),
         text: error.message,
       });
       setIsLoading(false);
       return;
     }
+    
     if (data.user) {
+      // Only try to insert into users table if auth signup was successful
       const now = new Date().toISOString();
       const insertResult = await supabase.from('users').insert([
         {
@@ -79,11 +106,37 @@ export default function RegisterPage() {
           updated_at: now
         }
       ]);
+      
       if (insertResult.error) {
+        // Handle duplicate key error specifically
+        if (insertResult.error.message.includes('duplicate key value violates unique constraint "users_email_key"')) {
+          Swal.fire({
+            icon: 'warning',
+            title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+            text: smartCapitalize(language === 'es' 
+              ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
+              : 'This email address is already registered. Please try logging in or use a different email address.', 
+              'sentence', language),
+            showCancelButton: true,
+            confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
+            cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate('/login');
+            }
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Handle other database errors
         Swal.fire({
           icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: insertResult.error.message,
+          title: smartCapitalize(language === 'es' ? 'error de base de datos' : 'database error', 'title', language),
+          text: smartCapitalize(language === 'es' 
+            ? 'Ocurrió un error al crear tu perfil. Por favor intenta de nuevo.' 
+            : 'An error occurred while creating your profile. Please try again.', 
+            'sentence', language),
         });
         setIsLoading(false);
         return;
