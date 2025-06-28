@@ -11,8 +11,7 @@ import ForgotPasswordPage from './components/ForgotPasswordPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import SummaryPage from './components/SummaryPage';
 import GuidePage from './components/GuidePage';
-import ConfirmEmailPage from './components/ConfirmEmailPage';
-import PasswordResetSuccessPage from './components/PasswordResetSuccessPage';
+import AuthRedirectPage from './components/AuthRedirectPage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext';
 
@@ -55,7 +54,6 @@ function RoutedPages() {
       <Route path="/" element={<DashboardPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/documents" element={<MyDocumentsPage />} />
       <Route path="/upload" element={<UploadDocumentPage />} />
@@ -64,8 +62,8 @@ function RoutedPages() {
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/password-reset-success" element={<PasswordResetSuccessPage />} />
       <Route path="/summary/:docId" element={<SummaryPageWrapper />} />
+      <Route path="/auth/callback" element={<AuthRedirectPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

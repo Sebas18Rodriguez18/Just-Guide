@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, Sparkles, Globe, Users, Award } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
@@ -8,8 +8,15 @@ import HackathonBadge from './HackathonBadge';
 import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
+// Solo idiomas soportados: español e inglés
+const languageNames: Record<string, string> = {
+  es: 'Español',
+  en: 'English'
+};
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser, setIsAuthenticated, language } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,74 +24,76 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const t = getTranslations(language);
 
-  const handleResendConfirmation = async () => {
-    if (!email) {
+  // Check for URL parameters that might indicate auth status
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const authMessage = searchParams.get('message');
+    
+    if (authMessage) {
       Swal.fire({
-        icon: 'warning',
-        title: language === 'es' ? 'Email requerido' : 'Email required',
-        text: language === 'es' ? 'Por favor ingresa tu email primero.' : 'Please enter your email first.',
-      });
-      return;
-    }
-
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login`
-      }
-    });
-
-    if (error) {
-      Swal.fire({
-        icon: 'error',
-        title: language === 'es' ? 'Error' : 'Error',
-        text: error.message,
-      });
-    } else {
-      Swal.fire({
-        icon: 'success',
-        title: language === 'es' ? 'Email enviado' : 'Email sent',
-        text: language === 'es' ? 'Se ha enviado un nuevo email de confirmación.' : 'A new confirmation email has been sent.',
+        icon: 'info',
+        title: smartCapitalize(language === 'es' ? 'información' : 'information', 'title', language),
+        text: decodeURIComponent(authMessage),
       });
     }
-  };
+  }, [location, language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setIsLoading(false);
-    
     if (error) {
-      if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
+      // Special handling for unconfirmed email
+      if (error.message.includes('Email not confirmed')) {
         Swal.fire({
           icon: 'warning',
-          title: language === 'es' ? 'Email no confirmado' : 'Email not confirmed',
-          html: `
-            <p>${language === 'es' ? 'Tu email aún no ha sido confirmado. Por favor revisa tu bandeja de entrada (y carpeta de spam) y haz clic en el enlace de confirmación.' : 'Your email has not been confirmed yet. Please check your inbox (and spam folder) and click the confirmation link.'}</p>
-            <br>
-            <p>${language === 'es' ? '¿No recibiste el email?' : "Didn't receive the email?"}</p>
-          `,
+          title: language === 'es' ? 'Correo no confirmado' : 'Email Not Confirmed',
+          text: language === 'es' 
+            ? 'Tu correo electrónico aún no ha sido confirmado. Por favor revisa tu bandeja de entrada y haz clic en el enlace de confirmación.'
+            : 'Your email has not been confirmed yet. Please check your inbox and click the confirmation link.',
           showCancelButton: true,
-          confirmButtonText: language === 'es' ? 'Reenviar email' : 'Resend email',
-          cancelButtonText: language === 'es' ? 'Cancelar' : 'Cancel',
-          confirmButtonColor: '#8B4513'
-        }).then((result) => {
+          confirmButtonText: language === 'es' ? 'Reenviar correo' : 'Resend Email',
+          cancelButtonText: language === 'es' ? 'Cancelar' : 'Cancel'
+        }).then(async (result) => {
           if (result.isConfirmed) {
-            handleResendConfirmation();
+            // Resend confirmation email
+            const { error: resendError } = await supabase.auth.resend({
+              type: 'signup',
+              email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+              }
+            });
+            
+            if (resendError) {
+              Swal.fire({
+                icon: 'error',
+                title: language === 'es' ? 'Error' : 'Error',
+                text: resendError.message
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: language === 'es' ? 'Correo enviado' : 'Email Sent',
+                text: language === 'es'
+                  ? 'Hemos enviado un nuevo correo de confirmación. Por favor revisa tu bandeja de entrada.'
+                  : 'We have sent a new confirmation email. Please check your inbox.'
+              });
+            }
           }
         });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
-          text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
-        });
+        return;
       }
+      
+      // Handle other errors
+      Swal.fire({
+        icon: 'error',
+        title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
+        text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
+      });
       return;
     }
-    
     if (data.user) {
       setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
       setIsAuthenticated(true);
