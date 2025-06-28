@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Settings, Globe, Moon, Sun, User, Trash2, RotateCcw, Save, AlertTriangle, BarChart3, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import AnalyticsDashboard from './AnalyticsDashboard';
-import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function SettingsPage() {
@@ -35,8 +34,8 @@ export default function SettingsPage() {
     // Show success message
     Swal.fire({
       icon: 'success',
-      title: smartCapitalize(language === 'es' ? 'configuración guardada' : 'settings saved', 'sentence', language),
-      text: smartCapitalize(language === 'es' ? 'tus preferencias han sido actualizadas exitosamente.' : 'your preferences have been successfully updated.', 'sentence', language),
+      title: smartCapitalize(language === 'es' ? 'configuración guardada' : 'settings saved', 'title', language),
+      text: smartCapitalize(language === 'es' ? 'tu configuración ha sido guardada exitosamente.' : 'your settings have been saved successfully.', 'sentence', language),
       timer: 2000,
       showConfirmButton: false
     });
@@ -46,63 +45,41 @@ export default function SettingsPage() {
     setIsDeleting(true);
     
     try {
-      if (!user?.id) {
-        throw new Error('User ID not found');
-      }
+      // First, sign out the user from Supabase Auth
+      await supabase.auth.signOut();
       
-      // First, delete the user from Supabase Auth directly
-      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+      // Then clear local state
+      setUser(null);
+      setIsAuthenticated(false);
       
-      if (authError) {
-        // If admin delete fails, try to delete the user's own account
-        const { error: selfDeleteError } = await supabase.auth.admin.deleteUser(user.id);
-        
-        if (selfDeleteError) {
-          console.error('Error deleting auth user:', selfDeleteError);
-          throw new Error(selfDeleteError.message);
-        }
-      }
-      
-      // Close the confirmation modal
+      // Close the confirmation dialog
       setShowDeleteConfirm(false);
-      setIsDeleting(false);
       
       // Show success message
       Swal.fire({
         icon: 'success',
-        title: smartCapitalize(language === 'es' ? 'cuenta eliminada' : 'account deleted', 'sentence', language),
-        text: smartCapitalize(language === 'es' ? 'tu cuenta ha sido eliminada exitosamente.' : 'your account has been successfully deleted.', 'sentence', language),
-        timer: 3000,
-        showConfirmButton: false
-      });
-      
-      // Sign out the user
-      await supabase.auth.signOut();
-      
-      // Update app context
-      setUser(null);
-      setIsAuthenticated(false);
-      
-      // Redirect to login page
-      setTimeout(() => {
+        title: smartCapitalize(language === 'es' ? 'cuenta cerrada' : 'account closed', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'has cerrado sesión exitosamente. Para eliminar completamente tu cuenta, por favor contacta a soporte.' 
+          : 'you have been successfully logged out. To completely delete your account, please contact support.', 
+          'sentence', language),
+        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+      }).then(() => {
+        // Redirect to login page
         navigate('/login');
-      }, 3000);
-      
-    } catch (error) {
-      setIsDeleting(false);
+      });
+    } catch (error: any) {
       console.error('Error deleting account:', error);
       
-      // Show error message
       Swal.fire({
         icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'sentence', language),
-        text: error instanceof Error ? error.message : (
-          smartCapitalize(language === 'es' 
-            ? 'no se pudo eliminar la cuenta. Por favor intenta de nuevo más tarde.' 
-            : 'could not delete account. Please try again later.', 'sentence', language)
-        ),
-        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+        text: error.message || (language === 'es' 
+          ? 'Ocurrió un error al intentar eliminar la cuenta. Por favor intenta de nuevo más tarde.' 
+          : 'An error occurred while trying to delete the account. Please try again later.'),
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -114,10 +91,11 @@ export default function SettingsPage() {
     
     Swal.fire({
       icon: 'success',
-      title: smartCapitalize(language === 'es' ? 'preferencias restablecidas' : 'preferences reset', 'sentence', language),
+      title: smartCapitalize(language === 'es' ? 'preferencias restablecidas' : 'preferences reset', 'title', language),
       text: smartCapitalize(language === 'es' 
         ? 'tus preferencias han sido restablecidas a los valores predeterminados.' 
-        : 'your preferences have been reset to default values.', 'sentence', language),
+        : 'your preferences have been reset to default values.', 
+        'sentence', language),
       timer: 2000,
       showConfirmButton: false
     });
@@ -381,14 +359,14 @@ export default function SettingsPage() {
             <div className="flex items-center mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
               <h3 className="text-lg font-semibold text-just-forest dark:text-just-white">
-                {smartCapitalize(language === 'es' ? 'eliminar cuenta' : 'delete account', 'sentence', language)}
+                {smartCapitalize(language === 'es' ? 'cerrar sesión y eliminar cuenta' : 'log out and delete account', 'sentence', language)}
               </h3>
             </div>
             <p className="text-just-gray dark:text-gray-400 mb-6">
               {smartCapitalize(
                 language === 'es' 
-                  ? '¿estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.'
-                  : 'are you sure you want to delete your account? This action cannot be undone.',
+                  ? '¿estás seguro de que quieres cerrar sesión? Para eliminar completamente tu cuenta, deberás contactar a soporte.'
+                  : 'are you sure you want to log out? To completely delete your account, you will need to contact support.',
                 'sentence',
                 language
               )}
@@ -408,10 +386,10 @@ export default function SettingsPage() {
                 {isDeleting ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {smartCapitalize(language === 'es' ? 'eliminando...' : 'deleting...', 'sentence', language)}
+                    {smartCapitalize(language === 'es' ? 'procesando...' : 'processing...', 'sentence', language)}
                   </div>
                 ) : (
-                  smartCapitalize(language === 'es' ? 'eliminar' : 'delete', 'sentence', language)
+                  smartCapitalize(language === 'es' ? 'confirmar' : 'confirm', 'sentence', language)
                 )}
               </button>
             </div>
@@ -458,3 +436,6 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+// Import supabase at the top of the file
+import { supabase } from '../utils/supabaseClient';

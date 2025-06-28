@@ -45,111 +45,140 @@ export default function RegisterPage() {
       });
       return;
     }
+    
     setIsLoading(true);
     
-    // Check if user already exists using maybeSingle() to avoid PGRST116 error
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('email')
-      .eq('email', formData.email)
-      .maybeSingle();
-    
-    if (checkError) {
-      Swal.fire({
-        icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error de verificación' : 'verification error', 'title', language),
-        text: smartCapitalize(language === 'es' 
-          ? 'Ocurrió un error al verificar el correo. Por favor intenta de nuevo.' 
-          : 'An error occurred while verifying the email. Please try again.', 
-          'sentence', language),
-      });
-      setIsLoading(false);
-      return;
-    }
-    
-    if (existingUser) {
-      // User already exists in our database
-      Swal.fire({
-        icon: 'warning',
-        title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
-        text: smartCapitalize(language === 'es' 
-          ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
-          : 'This email address is already registered. Please try logging in or use a different email address.', 
-          'sentence', language),
-        showCancelButton: true,
-        confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
-        cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/login');
-        }
-      });
-      setIsLoading(false);
-      return;
-    }
-    
-    // Sign up with Supabase Auth - the trigger will handle creating the user profile
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: { 
-          full_name: formData.fullName,
-          language: language,
-          literacy_level: 'basic'
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+    try {
+      // First, check if the user already exists in auth but was deleted from our users table
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', formData.email)
+        .maybeSingle();
+      
+      // If there's an error other than "no rows returned", handle it
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
       }
-    });
-    
-    if (error) {
-      // Handle email already registered error
-      if (error.message.includes('User already registered')) {
+      
+      // If the user exists in our table, show error
+      if (existingUser) {
         Swal.fire({
-          icon: 'warning',
+          icon: 'error',
           title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
-          text: smartCapitalize(language === 'es' 
-            ? 'Este correo electrónico ya está registrado. Por favor intenta iniciar sesión o usa un correo diferente.' 
-            : 'This email address is already registered. Please try logging in or use a different email address.', 
-            'sentence', language),
-          showCancelButton: true,
-          confirmButtonText: smartCapitalize(language === 'es' ? 'ir a inicio de sesión' : 'go to login', 'sentence', language),
-          cancelButtonText: smartCapitalize(language === 'es' ? 'usar otro correo' : 'use different email', 'sentence', language)
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/login');
-          }
+          text: smartCapitalize(language === 'es' ? 'este correo electrónico ya está en uso. Por favor utiliza otro o recupera tu contraseña.' : 'this email is already in use. Please use another one or recover your password.', 'sentence', language),
         });
         setIsLoading(false);
         return;
       }
       
-      // Handle other auth errors
-      Swal.fire({
-        icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error de registro' : 'registration error', 'title', language),
-        text: error.message,
-      });
-      setIsLoading(false);
-      return;
-    }
-    
-    if (data.user) {
-      // Show success message about email confirmation
-      Swal.fire({
-        icon: 'success',
-        title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
-        text: smartCapitalize(language === 'es' 
-          ? 'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada y confirma tu correo para continuar.' 
-          : 'We have sent you a confirmation email. Please check your inbox and confirm your email to continue.', 
-          'sentence', language),
-        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+      // Try to sign up the user
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { full_name: formData.fullName },
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+        }
       });
       
-      // Redirect to login page
-      navigate('/login');
+      if (error) {
+        // Special handling for "User already registered" error
+        if (error.message.includes('already registered')) {
+          // Try to delete the auth user first
+          try {
+            // We can't directly delete users without admin rights, so we'll guide the user
+            Swal.fire({
+              icon: 'info',
+              title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+              text: smartCapitalize(language === 'es' 
+                ? 'Este correo ya está registrado pero no tiene una cuenta activa. Por favor, solicita un restablecimiento de contraseña para activar tu cuenta.' 
+                : 'This email is already registered but doesn\'t have an active account. Please request a password reset to activate your account.', 
+                'sentence', language),
+              confirmButtonText: smartCapitalize(language === 'es' ? 'ir a recuperar contraseña' : 'go to password recovery', 'sentence', language)
+            }).then((result) => {
+              if (result.isConfirmed) {
+                navigate('/forgot-password');
+              }
+            });
+            setIsLoading(false);
+            return;
+          } catch (deleteError) {
+            console.error('Error handling existing auth user:', deleteError);
+            throw error; // Throw the original error
+          }
+        } else {
+          throw error;
+        }
+      }
+      
+      if (data.user) {
+        const now = new Date().toISOString();
+        
+        // Create user record in our custom table
+        const { error: insertError } = await supabase.from('users').insert([
+          {
+            id: data.user.id,
+            name: formData.fullName,
+            email: formData.email,
+            hashed_password: 'supabase_auth',
+            language: language,
+            literacy_level: 'basic',
+            uploaded_documents: [],
+            history: {},
+            created_at: now,
+            updated_at: now
+          }
+        ]);
+        
+        if (insertError) {
+          // If we can't create the user record, show error
+          console.error('Error creating user record:', insertError);
+          
+          // Try to clean up the auth user we just created
+          try {
+            // We can't directly delete users without admin rights in this context
+            // Just show an error message
+            Swal.fire({
+              icon: 'error',
+              title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+              text: smartCapitalize(language === 'es' 
+                ? 'Hubo un problema al crear tu cuenta. Por favor, intenta de nuevo más tarde.' 
+                : 'There was a problem creating your account. Please try again later.', 
+                'sentence', language),
+            });
+          } catch (cleanupError) {
+            console.error('Error cleaning up auth user:', cleanupError);
+          }
+          
+          setIsLoading(false);
+          return;
+        }
+        
+        // Show success message about email confirmation
+        Swal.fire({
+          icon: 'success',
+          title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
+          text: smartCapitalize(language === 'es' 
+            ? 'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada y confirma tu correo para continuar.' 
+            : 'We have sent you a confirmation email. Please check your inbox and confirm your email to continue.', 
+            'sentence', language),
+          confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+        });
+        
+        // Redirect to login page
+        navigate('/login');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+        text: error.message || (language === 'es' ? 'Ocurrió un error durante el registro.' : 'An error occurred during registration.'),
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';

@@ -41,90 +41,175 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setIsLoading(false);
-    if (error) {
-      // Special handling for unconfirmed email
-      if (error.message.includes('Email not confirmed')) {
-        Swal.fire({
-          icon: 'warning',
-          title: language === 'es' ? 'Correo no confirmado' : 'Email Not Confirmed',
-          text: language === 'es' 
-            ? 'Tu correo electrónico aún no ha sido confirmado. Por favor revisa tu bandeja de entrada y haz clic en el enlace de confirmación.'
-            : 'Your email has not been confirmed yet. Please check your inbox and click the confirmation link.',
-          showCancelButton: true,
-          confirmButtonText: language === 'es' ? 'Reenviar correo' : 'Resend Email',
-          cancelButtonText: language === 'es' ? 'Cancelar' : 'Cancel'
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            // Resend confirmation email
-            const { error: resendError } = await supabase.auth.resend({
-              type: 'signup',
-              email,
-              options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
-              }
-            });
-            
-            if (resendError) {
-              Swal.fire({
-                icon: 'error',
-                title: language === 'es' ? 'Error' : 'Error',
-                text: resendError.message
-              });
-            } else {
-              Swal.fire({
-                icon: 'success',
-                title: language === 'es' ? 'Correo enviado' : 'Email Sent',
-                text: language === 'es'
-                  ? 'Hemos enviado un nuevo correo de confirmación. Por favor revisa tu bandeja de entrada.'
-                  : 'We have sent a new confirmation email. Please check your inbox.'
-              });
+    
+    try {
+      // First check if the user exists in our custom users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+      
+      // If there's an error other than "no rows returned", handle it
+      if (userError && userError.code !== 'PGRST116') {
+        throw userError;
+      }
+      
+      // If the user doesn't exist in our table but might exist in auth
+      if (!userData) {
+        // Try to sign in anyway to see if they exist in auth
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+          // If login fails, show appropriate error
+          handleLoginError(error);
+          return;
+        }
+        
+        if (data.user) {
+          // User exists in auth but not in our table - create the record
+          const now = new Date().toISOString();
+          const { error: insertError } = await supabase.from('users').insert([
+            {
+              id: data.user.id,
+              name: data.user.user_metadata?.full_name || data.user.email || email,
+              email: data.user.email || email,
+              hashed_password: 'supabase_auth',
+              language: language,
+              literacy_level: 'basic',
+              uploaded_documents: [],
+              history: {},
+              created_at: now,
+              updated_at: now
             }
+          ]);
+          
+          if (insertError) {
+            console.error('Error creating user record:', insertError);
+            // Continue anyway since auth succeeded
           }
-        });
+          
+          setUser({ 
+            id: data.user.id, 
+            name: data.user.user_metadata?.full_name || data.user.email || email 
+          });
+          setIsAuthenticated(true);
+          
+          Swal.fire({
+            icon: 'success',
+            title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
+            text: language === 'es' ? 'Inicio de sesión exitoso.' : 'Login successful.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          
+          navigate('/dashboard');
+          return;
+        }
+      }
+      
+      // Normal login flow when user exists in our table
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        handleLoginError(error);
         return;
       }
       
-      // Handle invalid credentials with more helpful message
-      if (error.message.includes('Invalid login credentials')) {
+      if (data.user) {
+        setUser({ 
+          id: data.user.id, 
+          name: data.user.user_metadata?.full_name || userData?.name || data.user.email || email 
+        });
+        setIsAuthenticated(true);
+        
         Swal.fire({
-          icon: 'error',
-          title: language === 'es' ? 'Credenciales incorrectas' : 'Invalid Credentials',
-          html: language === 'es' 
-            ? 'Las credenciales ingresadas no son válidas. Por favor verifica:<br><br>• Tu correo electrónico<br>• Tu contraseña<br>• Que hayas confirmado tu correo si te registraste recientemente'
-            : 'The credentials you entered are not valid. Please check:<br><br>• Your email address<br>• Your password<br>• That you have confirmed your email if you recently registered',
-          showCancelButton: true,
-          confirmButtonText: language === 'es' ? 'Ir a registro' : 'Go to Register',
-          cancelButtonText: language === 'es' ? 'Intentar de nuevo' : 'Try Again'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/register');
-          }
+          icon: 'success',
+          title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
+          text: language === 'es' ? 'Inicio de sesión exitoso.' : 'Login successful.',
+          timer: 2000,
+          showConfirmButton: false
         });
-        return;
+        
+        navigate('/dashboard');
       }
+    } catch (error: any) {
+      console.error('Login error:', error);
       
-      // Handle other errors
       Swal.fire({
         icon: 'error',
         title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
-        text: error.message || (language === 'es' ? 'Ocurrió un error inesperado. Por favor intenta de nuevo.' : 'An unexpected error occurred. Please try again.'),
+        text: error.message || (language === 'es' ? 'Ocurrió un error durante el inicio de sesión.' : 'An error occurred during login.'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoginError = (error: any) => {
+    // Special handling for unconfirmed email
+    if (error.message.includes('Email not confirmed')) {
+      Swal.fire({
+        icon: 'warning',
+        title: language === 'es' ? 'Correo no confirmado' : 'Email Not Confirmed',
+        text: language === 'es' 
+          ? 'Tu correo electrónico aún no ha sido confirmado. Por favor revisa tu bandeja de entrada y haz clic en el enlace de confirmación.'
+          : 'Your email has not been confirmed yet. Please check your inbox and click the confirmation link.',
+        showCancelButton: true,
+        confirmButtonText: language === 'es' ? 'Reenviar correo' : 'Resend Email',
+        cancelButtonText: language === 'es' ? 'Cancelar' : 'Cancel'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          // Resend confirmation email
+          const { error: resendError } = await supabase.auth.resend({
+            type: 'signup',
+            email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+            }
+          });
+          
+          if (resendError) {
+            Swal.fire({
+              icon: 'error',
+              title: language === 'es' ? 'Error' : 'Error',
+              text: resendError.message
+            });
+          } else {
+            Swal.fire({
+              icon: 'success',
+              title: language === 'es' ? 'Correo enviado' : 'Email Sent',
+              text: language === 'es'
+                ? 'Hemos enviado un nuevo correo de confirmación. Por favor revisa tu bandeja de entrada.'
+                : 'We have sent a new confirmation email. Please check your inbox.'
+            });
+          }
+        }
       });
       return;
     }
-    if (data.user) {
-      setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
-      setIsAuthenticated(true);
+    
+    // Special handling for invalid credentials
+    if (error.message.includes('Invalid login credentials')) {
       Swal.fire({
-        icon: 'success',
-        title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
-        text: language === 'es' ? 'Inicio de sesión exitoso.' : 'Login successful.',
-        timer: 2000,
-        showConfirmButton: false
+        icon: 'error',
+        title: language === 'es' ? 'Credenciales inválidas' : 'Invalid Credentials',
+        text: language === 'es'
+          ? 'El correo electrónico o la contraseña son incorrectos. Por favor verifica tus datos.'
+          : 'The email or password is incorrect. Please verify your information.',
+        footer: language === 'es'
+          ? '<a href="/forgot-password">¿Olvidaste tu contraseña?</a>'
+          : '<a href="/forgot-password">Forgot your password?</a>'
       });
-      navigate('/dashboard');
+      return;
     }
+    
+    // Handle other errors
+    Swal.fire({
+      icon: 'error',
+      title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
+      text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
+    });
   };
 
   const impactStats = [
