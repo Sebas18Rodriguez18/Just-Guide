@@ -16,10 +16,17 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Get the current origin for the redirect URL
+    const origin = window.location.origin;
+    const redirectUrl = `${origin}/password-reset-success`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: redirectUrl,
     });
+    
     setIsLoading(false);
+    
     if (error) {
       Swal.fire({
         icon: 'error',
@@ -28,6 +35,7 @@ export default function ForgotPasswordPage() {
       });
       return;
     }
+    
     setEmailSent(true);
   };
 
