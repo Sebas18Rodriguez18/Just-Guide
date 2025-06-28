@@ -10,11 +10,12 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useAppContext();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   // Parse hash parameters from URL
   useEffect(() => {
@@ -34,6 +35,30 @@ export default function ResetPasswordPage() {
       }).then(() => {
         navigate('/login');
       });
+      return;
+    }
+
+    // Extract access token from URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get('access_token');
+    
+    if (token) {
+      setAccessToken(token);
+    } else {
+      setError(language === 'es' 
+        ? 'Token de acceso no encontrado. Por favor solicita un nuevo enlace de restablecimiento.' 
+        : 'Access token not found. Please request a new reset link.');
+      
+      Swal.fire({
+        icon: 'error',
+        title: smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language),
+        text: language === 'es' 
+          ? 'El enlace de restablecimiento es inválido o ha expirado. Por favor solicita un nuevo enlace.' 
+          : 'The reset link is invalid or has expired. Please request a new reset link.',
+        confirmButtonText: smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)
+      }).then(() => {
+        navigate('/forgot-password');
+      });
     }
   }, [location, language, navigate]);
 
@@ -47,17 +72,17 @@ export default function ResetPasswordPage() {
       });
       return;
     }
+    
+    if (!accessToken) {
+      setError(language === 'es' 
+        ? 'Token de acceso no encontrado. Por favor solicita un nuevo enlace de restablecimiento.' 
+        : 'Access token not found. Please request a new reset link.');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // Get access token from URL hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      
-      if (!accessToken) {
-        throw new Error(language === 'es' ? 'Token de acceso no encontrado' : 'Access token not found');
-      }
-      
       // Set session with the access token
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: accessToken,
@@ -73,17 +98,52 @@ export default function ResetPasswordPage() {
       
       setSuccess(true);
       setIsLoading(false);
+      
+      // Show success message
+      Swal.fire({
+        icon: 'success',
+        title: smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language),
+        text: smartCapitalize(language === 'es' ? 'tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.' : 'your password has been successfully updated. You can now log in with your new password.', 'sentence', language),
+        confirmButtonText: smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to login', 'title', language)
+      }).then(() => {
+        navigate('/login');
+      });
     } catch (err: any) {
       setIsLoading(false);
-      Swal.fire({
-        icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: err.message || (language === 'es' ? 'No se pudo restablecer la contraseña.' : 'Could not reset password.')
-      });
+      
+      // Handle specific error cases
+      if (err.message.includes('token') || err.message.includes('session')) {
+        setError(language === 'es' 
+          ? 'El enlace de restablecimiento ha expirado. Por favor solicita uno nuevo.' 
+          : 'The reset link has expired. Please request a new one.');
+        
+        Swal.fire({
+          icon: 'error',
+          title: smartCapitalize(language === 'es' ? 'enlace expirado' : 'link expired', 'title', language),
+          text: language === 'es' 
+            ? 'El enlace de restablecimiento ha expirado. Por favor solicita uno nuevo.' 
+            : 'The reset link has expired. Please request a new one.',
+          confirmButtonText: smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)
+        }).then(() => {
+          navigate('/forgot-password');
+        });
+      } else {
+        setError(err.message || (language === 'es' 
+          ? 'No se pudo restablecer la contraseña. Por favor intenta de nuevo.' 
+          : 'Could not reset password. Please try again.'));
+        
+        Swal.fire({
+          icon: 'error',
+          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
+          text: err.message || (language === 'es' 
+            ? 'No se pudo restablecer la contraseña. Por favor intenta de nuevo.' 
+            : 'Could not reset password. Please try again.')
+        });
+      }
     }
   };
 
-  if (error) {
+  if (error && !accessToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
@@ -101,11 +161,21 @@ export default function ResetPasswordPage() {
           
           <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up text-center">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/forgot-password')}
               className="bg-just-moss text-just-white py-3 px-6 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
             >
-              {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to login', 'sentence', language)}
+              {smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)}
             </button>
+            
+            <div className="mt-6">
+              <button
+                onClick={() => navigate('/login')}
+                className="inline-flex items-center text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to sign in', 'sentence', language)}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -171,7 +241,7 @@ export default function ResetPasswordPage() {
               </div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !accessToken}
                 className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading 
