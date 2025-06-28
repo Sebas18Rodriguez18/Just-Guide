@@ -43,31 +43,29 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      // First check if the user exists in our custom users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
+      // Try to sign in with the provided credentials
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
-      // If there's an error other than "no rows returned", handle it
-      if (userError && userError.code !== 'PGRST116') {
-        throw userError;
+      if (error) {
+        handleLoginError(error);
+        return;
       }
       
-      // If the user doesn't exist in our table but might exist in auth
-      if (!userData) {
-        // Try to sign in anyway to see if they exist in auth
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (data.user) {
+        // Check if the user exists in our custom users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
         
-        if (error) {
-          // If login fails, show appropriate error
-          handleLoginError(error);
-          return;
+        // If there's an error other than "no rows returned", handle it
+        if (userError && userError.code !== 'PGRST116') {
+          console.error('Error fetching user data:', userError);
         }
         
-        if (data.user) {
-          // User exists in auth but not in our table - create the record
+        // If the user doesn't exist in our table, create it
+        if (!userData && !userError) {
           const now = new Date().toISOString();
           const { error: insertError } = await supabase.from('users').insert([
             {
@@ -88,38 +86,11 @@ export default function LoginPage() {
             console.error('Error creating user record:', insertError);
             // Continue anyway since auth succeeded
           }
-          
-          setUser({ 
-            id: data.user.id, 
-            name: data.user.user_metadata?.full_name || data.user.email || email 
-          });
-          setIsAuthenticated(true);
-          
-          Swal.fire({
-            icon: 'success',
-            title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
-            text: language === 'es' ? 'Inicio de sesión exitoso.' : 'Login successful.',
-            timer: 2000,
-            showConfirmButton: false
-          });
-          
-          navigate('/dashboard');
-          return;
         }
-      }
-      
-      // Normal login flow when user exists in our table
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        handleLoginError(error);
-        return;
-      }
-      
-      if (data.user) {
+        
         setUser({ 
           id: data.user.id, 
-          name: data.user.user_metadata?.full_name || userData?.name || data.user.email || email 
+          name: data.user.user_metadata?.full_name || (userData ? userData.name : data.user.email) 
         });
         setIsAuthenticated(true);
         
@@ -312,11 +283,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">JustGuide</h1>
             <p className="text-just-hunter dark:text-gray-300 text-lg">
-              {smartCapitalize(
-                language === 'es' ? 'tu compañero de confianza para la claridad legal' : 'your trusted companion for legal clarity',
-                'sentence',
-                language
-              )}
+              {smartCapitalize(language === 'es' ? 'tu compañero de confianza para la claridad legal' : 'your trusted companion for legal clarity', 'sentence', language)}
             </p>
           </div>
           {/* Welcome Header */}

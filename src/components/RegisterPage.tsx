@@ -49,27 +49,17 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      // First, check if the user already exists in auth but was deleted from our users table
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', formData.email)
-        .maybeSingle();
+      // First, check if the email exists in auth
+      const { data: { user: existingUser }, error: checkError } = await supabase.auth.getUser();
       
-      // If there's an error other than "no rows returned", handle it
-      if (checkError && checkError.code !== 'PGRST116') {
+      // If there's an error checking the user, handle it
+      if (checkError && checkError.message !== 'Failed to get user') {
         throw checkError;
       }
       
-      // If the user exists in our table, show error
+      // If the user is already logged in, log them out first
       if (existingUser) {
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
-          text: smartCapitalize(language === 'es' ? 'este correo electrónico ya está en uso. Por favor utiliza otro o recupera tu contraseña.' : 'this email is already in use. Please use another one or recover your password.', 'sentence', language),
-        });
-        setIsLoading(false);
-        return;
+        await supabase.auth.signOut();
       }
       
       // Try to sign up the user
@@ -113,48 +103,6 @@ export default function RegisterPage() {
       }
       
       if (data.user) {
-        const now = new Date().toISOString();
-        
-        // Create user record in our custom table
-        const { error: insertError } = await supabase.from('users').insert([
-          {
-            id: data.user.id,
-            name: formData.fullName,
-            email: formData.email,
-            hashed_password: 'supabase_auth',
-            language: language,
-            literacy_level: 'basic',
-            uploaded_documents: [],
-            history: {},
-            created_at: now,
-            updated_at: now
-          }
-        ]);
-        
-        if (insertError) {
-          // If we can't create the user record, show error
-          console.error('Error creating user record:', insertError);
-          
-          // Try to clean up the auth user we just created
-          try {
-            // We can't directly delete users without admin rights in this context
-            // Just show an error message
-            Swal.fire({
-              icon: 'error',
-              title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-              text: smartCapitalize(language === 'es' 
-                ? 'Hubo un problema al crear tu cuenta. Por favor, intenta de nuevo más tarde.' 
-                : 'There was a problem creating your account. Please try again later.', 
-                'sentence', language),
-            });
-          } catch (cleanupError) {
-            console.error('Error cleaning up auth user:', cleanupError);
-          }
-          
-          setIsLoading(false);
-          return;
-        }
-        
         // Show success message about email confirmation
         Swal.fire({
           icon: 'success',

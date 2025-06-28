@@ -6,6 +6,7 @@ import { getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import Swal from 'sweetalert2';
+import { supabase } from '../utils/supabaseClient';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -45,10 +46,17 @@ export default function SettingsPage() {
     setIsDeleting(true);
     
     try {
-      // First, sign out the user from Supabase Auth
+      // First, completely delete the user from auth
+      const { error: deleteError } = await supabase.rpc('delete_user_completely');
+      
+      if (deleteError) {
+        throw deleteError;
+      }
+      
+      // Sign out the user
       await supabase.auth.signOut();
       
-      // Then clear local state
+      // Clear local state
       setUser(null);
       setIsAuthenticated(false);
       
@@ -58,10 +66,10 @@ export default function SettingsPage() {
       // Show success message
       Swal.fire({
         icon: 'success',
-        title: smartCapitalize(language === 'es' ? 'cuenta cerrada' : 'account closed', 'title', language),
+        title: smartCapitalize(language === 'es' ? 'cuenta eliminada' : 'account deleted', 'title', language),
         text: smartCapitalize(language === 'es' 
-          ? 'has cerrado sesión exitosamente. Para eliminar completamente tu cuenta, por favor contacta a soporte.' 
-          : 'you have been successfully logged out. To completely delete your account, please contact support.', 
+          ? 'tu cuenta ha sido eliminada completamente. Ahora puedes registrarte de nuevo con el mismo correo si lo deseas.' 
+          : 'your account has been completely deleted. You can now register again with the same email if you wish.', 
           'sentence', language),
         confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
       }).then(() => {
@@ -359,14 +367,14 @@ export default function SettingsPage() {
             <div className="flex items-center mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
               <h3 className="text-lg font-semibold text-just-forest dark:text-just-white">
-                {smartCapitalize(language === 'es' ? 'cerrar sesión y eliminar cuenta' : 'log out and delete account', 'sentence', language)}
+                {smartCapitalize(language === 'es' ? 'eliminar cuenta permanentemente' : 'permanently delete account', 'sentence', language)}
               </h3>
             </div>
             <p className="text-just-gray dark:text-gray-400 mb-6">
               {smartCapitalize(
                 language === 'es' 
-                  ? '¿estás seguro de que quieres cerrar sesión? Para eliminar completamente tu cuenta, deberás contactar a soporte.'
-                  : 'are you sure you want to log out? To completely delete your account, you will need to contact support.',
+                  ? '¿estás seguro de que quieres eliminar permanentemente tu cuenta? Esta acción eliminará todos tus datos y no se puede deshacer.'
+                  : 'are you sure you want to permanently delete your account? This action will remove all your data and cannot be undone.',
                 'sentence',
                 language
               )}
@@ -389,7 +397,7 @@ export default function SettingsPage() {
                     {smartCapitalize(language === 'es' ? 'procesando...' : 'processing...', 'sentence', language)}
                   </div>
                 ) : (
-                  smartCapitalize(language === 'es' ? 'confirmar' : 'confirm', 'sentence', language)
+                  smartCapitalize(language === 'es' ? 'eliminar permanentemente' : 'permanently delete', 'sentence', language)
                 )}
               </button>
             </div>
@@ -436,6 +444,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-// Import supabase at the top of the file
-import { supabase } from '../utils/supabaseClient';
