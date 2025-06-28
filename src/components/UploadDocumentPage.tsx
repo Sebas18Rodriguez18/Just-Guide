@@ -78,6 +78,44 @@ export default function UploadDocumentPage() {
   };
 
   const createDocumentRecord = async (file: File, fileUrl: string): Promise<string> => {
+    // Verificar que el usuario esté autenticado
+    if (!userId) {
+      throw new Error(smartCapitalize(language === 'es' ? 'debes iniciar sesión para subir documentos.' : 'you must be logged in to upload documents.', 'sentence', language));
+    }
+
+    // Verificar que el usuario exista en la base de datos
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    
+    if (userError || !userData) {
+      // Si el usuario no existe, crearlo
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: userId,
+            name: user?.name || 'Usuario',
+            email: user && typeof user === 'object' && 'email' in user ? (user as { email?: string }).email || '' : '',
+            hashed_password: 'supabase_auth',
+            language: language,
+            literacy_level: 'basic',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]);
+      
+      if (insertError) {
+        throw new Error(smartCapitalize(language === 'es' 
+          ? 'Error al crear el perfil de usuario: ' + insertError.message 
+          : 'Error creating user profile: ' + insertError.message, 
+          'sentence', language));
+      }
+    }
+
+    // Crear el registro del documento
     const documentData = {
       title: file.name.replace(/\.[^/.]+$/, ''),
       document_type: 'DOCX',
@@ -87,6 +125,7 @@ export default function UploadDocumentPage() {
       upload_date: new Date().toISOString(),
       status: 'in-progress',
     };
+    
     const { data, error } = await supabase.from('documents').insert([documentData]).select('id').single();
     if (error) throw new Error(error.message);
     return data.id;
