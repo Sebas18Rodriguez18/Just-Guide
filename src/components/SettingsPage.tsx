@@ -47,7 +47,7 @@ export default function SettingsPage() {
     
     try {
       // First, completely delete the user from auth
-      const { error: deleteError } = await supabase.rpc('delete_user_completely');
+      const { error: deleteError } = await supabase.rpc('delete_user_completely', {});
       
       if (deleteError) {
         throw deleteError;
