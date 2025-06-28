@@ -1,212 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAppContext } from '../contexts/AppContext';
-import { smartCapitalize } from '../utils/textCapitalization';
+import React, { useState } from 'react';
+import { Lock, CheckCircle, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function ResetPasswordPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { language } = useAppContext();
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isTokenValid, setIsTokenValid] = useState(false);
-  const [isCheckingToken, setIsCheckingToken] = useState(true);
-
-  // Verificar el token cuando la página se carga
-  useEffect(() => {
-    const checkToken = async () => {
-      try {
-        setIsCheckingToken(true);
-        
-        // Obtener el hash de la URL (contiene el token)
-        const hash = location.hash;
-        
-        if (!hash || hash.length < 2) {
-          throw new Error(language === 'es' 
-            ? 'Enlace de restablecimiento inválido o expirado.' 
-            : 'Invalid or expired reset link.');
-        }
-        
-        // Extraer el token de acceso del hash
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const token = hashParams.get('access_token');
-        
-        if (!token) {
-          throw new Error(language === 'es' 
-            ? 'Token de acceso no encontrado en el enlace.' 
-            : 'Access token not found in the link.');
-        }
-        
-        // Verificar el token estableciendo la sesión
-        const { data, error: sessionError } = await supabase.auth.setSession({
-          access_token: token,
-          refresh_token: '',
-        });
-        
-        if (sessionError) {
-          throw sessionError;
-        }
-        
-        // Si llegamos aquí, el token es válido
-        setIsTokenValid(true);
-      } catch (err: any) {
-        console.error('Error validando token:', err);
-        setError(err.message || (language === 'es' 
-          ? 'El enlace de restablecimiento es inválido o ha expirado.' 
-          : 'The reset link is invalid or has expired.'));
-        setIsTokenValid(false);
-      } finally {
-        setIsCheckingToken(false);
-      }
-    };
-    
-    checkToken();
-  }, [location, language]);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (password !== confirmPassword) {
       Swal.fire({
         icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: smartCapitalize(language === 'es' ? 'las contraseñas no coinciden.' : 'passwords do not match.', 'sentence', language)
+        title: 'Error',
+        text: 'Passwords do not match.'
       });
       return;
     }
-    
     setIsLoading(true);
-    
-    try {
-      // Actualizar la contraseña
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) throw error;
-      
-      setSuccess(true);
-      setIsLoading(false);
-      
-      // Mostrar mensaje de éxito
+    const { error } = await supabase.auth.updateUser({ password });
+    setIsLoading(false);
+    if (error) {
       Swal.fire({
-        icon: 'success',
-        title: smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language),
-        text: smartCapitalize(language === 'es' ? 'tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.' : 'your password has been successfully updated. You can now log in with your new password.', 'sentence', language),
-        confirmButtonText: smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to login', 'title', language)
-      }).then(() => {
-        navigate('/login');
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'Could not reset password.'
       });
-    } catch (err: any) {
-      setIsLoading(false);
-      
-      // Manejar casos de error específicos
-      if (err.message && (err.message.includes('token') || err.message.includes('session'))) {
-        setError(language === 'es' 
-          ? 'El enlace de restablecimiento ha expirado. Por favor solicita uno nuevo.' 
-          : 'The reset link has expired. Please request a new one.');
-        
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'enlace expirado' : 'link expired', 'title', language),
-          text: language === 'es' 
-            ? 'El enlace de restablecimiento ha expirado. Por favor solicita uno nuevo.' 
-            : 'The reset link has expired. Please request a new one.',
-          confirmButtonText: smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)
-        }).then(() => {
-          navigate('/forgot-password');
-        });
-      } else {
-        setError(err.message || (language === 'es' 
-          ? 'No se pudo restablecer la contraseña. Por favor intenta de nuevo.' 
-          : 'Could not reset password. Please try again.'));
-        
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: err.message || (language === 'es' 
-            ? 'No se pudo restablecer la contraseña. Por favor intenta de nuevo.' 
-            : 'Could not reset password. Please try again.')
-        });
-      }
+      return;
     }
+    setSuccess(true);
   };
-
-  // Mostrar estado de carga mientras se verifica el token
-  if (isCheckingToken) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-just-moss rounded-2xl mb-4 shadow-lg">
-              <Lock className="w-8 h-8 text-just-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-just-forest mb-2">
-              {smartCapitalize(language === 'es' ? 'verificando enlace' : 'verifying link', 'title', language)}
-            </h1>
-            <p className="text-just-hunter text-lg">
-              {smartCapitalize(language === 'es' ? 'por favor espera mientras verificamos tu enlace...' : 'please wait while we verify your link...', 'sentence', language)}
-            </p>
-          </div>
-          <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up flex justify-center">
-            <div className="w-12 h-12 border-4 border-just-moss border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Mostrar error si el token no es válido
-  if (!isTokenValid) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500 rounded-2xl mb-4 shadow-lg">
-              <AlertCircle className="w-8 h-8 text-just-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-just-forest mb-2">
-              {smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language)}
-            </h1>
-            <p className="text-just-hunter text-lg">
-              {error || (language === 'es' 
-                ? 'El enlace de restablecimiento es inválido o ha expirado.' 
-                : 'The reset link is invalid or has expired.')}
-            </p>
-          </div>
-          
-          <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up text-center">
-            <p className="text-just-gray mb-6">
-              {smartCapitalize(language === 'es' 
-                ? 'Por favor solicita un nuevo enlace de restablecimiento para continuar.' 
-                : 'Please request a new reset link to continue.', 'sentence', language)}
-            </p>
-            
-            <button
-              onClick={() => navigate('/forgot-password')}
-              className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
-            >
-              {smartCapitalize(language === 'es' ? 'solicitar nuevo enlace' : 'request new link', 'sentence', language)}
-            </button>
-            
-            <div className="mt-6">
-              <button
-                onClick={() => navigate('/login')}
-                className="inline-flex items-center text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to sign in', 'sentence', language)}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
@@ -216,22 +43,13 @@ export default function ResetPasswordPage() {
             <Lock className="w-8 h-8 text-just-white" />
           </div>
           <h1 className="text-3xl font-bold text-just-forest mb-2">
-            {smartCapitalize(
-              success 
-                ? (language === 'es' ? '¡contraseña restablecida!' : 'password reset!') 
-                : (language === 'es' ? 'establecer nueva contraseña' : 'set new password'),
-              'title',
-              language
-            )}
+            {success ? 'Password Reset!' : 'Set New Password'}
           </h1>
           <p className="text-just-hunter text-lg">
-            {smartCapitalize(
-              success
-                ? (language === 'es' ? 'tu contraseña ha sido actualizada exitosamente.' : 'your password has been updated successfully.')
-                : (language === 'es' ? 'ingresa tu nueva contraseña a continuación.' : 'enter your new password below.'),
-              'sentence',
-              language
-            )}
+            {success
+              ? 'Your password has been updated successfully.'
+              : 'Enter your new password below.'
+            }
           </p>
         </div>
         <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up">
@@ -239,7 +57,7 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-just-forest mb-2">
-                  {smartCapitalize(language === 'es' ? 'nueva contraseña' : 'new password', 'title', language)}
+                  New Password
                 </label>
                 <input
                   id="password"
@@ -247,14 +65,13 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                  placeholder={smartCapitalize(language === 'es' ? 'ingresa nueva contraseña' : 'enter new password', 'sentence', language)}
+                  placeholder="Enter new password"
                   required
-                  minLength={6}
                 />
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-just-forest mb-2">
-                  {smartCapitalize(language === 'es' ? 'confirmar contraseña' : 'confirm password', 'title', language)}
+                  Confirm Password
                 </label>
                 <input
                   id="confirmPassword"
@@ -262,9 +79,8 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="block w-full px-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
-                  placeholder={smartCapitalize(language === 'es' ? 'confirma nueva contraseña' : 'confirm new password', 'sentence', language)}
+                  placeholder="Confirm new password"
                   required
-                  minLength={6}
                 />
               </div>
               <button
@@ -272,10 +88,7 @@ export default function ResetPasswordPage() {
                 disabled={isLoading}
                 className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading 
-                  ? smartCapitalize(language === 'es' ? 'guardando...' : 'saving...', 'sentence', language) 
-                  : smartCapitalize(language === 'es' ? 'restablecer contraseña' : 'reset password', 'title', language)
-                }
+                {isLoading ? 'Saving...' : 'Reset Password'}
               </button>
             </form>
           ) : (
@@ -283,17 +96,13 @@ export default function ResetPasswordPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full animate-fade-in">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-just-forest">
-                {smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language)}
-              </h3>
-              <p className="text-just-gray">
-                {smartCapitalize(language === 'es' ? 'ahora puedes iniciar sesión con tu nueva contraseña.' : 'you can now log in with your new password.', 'sentence', language)}
-              </p>
+              <h3 className="text-xl font-semibold text-just-forest">Password Updated!</h3>
+              <p className="text-just-gray">You can now log in with your new password.</p>
               <button
                 onClick={() => navigate('/login')}
                 className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
               >
-                {smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to login', 'title', language)}
+                Go to Login
               </button>
             </div>
           )}
@@ -303,7 +112,7 @@ export default function ResetPasswordPage() {
               className="inline-flex items-center text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to sign in', 'sentence', language)}
+              Back to Sign In
             </button>
           </div>
         </div>
