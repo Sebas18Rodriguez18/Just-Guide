@@ -36,7 +36,6 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
     navigate('/login');
@@ -149,7 +148,6 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-48 bg-just-white dark:bg-gray-800 rounded-xl shadow-lg border border-just-sand dark:border-gray-700 z-50">
                   <div className="px-4 py-3 border-b border-just-sand dark:border-gray-700">
                     <p className="text-sm font-medium text-just-forest dark:text-just-white">{user?.name || 'Usuario'}</p>
-                    <p className="text-xs text-just-gray dark:text-gray-400 mt-1 truncate">{user?.email}</p>
                   </div>
                   <div className="py-1">
                     <button

@@ -5,7 +5,6 @@ import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import AnalyticsDashboard from './AnalyticsDashboard';
-import DeploymentPanel from './DeploymentPanel';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'general', label: smartCapitalize(language === 'es' ? 'general' : 'general', 'sentence', language), icon: Settings },
     { id: 'analytics', label: smartCapitalize(language === 'es' ? 'análisis' : 'analytics', 'sentence', language), icon: BarChart3 },
-    { id: 'deployment', label: smartCapitalize(language === 'es' ? 'despliegue' : 'deployment', 'sentence', language), icon: Cloud }
   ];
 
   const handleSaveSettings = async () => {
@@ -297,7 +295,6 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'analytics' && <AnalyticsDashboard />}
-            {activeTab === 'deployment' && <DeploymentPanel />}
           </div>
         </div>
       </div>
