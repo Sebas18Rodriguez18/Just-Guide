@@ -24,6 +24,7 @@ interface Document {
   extracted_text: string;
   upload_date: string;
   detected_language?: string;
+  criminal_procedure_location?: string; // Nueva propiedad para ubicación del procedimiento penal
 }
 
 interface SimplifiedGuide {
@@ -82,7 +83,8 @@ export default function SummaryPage({
         language: data.language,
         extracted_text: data.extracted_text || '',
         upload_date: data.upload_date || data.created_at || '',
-        detected_language: data.detected_language
+        detected_language: data.detected_language,
+        criminal_procedure_location: data.criminal_procedure_location // Obtener la ubicación del procedimiento penal
       };
       
       setDocument(realDocument);
@@ -271,7 +273,16 @@ export default function SummaryPage({
                     </span>
                   </>
                 )}
-                {simplifiedGuide?.jurisdiction && (
+                {document?.criminal_procedure_location && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center text-just-moss">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>{document.criminal_procedure_location}</span>
+                    </div>
+                  </>
+                )}
+                {simplifiedGuide?.jurisdiction && !document?.criminal_procedure_location && (
                   <>
                     <span>•</span>
                     <div className="flex items-center text-just-moss">
@@ -360,8 +371,8 @@ export default function SummaryPage({
                 )}
               </div>
 
-              {/* Información de Jurisdicción */}
-              {simplifiedGuide?.jurisdiction && (
+              {/* Información de Jurisdicción y Procedimiento Penal */}
+              {(simplifiedGuide?.jurisdiction || document?.criminal_procedure_location) && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-just-forest/10 to-just-hunter/10 dark:from-just-forest/20 dark:to-just-hunter/20 rounded-xl border border-just-forest/20 dark:border-just-forest/30">
                   <div className="flex items-center mb-2">
                     <Scale className="w-5 h-5 mr-2 text-just-forest dark:text-just-moss" />
@@ -369,15 +380,25 @@ export default function SummaryPage({
                       {smartCapitalize(language === 'es' ? 'marco legal detectado' : 'detected legal framework', 'sentence', language)}
                     </h4>
                   </div>
-                  <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center">
-                      <MapPin className="w-4 h-4 mr-1 text-just-hunter dark:text-gray-300" />
-                      <span className="text-just-hunter dark:text-gray-300">
-                        <strong>{simplifiedGuide.jurisdiction}</strong>
-                      </span>
-                    </div>
-                    {simplifiedGuide.legal_framework && (
-                      <div className="text-just-hunter dark:text-gray-300">
+                  <div className="flex flex-col space-y-2">
+                    {document?.criminal_procedure_location && (
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1 text-just-hunter dark:text-gray-300" />
+                        <span className="text-just-hunter dark:text-gray-300">
+                          <strong>{smartCapitalize(language === 'es' ? 'ubicación del procedimiento penal:' : 'criminal procedure location:', 'sentence', language)}</strong> {document.criminal_procedure_location}
+                        </span>
+                      </div>
+                    )}
+                    {simplifiedGuide?.jurisdiction && (
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1 text-just-hunter dark:text-gray-300" />
+                        <span className="text-just-hunter dark:text-gray-300">
+                          <strong>{smartCapitalize(language === 'es' ? 'jurisdicción:' : 'jurisdiction:', 'sentence', language)}</strong> {simplifiedGuide.jurisdiction}
+                        </span>
+                      </div>
+                    )}
+                    {simplifiedGuide?.legal_framework && (
+                      <div className="text-just-hunter dark:text-gray-300 ml-5">
                         <span className="text-xs opacity-75">{simplifiedGuide.legal_framework}</span>
                       </div>
                     )}

@@ -92,12 +92,19 @@ export default function UploadDocumentPage() {
     return data.id;
   };
 
-  const updateDocumentWithParsedData = async (docId: string, extractedText: string, detectedLanguage: string): Promise<void> => {
-    const { error } = await supabase.from('documents').update({
+  const updateDocumentWithParsedData = async (docId: string, extractedText: string, detectedLanguage: string, criminalProcedureLocation?: string): Promise<void> => {
+    const updateData: any = {
       extracted_text: extractedText,
       detected_language: detectedLanguage,
       status: 'completed',
-    }).eq('id', docId);
+    };
+    
+    // Agregar la ubicación del procedimiento penal si está disponible
+    if (criminalProcedureLocation) {
+      updateData.criminal_procedure_location = criminalProcedureLocation;
+    }
+    
+    const { error } = await supabase.from('documents').update(updateData).eq('id', docId);
     if (error) throw new Error(error.message);
   };
 
@@ -146,6 +153,7 @@ export default function UploadDocumentPage() {
 
       let extractedText = '';
       let detectedLanguage = language;
+      let criminalProcedureLocation: string | undefined;
 
       // Step 3: Process DOCX file
       setUploadState({
@@ -164,6 +172,7 @@ export default function UploadDocumentPage() {
 
       extractedText = parseResult.extracted_text;
       detectedLanguage = parseResult.detected_language;
+      criminalProcedureLocation = parseResult.criminal_procedure_location;
 
       // Step 4: AI Enhancement
       setUploadState({
@@ -185,7 +194,7 @@ export default function UploadDocumentPage() {
         message: smartCapitalize(language === 'es' ? 'guardando texto extraído...' : 'saving extracted text...', 'sentence', language)
       });
 
-      await updateDocumentWithParsedData(docId, extractedText, detectedLanguage);
+      await updateDocumentWithParsedData(docId, extractedText, detectedLanguage, criminalProcedureLocation);
 
       // Step 6: Generate guide with AI enhancement
       setUploadState({
@@ -218,21 +227,31 @@ export default function UploadDocumentPage() {
       });
 
       // Show enhanced success message
+      let htmlContent = `
+        <div class="text-left">
+          <p><strong>${smartCapitalize(language === 'es' ? 'archivo:' : 'file:', 'sentence', language)}</strong> ${file.name}</p>
+          <p><strong>${smartCapitalize(language === 'es' ? 'tipo:' : 'type:', 'sentence', language)}</strong> DOCX</p>
+          <p><strong>${smartCapitalize(language === 'es' ? 'idioma detectado:' : 'detected language:', 'sentence', language)}</strong> ${detectedLanguage === 'es' ? 'Español' : 'English'}</p>
+          <p><strong>${smartCapitalize(language === 'es' ? 'palabras extraídas:' : 'words extracted:', 'sentence', language)}</strong> ${extractedText.split(/\s+/).length}</p>
+          <p><strong>${smartCapitalize(language === 'es' ? 'pasos generados:' : 'steps generated:', 'sentence', language)}</strong> ${guide.steps.length}</p>
+      `;
+      
+      // Agregar información sobre la ubicación del procedimiento penal si está disponible
+      if (criminalProcedureLocation) {
+        htmlContent += `<p><strong>${smartCapitalize(language === 'es' ? 'ubicación del procedimiento penal:' : 'criminal procedure location:', 'sentence', language)}</strong> ${criminalProcedureLocation}</p>`;
+      }
+      
+      htmlContent += `
+          <div class="mt-3 p-2 bg-blue-50 rounded">
+            <small class="text-blue-600">✨ ${smartCapitalize(language === 'es' ? 'procesado con IA avanzada' : 'processed with advanced AI', 'sentence', language)}</small>
+          </div>
+        </div>
+      `;
+
       Swal.fire({
         icon: 'success',
         title: smartCapitalize(language === 'es' ? '¡documento procesado con IA!' : 'document processed with AI!', 'sentence', language),
-        html: `
-          <div class="text-left">
-            <p><strong>${smartCapitalize(language === 'es' ? 'archivo:' : 'file:', 'sentence', language)}</strong> ${file.name}</p>
-            <p><strong>${smartCapitalize(language === 'es' ? 'tipo:' : 'type:', 'sentence', language)}</strong> DOCX</p>
-            <p><strong>${smartCapitalize(language === 'es' ? 'idioma detectado:' : 'detected language:', 'sentence', language)}</strong> ${detectedLanguage === 'es' ? 'Español' : 'English'}</p>
-            <p><strong>${smartCapitalize(language === 'es' ? 'palabras extraídas:' : 'words extracted:', 'sentence', language)}</strong> ${extractedText.split(/\s+/).length}</p>
-            <p><strong>${smartCapitalize(language === 'es' ? 'pasos generados:' : 'steps generated:', 'sentence', language)}</strong> ${guide.steps.length}</p>
-            <div class="mt-3 p-2 bg-blue-50 rounded">
-              <small class="text-blue-600">✨ ${smartCapitalize(language === 'es' ? 'procesado con IA avanzada' : 'processed with advanced AI', 'sentence', language)}</small>
-            </div>
-          </div>
-        `,
+        html: htmlContent,
         timer: 4000,
         showConfirmButton: true,
         confirmButtonText: smartCapitalize(language === 'es' ? 'ver resumen' : 'view summary', 'sentence', language)
