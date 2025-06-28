@@ -52,7 +52,7 @@ export default function RegisterPage() {
       password: formData.password,
       options: {
         data: { full_name: formData.fullName },
-        emailRedirectTo: `${window.location.origin}/login`
+        emailRedirectTo: `${window.location.origin}/confirm-email`
       }
     });
     
