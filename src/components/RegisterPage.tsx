@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setUser, setIsAuthenticated, language } = useAppContext();
+  const { language } = useAppContext();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -46,59 +46,44 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
+    
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        data: { full_name: formData.fullName }
+        data: { full_name: formData.fullName },
+        emailRedirectTo: `${window.location.origin}/login`
       }
     });
+    
+    setIsLoading(false);
+    
     if (error) {
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
         text: error.message,
       });
-      setIsLoading(false);
       return;
     }
+
     if (data.user) {
-      const now = new Date().toISOString();
-      const insertResult = await supabase.from('users').insert([
-        {
-          id: data.user.id,
-          name: formData.fullName,
-          email: formData.email,
-          hashed_password: 'supabase_auth',
-          language: language,
-          literacy_level: 'basic',
-          uploaded_documents: [],
-          history: {},
-          created_at: now,
-          updated_at: now
-        }
-      ]);
-      if (insertResult.error) {
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: insertResult.error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
-      setUser({ id: data.user.id, name: formData.fullName });
-      setIsAuthenticated(true);
+      // Show success message with email confirmation instructions
+      Swal.fire({
+        icon: 'success',
+        title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
+        html: `
+          <p>${smartCapitalize(language === 'es' ? 'tu cuenta ha sido creada correctamente.' : 'your account has been created successfully.', 'sentence', language)}</p>
+          <br>
+          <p><strong>${smartCapitalize(language === 'es' ? 'importante:' : 'important:', 'title', language)}</strong></p>
+          <p>${smartCapitalize(language === 'es' ? 'hemos enviado un correo de confirmación a tu dirección de email. por favor revisa tu bandeja de entrada (y carpeta de spam) y haz clic en el enlace de confirmación antes de iniciar sesión.' : 'we have sent a confirmation email to your email address. please check your inbox (and spam folder) and click the confirmation link before signing in.', 'sentence', language)}</p>
+        `,
+        confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'title', language),
+        confirmButtonColor: '#8B4513'
+      }).then(() => {
+        navigate('/login');
+      });
     }
-    setIsLoading(false);
-    Swal.fire({
-      icon: 'success',
-      title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
-      text: smartCapitalize(language === 'es' ? 'tu cuenta ha sido creada correctamente.' : 'your account has been created successfully.', 'sentence', language),
-      timer: 2000,
-      showConfirmButton: false
-    });
-    navigate('/dashboard');
   };
 
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';

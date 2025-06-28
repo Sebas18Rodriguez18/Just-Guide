@@ -17,19 +17,74 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const t = getTranslations(language);
 
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      Swal.fire({
+        icon: 'warning',
+        title: language === 'es' ? 'Email requerido' : 'Email required',
+        text: language === 'es' ? 'Por favor ingresa tu email primero.' : 'Please enter your email first.',
+      });
+      return;
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`
+      }
+    });
+
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: language === 'es' ? 'Error' : 'Error',
+        text: error.message,
+      });
+    } else {
+      Swal.fire({
+        icon: 'success',
+        title: language === 'es' ? 'Email enviado' : 'Email sent',
+        text: language === 'es' ? 'Se ha enviado un nuevo email de confirmación.' : 'A new confirmation email has been sent.',
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setIsLoading(false);
+    
     if (error) {
-      Swal.fire({
-        icon: 'error',
-        title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
-        text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
-      });
+      if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
+        Swal.fire({
+          icon: 'warning',
+          title: language === 'es' ? 'Email no confirmado' : 'Email not confirmed',
+          html: `
+            <p>${language === 'es' ? 'Tu email aún no ha sido confirmado. Por favor revisa tu bandeja de entrada (y carpeta de spam) y haz clic en el enlace de confirmación.' : 'Your email has not been confirmed yet. Please check your inbox (and spam folder) and click the confirmation link.'}</p>
+            <br>
+            <p>${language === 'es' ? '¿No recibiste el email?' : "Didn't receive the email?"}</p>
+          `,
+          showCancelButton: true,
+          confirmButtonText: language === 'es' ? 'Reenviar email' : 'Resend email',
+          cancelButtonText: language === 'es' ? 'Cancelar' : 'Cancel',
+          confirmButtonColor: '#8B4513'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            handleResendConfirmation();
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: language === 'es' ? 'Error de inicio de sesión' : 'Login Error',
+          text: error.message || (language === 'es' ? 'Credenciales incorrectas o usuario no encontrado.' : 'Incorrect credentials or user not found.'),
+        });
+      }
       return;
     }
+    
     if (data.user) {
       setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
       setIsAuthenticated(true);
