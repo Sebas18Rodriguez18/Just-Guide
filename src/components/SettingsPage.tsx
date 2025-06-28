@@ -50,11 +50,27 @@ export default function SettingsPage() {
         throw new Error('User ID not found');
       }
       
-      // Delete user from Supabase Auth
-      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      // Get the current session to get the access token
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        throw error;
+      if (!session?.access_token) {
+        throw new Error('No valid session found');
+      }
+      
+      // Call the users-api edge function to delete the user
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/users-api/${user.id}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete account');
       }
       
       // Close the confirmation modal
