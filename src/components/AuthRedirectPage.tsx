@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 export default function AuthRedirectPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language } = useAppContext();
+  const { language, setUser, setIsAuthenticated } = useAppContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -41,22 +41,44 @@ export default function AuthRedirectPage() {
           }
           
           // Set session with the access token
-          const { error: sessionError } = await supabase.auth.setSession({
+          const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: '',
           });
           
           if (sessionError) throw sessionError;
           
+          // Get user data
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) throw userError;
+          
+          if (user) {
+            // Set user in context
+            setUser({ 
+              id: user.id, 
+              name: user.user_metadata?.full_name || user.email || '' 
+            });
+            setIsAuthenticated(true);
+          }
+          
           setStatus('success');
           setMessage(language === 'es' 
             ? '¡Tu correo electrónico ha sido confirmado exitosamente!' 
             : 'Your email has been successfully confirmed!');
           
-          // Show success message and redirect to login
+          // Show success message and redirect to dashboard
           setTimeout(() => {
-            navigate('/login');
-          }, 3000);
+            Swal.fire({
+              icon: 'success',
+              title: smartCapitalize(language === 'es' ? '¡email confirmado!' : 'email confirmed!', 'title', language),
+              text: smartCapitalize(language === 'es' ? 'tu email ha sido confirmado exitosamente. ahora puedes acceder a tu cuenta.' : 'your email has been successfully confirmed. you can now access your account.', 'sentence', language),
+              confirmButtonText: smartCapitalize(language === 'es' ? 'ir al panel' : 'go to dashboard', 'title', language),
+              confirmButtonColor: '#854D27'
+            }).then(() => {
+              navigate('/dashboard');
+            });
+          }, 1000);
         } 
         // Handle password recovery
         else if (type === 'recovery') {
@@ -79,7 +101,7 @@ export default function AuthRedirectPage() {
     };
 
     handleAuthRedirect();
-  }, [location, language, navigate]);
+  }, [location, language, navigate, setUser, setIsAuthenticated]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
@@ -123,10 +145,10 @@ export default function AuthRedirectPage() {
                   : 'you will be automatically redirected in a few seconds...', 'sentence', language)}
               </p>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/dashboard')}
                 className="bg-just-moss text-just-white py-3 px-6 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
               >
-                {smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to login', 'sentence', language)}
+                {smartCapitalize(language === 'es' ? 'ir al panel' : 'go to dashboard', 'sentence', language)}
               </button>
             </div>
           )}
