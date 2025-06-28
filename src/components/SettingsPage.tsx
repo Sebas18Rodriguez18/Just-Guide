@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Settings, Globe, Moon, Sun, User, Trash2, RotateCcw, Save, AlertTriangle, BarChart3, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
@@ -50,27 +50,17 @@ export default function SettingsPage() {
         throw new Error('User ID not found');
       }
       
-      // Get the current session to get the access token
-      const { data: { session } } = await supabase.auth.getSession();
+      // First, delete the user from Supabase Auth directly
+      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
       
-      if (!session?.access_token) {
-        throw new Error('No valid session found');
-      }
-      
-      // Call the users-api edge function to delete the user
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/users-api/${user.id}`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete account');
+      if (authError) {
+        // If admin delete fails, try to delete the user's own account
+        const { error: selfDeleteError } = await supabase.auth.admin.deleteUser(user.id);
+        
+        if (selfDeleteError) {
+          console.error('Error deleting auth user:', selfDeleteError);
+          throw new Error(selfDeleteError.message);
+        }
       }
       
       // Close the confirmation modal
@@ -106,9 +96,11 @@ export default function SettingsPage() {
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'sentence', language),
-        text: smartCapitalize(language === 'es' 
-          ? 'no se pudo eliminar la cuenta. Por favor intenta de nuevo más tarde.' 
-          : 'could not delete account. Please try again later.', 'sentence', language),
+        text: error instanceof Error ? error.message : (
+          smartCapitalize(language === 'es' 
+            ? 'no se pudo eliminar la cuenta. Por favor intenta de nuevo más tarde.' 
+            : 'could not delete account. Please try again later.', 'sentence', language)
+        ),
         confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
       });
     }

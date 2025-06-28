@@ -52,6 +52,11 @@ Deno.serve(async (req: Request) => {
           email: createData.email,
           password: createData.password,
           email_confirm: true,
+          user_metadata: {
+            full_name: createData.name,
+            language: createData.language || 'en',
+            literacy_level: createData.literacy_level || 'basic'
+          }
         });
 
         if (authError) {
@@ -61,28 +66,9 @@ Deno.serve(async (req: Request) => {
           );
         }
 
-        const { data: user, error: userError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.user.id,
-            name: createData.name,
-            email: createData.email,
-            hashed_password: 'handled_by_auth',
-            language: createData.language || 'en',
-            literacy_level: createData.literacy_level || 'basic',
-          })
-          .select()
-          .single();
-
-        if (userError) {
-          return new Response(
-            JSON.stringify({ error: userError.message }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
+        // The trigger will handle creating the user profile
         return new Response(
-          JSON.stringify({ user, auth_user: authUser.user }),
+          JSON.stringify({ user: authUser.user }),
           { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
@@ -150,8 +136,8 @@ Deno.serve(async (req: Request) => {
         );
 
       case 'DELETE':
-        // Delete user
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+        // Delete user from auth.users (which will cascade to public.users via trigger)
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(userId, true);
 
         if (deleteError) {
           return new Response(
@@ -173,7 +159,7 @@ Deno.serve(async (req: Request) => {
     }
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
