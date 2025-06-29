@@ -14,6 +14,7 @@ import GuidePage from './components/GuidePage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext';
 import LegalHistoryPage from './components/LegalHistoryPage';
+import Layout from './components/Layout';
 
 function GuidePageWrapper() {
   const { docId } = useParams();
@@ -67,16 +68,18 @@ function RoutedPages() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/documents" element={<ProtectedRoute><MyDocumentsPage /></ProtectedRoute>} />
-      <Route path="/upload" element={<ProtectedRoute><UploadDocumentPage /></ProtectedRoute>} />
-      <Route path="/guides" element={<ProtectedRoute><SimplifiedGuidesPage /></ProtectedRoute>} />
-      <Route path="/guides/:docId" element={<ProtectedRoute><GuidePageWrapper /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="/summary/:docId" element={<ProtectedRoute><SummaryPageWrapper /></ProtectedRoute>} />
-      <Route path="/history" element={<ProtectedRoute><LegalHistoryPage /></ProtectedRoute>} />
+      {/* Protected routes with Layout */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><MyDocumentsPage /></ProtectedRoute>} />
+        <Route path="/upload" element={<ProtectedRoute><UploadDocumentPage /></ProtectedRoute>} />
+        <Route path="/guides" element={<ProtectedRoute><SimplifiedGuidesPage /></ProtectedRoute>} />
+        <Route path="/guides/:docId" element={<ProtectedRoute><GuidePageWrapper /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/summary/:docId" element={<ProtectedRoute><SummaryPageWrapper /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><LegalHistoryPage /></ProtectedRoute>} />
+      </Route>
       
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" replace />} />

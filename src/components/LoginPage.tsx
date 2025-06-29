@@ -109,7 +109,7 @@ export default function LoginPage() {
                   <div className="w-12 h-12 bg-just-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Icon className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold text-just-white">{stat.value}</div>
                   <div className="text-sm text-just-white/80">{stat.label}</div>
                 </div>
               );
