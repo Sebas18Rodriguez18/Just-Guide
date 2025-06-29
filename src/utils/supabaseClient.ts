@@ -7,11 +7,23 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Determine the site URL based on environment
+const getSiteUrl = () => {
+  // Use the deployed URL in production, localhost in development
+  return window.location.hostname === 'localhost' 
+    ? 'http://localhost:5173' 
+    : 'https://justguide.netlify.app';
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Set the site URL for redirects
+    flowType: 'pkce',
+    // Use the correct site URL for redirects
+    site: getSiteUrl()
   }
 });
 
