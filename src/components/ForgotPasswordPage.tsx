@@ -17,36 +17,23 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    try {
-      // Get the site URL for redirects
-      const siteUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5173' 
-        : 'https://justguide.netlify.app';
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/reset-password`,
-      });
-      
-      if (error) {
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: error.message || (language === 'es' ? 'No se pudo enviar el correo de restablecimiento.' : 'Could not send reset email.'),
-        });
-        return;
-      }
-      
-      setEmailSent(true);
-    } catch (error: any) {
-      console.error('Error sending reset email:', error);
+    // Get the site URL from environment or use current origin
+    const siteUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/reset-password`,
+    });
+    
+    setIsLoading(false);
+    if (error) {
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: error.message || (language === 'es' ? 'Ocurrió un error al enviar el correo.' : 'An error occurred while sending the email.'),
+        text: error.message || (language === 'es' ? 'No se pudo enviar el correo de restablecimiento.' : 'Could not send reset email.'),
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    setEmailSent(true);
   };
 
   const handleTryAgain = () => {
@@ -100,13 +87,10 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
                 <p className="mt-2 text-sm text-just-gray">
-                  {smartCapitalize(
-                    language === 'es' 
-                      ? 'ingresa el correo electrónico asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.' 
-                      : 'enter the email address associated with your account and we\'ll send you a link to reset your password.',
-                    'sentence',
-                    language
-                  )}
+                  {smartCapitalize(language === 'es' 
+                    ? 'ingresa el correo electrónico asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.' 
+                    : 'enter the email address associated with your account and we\'ll send you a link to reset your password.', 
+                    'sentence', language)}
                 </p>
               </div>
 
@@ -137,22 +121,16 @@ export default function ForgotPasswordPage() {
                   {smartCapitalize(language === 'es' ? '¡correo enviado exitosamente!' : 'email sent successfully!', 'title', language)}
                 </h3>
                 <p className="text-just-gray">
-                  {smartCapitalize(
-                    language === 'es' 
-                      ? `hemos enviado un enlace de restablecimiento de contraseña a ${email}` 
-                      : `we've sent a password reset link to ${email}`,
-                    'sentence',
-                    language
-                  )}
+                  {smartCapitalize(language === 'es' 
+                    ? `hemos enviado un enlace para restablecer tu contraseña a ${email}` 
+                    : `we've sent a password reset link to ${email}`, 
+                    'sentence', language)}
                 </p>
                 <p className="text-sm text-just-gray">
-                  {smartCapitalize(
-                    language === 'es' 
-                      ? 'por favor revisa tu correo y sigue las instrucciones para restablecer tu contraseña. el enlace expirará en 24 horas.' 
-                      : 'please check your email and follow the instructions to reset your password. the link will expire in 24 hours.',
-                    'sentence',
-                    language
-                  )}
+                  {smartCapitalize(language === 'es' 
+                    ? 'por favor revisa tu correo y sigue las instrucciones para restablecer tu contraseña. el enlace expirará en 24 horas.' 
+                    : 'please check your email and follow the instructions to reset your password. the link will expire in 24 hours.', 
+                    'sentence', language)}
                 </p>
               </div>
 
@@ -165,13 +143,10 @@ export default function ForgotPasswordPage() {
                 </button>
                 
                 <p className="text-sm text-just-gray">
-                  {smartCapitalize(
-                    language === 'es' 
-                      ? '¿no recibiste el correo? revisa tu carpeta de spam o intenta de nuevo.' 
-                      : 'didn\'t receive the email? check your spam folder or try again.',
-                    'sentence',
-                    language
-                  )}
+                  {smartCapitalize(language === 'es' 
+                    ? '¿no recibiste el correo? revisa tu carpeta de spam o intenta de nuevo.' 
+                    : 'didn\'t receive the email? check your spam folder or try again.', 
+                    'sentence', language)}
                 </p>
               </div>
             </div>

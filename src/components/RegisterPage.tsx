@@ -49,10 +49,8 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      // Get the site URL for redirects
-      const siteUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5173' 
-        : 'https://justguide.netlify.app';
+      // Get the site URL from environment or use current origin
+      const siteUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       
       // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({

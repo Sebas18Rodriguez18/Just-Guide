@@ -7,23 +7,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Determine the site URL based on environment
-const getSiteUrl = () => {
-  // Use the deployed URL in production, localhost in development
-  return window.location.hostname === 'localhost' 
-    ? 'http://localhost:5173' 
-    : 'https://justguide.netlify.app';
-};
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    // Set the site URL for redirects
-    flowType: 'pkce',
-    // Use the correct site URL for redirects
-    site: getSiteUrl()
+    detectSessionInUrl: true
   }
 });
 
@@ -37,7 +25,9 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (window.location.pathname !== '/login' && 
         window.location.pathname !== '/register' && 
         window.location.pathname !== '/forgot-password' && 
-        window.location.pathname !== '/reset-password') {
+        window.location.pathname !== '/reset-password' &&
+        window.location.pathname !== '/auth/callback' &&
+        !window.location.pathname.startsWith('/auth/')) {
       window.location.href = '/login';
     }
   }
@@ -70,7 +60,9 @@ window.fetch = async (...args) => {
         if (window.location.pathname !== '/login' && 
             window.location.pathname !== '/register' && 
             window.location.pathname !== '/forgot-password' && 
-            window.location.pathname !== '/reset-password') {
+            window.location.pathname !== '/reset-password' &&
+            window.location.pathname !== '/auth/callback' &&
+            !window.location.pathname.startsWith('/auth/')) {
           window.location.href = '/login';
         }
       }

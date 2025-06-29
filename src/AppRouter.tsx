@@ -46,6 +46,7 @@ function SummaryPageWrapper() {
       userId={user.id}
       language={language}
       onNavigateBack={() => navigate('/dashboard')}
+      onNavigateToGuide={() => navigate('/guides')}
     />
   );
 }
@@ -80,8 +81,10 @@ function RoutedPages() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      
+      {/* Auth callback routes */}
       <Route path="/auth/callback" element={<AuthRedirectPage />} />
-      <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+      <Route path="/auth/confirm-email" element={<ConfirmEmailPage />} />
       
       {/* Protected routes with Layout */}
       <Route element={<Layout />}>

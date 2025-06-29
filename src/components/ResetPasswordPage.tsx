@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, CheckCircle, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 import { useAppContext } from '../contexts/AppContext';
@@ -11,59 +11,89 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [hasHashFragment, setHasHashFragment] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { language } = useAppContext();
+
+  useEffect(() => {
+    // Check if we have a hash fragment (access_token) in the URL
+    const hash = location.hash;
+    setHasHashFragment(!!hash && hash.includes('access_token'));
+    
+    // If we have a hash, try to exchange it for a session
+    if (hash && hash.includes('access_token')) {
+      // Supabase will automatically handle this when the page loads
+      // We just need to check if we have a valid session
+      const checkSession = async () => {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          Swal.fire({
+            icon: 'error',
+            title: smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language),
+            text: smartCapitalize(language === 'es' 
+              ? 'el enlace de restablecimiento es inválido o ha expirado. por favor solicita un nuevo enlace.' 
+              : 'the reset link is invalid or has expired. please request a new link.', 
+              'sentence', language)
+          });
+          navigate('/forgot-password');
+        }
+      };
+      
+      checkSession();
+    }
+  }, [location, navigate, language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!hasHashFragment) {
+      Swal.fire({
+        icon: 'error',
+        title: smartCapitalize(language === 'es' ? 'enlace inválido' : 'invalid link', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'el enlace de restablecimiento es inválido. por favor solicita un nuevo enlace.' 
+          : 'the reset link is invalid. please request a new link.', 
+          'sentence', language)
+      });
+      navigate('/forgot-password');
+      return;
+    }
+    
     if (password !== confirmPassword) {
       Swal.fire({
         icon: 'error',
-        title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: smartCapitalize(language === 'es' ? 'las contraseñas no coinciden.' : 'passwords do not match.', 'sentence', language)
+        title: smartCapitalize(language === 'es' ? 'las contraseñas no coinciden' : 'passwords do not match', 'title', language),
+        text: smartCapitalize(language === 'es' 
+          ? 'las contraseñas que ingresaste no coinciden. por favor inténtalo de nuevo.' 
+          : 'the passwords you entered do not match. please try again.', 
+          'sentence', language)
       });
       return;
     }
     
     setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setIsLoading(false);
     
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: error.message || (language === 'es' ? 'No se pudo restablecer la contraseña.' : 'Could not reset password.')
-        });
-        return;
-      }
-      
-      setSuccess(true);
-      
-      // Show success message
-      Swal.fire({
-        icon: 'success',
-        title: smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language),
-        text: smartCapitalize(language === 'es' ? 'tu contraseña ha sido actualizada exitosamente.' : 'your password has been successfully updated.', 'sentence', language),
-        timer: 3000,
-        showConfirmButton: false
-      });
-      
-      // Redirect to login after a delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
+    if (error) {
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: error.message || (language === 'es' ? 'Ocurrió un error al restablecer la contraseña.' : 'An error occurred while resetting the password.')
+        text: error.message || (language === 'es' 
+          ? 'no se pudo restablecer la contraseña. por favor intenta de nuevo.' 
+          : 'could not reset password. please try again.', 
+          'sentence', language)
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    setSuccess(true);
+    
+    // Sign out after successful password reset
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+    }, 2000);
   };
 
   return (
@@ -119,7 +149,7 @@ export default function ResetPasswordPage() {
               </div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !hasHashFragment}
                 className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading 
