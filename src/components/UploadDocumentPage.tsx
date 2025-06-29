@@ -10,7 +10,6 @@ import { AIService } from '../utils/aiService';
 import { AnalyticsService } from '../utils/analyticsService';
 import { smartCapitalize } from '../utils/textCapitalization';
 import Swal from 'sweetalert2';
-import Navbar from './Navbar';
 
 interface UploadState {
   status: 'idle' | 'uploading' | 'processing' | 'ai_processing' | 'success' | 'error';
@@ -386,8 +385,6 @@ export default function UploadDocumentPage() {
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      <Navbar />
-      
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-start justify-start mb-4">
