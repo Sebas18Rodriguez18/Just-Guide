@@ -89,18 +89,8 @@ export default function ResetPasswordPage() {
       
       setSuccess(true);
       
-      // Show success message
-      Swal.fire({
-        icon: 'success',
-        title: smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language),
-        text: smartCapitalize(language === 'es' 
-          ? 'tu contraseña ha sido actualizada exitosamente. ahora puedes iniciar sesión con tu nueva contraseña.' 
-          : 'your password has been successfully updated. you can now sign in with your new password.', 'sentence', language),
-        confirmButtonText: smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to sign in', 'title', language),
-        confirmButtonColor: '#854D27'
-      }).then(() => {
-        navigate('/login');
-      });
+      // Navigate to success page
+      navigate('/reset-success');
       
     } catch (err: any) {
       console.error('Password reset error:', err);

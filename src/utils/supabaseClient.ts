@@ -26,6 +26,7 @@ supabase.auth.onAuthStateChange((event, session) => {
         window.location.pathname !== '/register' && 
         window.location.pathname !== '/forgot-password' && 
         window.location.pathname !== '/reset-password' &&
+        window.location.pathname !== '/reset-success' &&
         window.location.pathname !== '/auth/callback' &&
         window.location.pathname !== '/confirm-email') {
       window.location.href = '/login';
@@ -61,6 +62,7 @@ window.fetch = async (...args) => {
             window.location.pathname !== '/register' && 
             window.location.pathname !== '/forgot-password' && 
             window.location.pathname !== '/reset-password' &&
+            window.location.pathname !== '/reset-success' &&
             window.location.pathname !== '/auth/callback' &&
             window.location.pathname !== '/confirm-email') {
           window.location.href = '/login';
