@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { smartCapitalize } from '../utils/textCapitalization';
+import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function AuthRedirectPage() {
@@ -32,6 +33,11 @@ export default function AuthRedirectPage() {
         // Handle email confirmation
         if (type === 'email_confirmation') {
           // Get hash parameters (access_token, etc.)
+          const { data: { user }, error } = await supabase.auth.getUser();
+          
+          if (error || !user) {
+            throw new Error(error?.message || 'Failed to get user information');
+          }
           
           setStatus('success');
           setMessage(language === 'es' 
@@ -54,7 +60,7 @@ export default function AuthRedirectPage() {
         // Handle password recovery
         else if (type === 'recovery') {
           // Just show the reset password form
-          navigate('/reset-password' + location.hash);
+          navigate('/reset-password', { state: { hash: location.hash } });
         }
         // Unknown type
         else {
@@ -88,6 +94,7 @@ export default function AuthRedirectPage() {
           <h1 className="text-3xl font-bold text-just-forest mb-2">
             {status === 'loading' && smartCapitalize(language === 'es' ? 'procesando...' : 'processing...', 'title', language)}
             {status === 'success' && smartCapitalize(language === 'es' ? '¡éxito!' : 'success!', 'title', language)}
+            {status === 'error' && smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language)}
           </h1>
           <p className="text-just-hunter text-lg">
             {status === 'loading' 
@@ -125,9 +132,14 @@ export default function AuthRedirectPage() {
               <p className="text-red-600">
                 {message}
               </p>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
+              >
+                {smartCapitalize(language === 'es' ? 'volver a iniciar sesión' : 'back to login', 'title', language)}
+              </button>
             </div>
           )}
-          
         </div>
       </div>
     </div>

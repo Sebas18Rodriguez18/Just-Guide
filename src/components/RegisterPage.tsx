@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
 import { supabase } from '../utils/supabaseClient';
@@ -8,7 +8,8 @@ import Swal from 'sweetalert2';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setUser, setIsAuthenticated, language } = useAppContext();
+  const location = useLocation();
+  const { setUser, setIsAuthenticated, language, isAuthenticated } = useAppContext();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -19,6 +20,13 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -49,13 +57,17 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
+      // Get the current origin for the redirect URL
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/callback?type=email_confirmation`;
+      
       // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: { full_name: formData.fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+          emailRedirectTo: redirectTo
         }
       });
       
@@ -197,6 +209,7 @@ export default function RegisterPage() {
                   placeholder={smartCapitalize(language === 'es' ? 'crea una contraseña' : 'create a password', 'sentence', language)}
                   required
                   autoComplete="new-password"
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -206,6 +219,9 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              <p className="mt-1 text-xs text-just-gray dark:text-gray-400">
+                {smartCapitalize(language === 'es' ? 'mínimo 6 caracteres' : 'minimum 6 characters', 'sentence', language)}
+              </p>
             </div>
 
             {/* Confirm Password Input */}

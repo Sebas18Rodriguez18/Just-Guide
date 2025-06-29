@@ -23,13 +23,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const t = getTranslations(language);
+  
+  // Get the redirect path from location state
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  // Redirigir si ya está autenticado
+  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +98,8 @@ export default function LoginPage() {
           showConfirmButton: false
         });
         
-        navigate('/dashboard');
+        // Navigate to the page they were trying to access, or dashboard
+        navigate(from, { replace: true });
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -126,11 +130,15 @@ export default function LoginPage() {
         if (result.isConfirmed) {
           // Resend confirmation email
           try {
+            // Get the current origin for the redirect URL
+            const origin = window.location.origin;
+            const redirectTo = `${origin}/auth/callback?type=email_confirmation`;
+            
             const { error: resendError } = await supabase.auth.resend({
               type: 'signup',
               email,
               options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+                emailRedirectTo: redirectTo
               }
             });
             

@@ -32,10 +32,10 @@ export default function ConfirmEmailPage() {
         
         // The hash contains the access_token and other parameters
         // Supabase will automatically handle this when the page loads
-        const { error } = await supabase.auth.getUser();
+        const { data: { user }, error } = await supabase.auth.getUser();
         
-        if (error) {
-          setError(error.message);
+        if (error || !user) {
+          setError(error?.message || 'Failed to confirm email');
           setIsProcessing(false);
           return;
         }
