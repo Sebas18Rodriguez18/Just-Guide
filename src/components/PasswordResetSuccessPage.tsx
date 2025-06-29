@@ -17,10 +17,10 @@ export default function PasswordResetSuccessPage() {
             <CheckCircle className="w-8 h-8 text-just-white" />
           </div>
           <h1 className="text-3xl font-bold text-just-forest mb-2">
-            {smartCapitalize(language === 'es' ? '¡enlace confirmado!' : 'link confirmed!', 'title', language)}
+            {smartCapitalize(language === 'es' ? '¡contraseña actualizada!' : 'password updated!', 'title', language)}
           </h1>
           <p className="text-just-hunter text-lg">
-            {smartCapitalize(language === 'es' ? 'tu enlace de restablecimiento es válido' : 'your reset link is valid', 'sentence', language)}
+            {smartCapitalize(language === 'es' ? 'tu contraseña ha sido actualizada exitosamente' : 'your password has been successfully updated', 'sentence', language)}
           </p>
         </div>
 
@@ -33,13 +33,13 @@ export default function PasswordResetSuccessPage() {
             
             <div className="space-y-2">
               <h3 className="text-xl font-semibold text-just-forest">
-                {smartCapitalize(language === 'es' ? 'enlace de restablecimiento válido' : 'valid reset link', 'title', language)}
+                {smartCapitalize(language === 'es' ? '¡listo para iniciar sesión!' : 'ready to sign in!', 'title', language)}
               </h3>
               <p className="text-just-gray">
                 {smartCapitalize(
                   language === 'es' 
-                    ? 'ahora puedes crear una nueva contraseña para tu cuenta.'
-                    : 'you can now create a new password for your account.',
+                    ? 'ahora puedes iniciar sesión con tu nueva contraseña.'
+                    : 'you can now sign in with your new password.',
                   'sentence',
                   language
                 )}
@@ -47,10 +47,10 @@ export default function PasswordResetSuccessPage() {
             </div>
 
             <button
-              onClick={() => navigate('/reset-password')}
+              onClick={() => navigate('/login')}
               className="w-full bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300"
             >
-              {smartCapitalize(language === 'es' ? 'crear nueva contraseña' : 'create new password', 'title', language)}
+              {smartCapitalize(language === 'es' ? 'ir a iniciar sesión' : 'go to sign in', 'title', language)}
             </button>
           </div>
 

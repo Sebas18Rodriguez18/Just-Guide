@@ -16,6 +16,7 @@ import ConfirmEmailPage from './components/ConfirmEmailPage';
 import { useParams, useNavigate } from 'react-router-dom';
 import LegalHistoryPage from './components/LegalHistoryPage';
 import Layout from './components/Layout';
+import PasswordResetSuccessPage from './components/PasswordResetSuccessPage';
 
 function GuidePageWrapper() {
   const { docId } = useParams();
@@ -99,6 +100,7 @@ function RoutedPages() {
       } />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/reset-success" element={<PasswordResetSuccessPage />} />
       <Route path="/auth/callback" element={<AuthRedirectPage />} />
       <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       
