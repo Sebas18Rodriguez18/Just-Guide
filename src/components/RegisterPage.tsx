@@ -104,34 +104,34 @@ export default function RegisterPage() {
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-just-beige to-just-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-just-forest rounded-2xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-just-forest dark:bg-just-moss rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-just-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-just-forest mb-2">
+          <h1 className="text-3xl font-bold text-just-forest dark:text-just-white mb-2">
             {smartCapitalize(language === 'es' ? 'únete a JustGuide' : 'join JustGuide', 'title', language)}
           </h1>
-          <p className="text-just-hunter text-lg">
+          <p className="text-just-hunter dark:text-gray-300 text-lg">
             {smartCapitalize(language === 'es' ? 'comienza tu viaje hacia la claridad legal' : 'start your journey to legal clarity', 'sentence', language)}
           </p>
         </div>
 
         {/* Registration Form */}
-        <div className="bg-just-white rounded-2xl shadow-lg p-8 animate-slide-up">
+        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 animate-slide-up">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Full Name Input */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-just-forest mb-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
                 {smartCapitalize(language === 'es' ? 'nombre completo' : 'full name', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-just-hunter" />
+                  <User className="h-5 w-5 text-just-hunter dark:text-gray-400" />
                 </div>
                 <input
                   id="fullName"
@@ -139,21 +139,22 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.fullName}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
+                  className="block w-full pl-10 pr-3 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                   placeholder={smartCapitalize(language === 'es' ? 'ingresa tu nombre completo' : 'enter your full name', 'sentence', language)}
                   required
+                  autoComplete="name"
                 />
               </div>
             </div>
 
             {/* Email Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-just-forest mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
                 {smartCapitalize(language === 'es' ? 'correo electrónico' : 'email address', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-just-hunter" />
+                  <Mail className="h-5 w-5 text-just-hunter dark:text-gray-400" />
                 </div>
                 <input
                   id="email"
@@ -161,21 +162,22 @@ export default function RegisterPage() {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
+                  className="block w-full pl-10 pr-3 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                   placeholder={smartCapitalize(language === 'es' ? 'ingresa tu correo' : 'enter your email', 'sentence', language)}
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-just-forest mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
                 {smartCapitalize(language === 'es' ? 'contraseña' : 'password', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-just-hunter" />
+                  <Lock className="h-5 w-5 text-just-hunter dark:text-gray-400" />
                 </div>
                 <input
                   id="password"
@@ -183,14 +185,15 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="block w-full pl-10 pr-12 py-3 border border-just-sand rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
+                  className="block w-full pl-10 pr-12 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                   placeholder={smartCapitalize(language === 'es' ? 'crea una contraseña' : 'create a password', 'sentence', language)}
                   required
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-just-hunter hover:text-just-forest transition-colors duration-200"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-just-hunter dark:text-gray-400 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -199,12 +202,12 @@ export default function RegisterPage() {
 
             {/* Confirm Password Input */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-just-forest mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-just-forest dark:text-just-white mb-2">
                 {smartCapitalize(language === 'es' ? 'confirmar contraseña' : 'confirm password', 'title', language)}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-just-hunter" />
+                  <Lock className="h-5 w-5 text-just-hunter dark:text-gray-400" />
                 </div>
                 <input
                   id="confirmPassword"
@@ -212,20 +215,21 @@ export default function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`block w-full pl-10 pr-12 py-3 border rounded-xl text-just-forest placeholder-just-gray focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-300 ${
-                    passwordsMatch ? 'border-green-300 focus:ring-green-200' : 'border-just-sand focus:ring-just-moss'
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-300 ${
+                    passwordsMatch ? 'border-green-300 dark:border-green-600 focus:ring-green-200 dark:focus:ring-green-800' : 'border-just-sand dark:border-gray-600 focus:ring-just-moss dark:focus:ring-just-moss'
                   }`}
                   placeholder={smartCapitalize(language === 'es' ? 'confirma tu contraseña' : 'confirm your password', 'sentence', language)}
                   required
+                  autoComplete="new-password"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center">
                   {passwordsMatch && (
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
+                    <Check className="h-5 w-5 text-green-500 dark:text-green-400 mr-2" />
                   )}
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="pr-3 text-just-hunter hover:text-just-forest transition-colors duration-200"
+                    className="pr-3 text-just-hunter dark:text-gray-400 hover:text-just-forest dark:hover:text-just-white transition-colors duration-200"
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -241,18 +245,18 @@ export default function RegisterPage() {
                   type="checkbox"
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="w-4 h-4 text-just-moss bg-just-white border-just-sand rounded focus:ring-just-moss focus:ring-2"
+                  className="w-4 h-4 text-just-moss bg-just-white dark:bg-gray-700 border-just-sand dark:border-gray-600 rounded focus:ring-just-moss dark:focus:ring-just-moss focus:ring-2"
                   required
                 />
               </div>
               <div className="ml-3 text-sm">
-                <label htmlFor="terms" className="text-just-gray">
+                <label htmlFor="terms" className="text-just-gray dark:text-gray-400">
                   {smartCapitalize(language === 'es' ? 'acepto los' : 'I agree to the', 'sentence', language)}{' '}
-                  <a href="#" className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200">
+                  <a href="#" className="text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown font-medium transition-colors duration-200">
                     {smartCapitalize(language === 'es' ? 'términos de servicio' : 'terms of service', 'title', language)}
                   </a>{' '}
                   {language === 'es' ? 'y la' : 'and'}{' '}
-                  <a href="#" className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200">
+                  <a href="#" className="text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown font-medium transition-colors duration-200">
                     {smartCapitalize(language === 'es' ? 'política de privacidad' : 'privacy policy', 'title', language)}
                   </a>
                 </label>
@@ -263,7 +267,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading || !acceptTerms}
-              className="w-full bg-just-forest text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-hunter focus:outline-none focus:ring-2 focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-just-forest dark:bg-just-moss text-just-white py-3 px-4 rounded-xl font-medium hover:bg-just-hunter dark:hover:bg-just-brown focus:outline-none focus:ring-2 focus:ring-just-moss dark:focus:ring-just-moss focus:ring-offset-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -278,11 +282,11 @@ export default function RegisterPage() {
 
           {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className="text-just-gray">
+            <p className="text-just-gray dark:text-gray-400">
               {smartCapitalize(language === 'es' ? '¿ya tienes una cuenta?' : 'already have an account?', 'sentence', language)}{' '}
               <button
                 onClick={() => navigate('/login')}
-                className="text-just-moss hover:text-just-brown font-medium transition-colors duration-200"
+                className="text-just-moss hover:text-just-brown dark:text-just-moss dark:hover:text-just-brown font-medium transition-colors duration-200"
               >
                 {smartCapitalize(language === 'es' ? 'inicia sesión aquí' : 'sign in here', 'sentence', language)}
               </button>

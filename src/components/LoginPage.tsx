@@ -188,6 +188,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-3 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                     placeholder={smartCapitalize(language === 'es' ? 'ingresa tu correo' : 'enter your email', 'sentence', language)}
                     required
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -208,6 +209,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-12 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                     placeholder={smartCapitalize(language === 'es' ? 'ingresa tu contraseña' : 'enter your password', 'sentence', language)}
                     required
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

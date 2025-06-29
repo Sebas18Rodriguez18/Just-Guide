@@ -13,6 +13,7 @@ import SummaryPage from './components/SummaryPage';
 import GuidePage from './components/GuidePage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext';
+import LegalHistoryPage from './components/LegalHistoryPage';
 
 function GuidePageWrapper() {
   const { docId } = useParams();
@@ -23,7 +24,7 @@ function GuidePageWrapper() {
     <GuidePage
       docId={docId}
       userId={user.id}
-      userName={user.user_metadata?.full_name || user.email || ''}
+      userName={user.name || ''}
       language={language}
       onNavigateBack={() => navigate(`/summary/${docId}`)}
       onNavigateToDashboard={() => navigate('/dashboard')}
@@ -48,20 +49,36 @@ function SummaryPageWrapper() {
 }
 
 function RoutedPages() {
+  const { isAuthenticated } = useAppContext();
+  
+  // Protected route wrapper
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
+      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/documents" element={<MyDocumentsPage />} />
-      <Route path="/upload" element={<UploadDocumentPage />} />
-      <Route path="/guides" element={<SimplifiedGuidesPage />} />
-      <Route path="/guides/:docId" element={<GuidePageWrapper />} />
-      <Route path="/settings" element={<SettingsPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/summary/:docId" element={<SummaryPageWrapper />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/documents" element={<ProtectedRoute><MyDocumentsPage /></ProtectedRoute>} />
+      <Route path="/upload" element={<ProtectedRoute><UploadDocumentPage /></ProtectedRoute>} />
+      <Route path="/guides" element={<ProtectedRoute><SimplifiedGuidesPage /></ProtectedRoute>} />
+      <Route path="/guides/:docId" element={<ProtectedRoute><GuidePageWrapper /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/summary/:docId" element={<ProtectedRoute><SummaryPageWrapper /></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><LegalHistoryPage /></ProtectedRoute>} />
+      
+      {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
