@@ -36,8 +36,19 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      // Get the site URL for redirects
+      const siteUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5173' 
+        : 'https://justguide.netlify.app';
+      
       // Try to sign in with the provided credentials
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+        options: {
+          redirectTo: siteUrl
+        }
+      });
       
       if (error) {
         handleLoginError(error);
@@ -126,11 +137,16 @@ export default function LoginPage() {
         if (result.isConfirmed) {
           // Resend confirmation email
           try {
+            // Get the site URL for redirects
+            const siteUrl = window.location.hostname === 'localhost' 
+              ? 'http://localhost:5173' 
+              : 'https://justguide.netlify.app';
+            
             const { error: resendError } = await supabase.auth.resend({
               type: 'signup',
               email,
               options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+                emailRedirectTo: `${siteUrl}/auth/callback?type=email_confirmation`
               }
             });
             

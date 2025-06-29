@@ -294,20 +294,6 @@ JustGuide is committed to making legal access a human right, not a privilege.
 
 ---
 
-## 📞 Contact & Support
-
-- **Website**: [justguide.com](https://justguide.com)
-- **Email**: hello@justguide.com
-- **Twitter**: [@JustGuideAI](https://twitter.com/JustGuideAI)
-- **LinkedIn**: [JustGuide](https://linkedin.com/company/justguide)
-
-### For Developers
-- **Documentation**: [docs.justguide.com](https://docs.justguide.com)
-- **API Reference**: [api.justguide.com](https://api.justguide.com)
-- **Discord Community**: [discord.gg/justguide](https://discord.gg/justguide)
-
----
-
 <div align="center">
 
 **Made with ❤️ for global legal accessibility**

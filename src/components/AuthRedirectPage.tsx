@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { smartCapitalize } from '../utils/textCapitalization';
+import { supabase } from '../utils/supabaseClient';
 import Swal from 'sweetalert2';
 
 export default function AuthRedirectPage() {

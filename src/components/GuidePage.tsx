@@ -5,13 +5,13 @@ import { ArrowLeft, Home, BookOpen, MapPin, Scale, CheckCircle, Clock } from 'lu
 import { Language, getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import VoicePlayer from './VoicePlayer';
-import Navbar from './Navbar';
 
 interface GuidePageProps {
   onNavigateBack: () => void;
   onNavigateToDashboard: () => void;
   docId: string;
   userId: string;
+  userName: string;
   language: Language;
 }
 
@@ -30,6 +30,7 @@ export default function GuidePage({
   onNavigateToDashboard, 
   docId, 
   userId,
+  userName,
   language
 }: GuidePageProps) {
   const [guide, setGuide] = useState<GuideWithJurisdiction | null>(null);
@@ -186,7 +187,6 @@ export default function GuidePage({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-        <Navbar />
         <div className="flex items-center justify-center p-8">
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
             <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
@@ -204,8 +204,6 @@ export default function GuidePage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      <Navbar />
-      
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">

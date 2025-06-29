@@ -7,7 +7,6 @@ import { summarizeDocument } from '../utils/summarizer';
 import { useNavigate } from 'react-router-dom';
 import { smartCapitalize } from '../utils/textCapitalization';
 import VoicePlayer from './VoicePlayer';
-import Navbar from './Navbar';
 
 interface SummaryPageProps {
   onNavigateBack: () => void;
@@ -174,7 +173,6 @@ export default function SummaryPage({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-        <Navbar />
         <div className="flex items-center justify-center p-8">
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
             <Loader2 className="w-12 h-12 text-just-moss animate-spin mx-auto mb-4" />
@@ -198,7 +196,6 @@ export default function SummaryPage({
   if (error) {
     return (
       <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-        <Navbar />
         <div className="flex items-center justify-center p-8">
           <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -218,8 +215,6 @@ export default function SummaryPage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      <Navbar />
-      
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">

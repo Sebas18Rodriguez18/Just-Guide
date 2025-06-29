@@ -49,13 +49,16 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
+      // Get the site URL from environment or use current origin
+      const siteUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      
       // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: { full_name: formData.fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+          emailRedirectTo: `${siteUrl}/auth/callback?type=email_confirmation`
         }
       });
       

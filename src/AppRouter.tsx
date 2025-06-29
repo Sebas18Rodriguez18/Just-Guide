@@ -82,6 +82,10 @@ function RoutedPages() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       
+      {/* Auth callback routes */}
+      <Route path="/auth/callback" element={<AuthRedirectPage />} />
+      <Route path="/auth/confirm-email" element={<ConfirmEmailPage />} />
+      
       {/* Protected routes with Layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
