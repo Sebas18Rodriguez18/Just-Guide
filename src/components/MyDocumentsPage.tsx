@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Search, Eye, Download, MoreVertical, Upload, CheckCircle, Clock, AlertCircle, Trash } from 'lucide-react';
+import { ArrowLeft, FileText, Search, Eye, Download, MoreVertical, Upload, CheckCircle, Clock, AlertCircle, Trash, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
@@ -15,6 +15,7 @@ interface Document {
   status: 'completed' | 'processing' | 'failed';
   file_size: string;
   simplified: boolean;
+  criminal_procedure_location?: string; // Nueva propiedad para ubicación del procedimiento penal
 }
 
 export default function MyDocumentsPage() {
@@ -285,6 +286,17 @@ export default function MyDocumentsPage() {
                         }
                       </span>
                     </div>
+                    {doc.criminal_procedure_location && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-just-gray dark:text-gray-400">
+                          {smartCapitalize(language === 'es' ? 'procedimiento penal' : 'criminal procedure', 'title', language)}
+                        </span>
+                        <span className="text-just-moss flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {doc.criminal_procedure_location}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}

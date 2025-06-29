@@ -11,6 +11,8 @@ import ForgotPasswordPage from './components/ForgotPasswordPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import SummaryPage from './components/SummaryPage';
 import GuidePage from './components/GuidePage';
+import AuthRedirectPage from './components/AuthRedirectPage';
+import ConfirmEmailPage from './components/ConfirmEmailPage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from './contexts/AppContext';
 import LegalHistoryPage from './components/LegalHistoryPage';

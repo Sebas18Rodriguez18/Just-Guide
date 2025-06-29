@@ -45,60 +45,68 @@ export default function RegisterPage() {
       });
       return;
     }
+    
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: { full_name: formData.fullName }
+    
+    try {
+      // Try to sign up the user
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { full_name: formData.fullName },
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+        }
+      });
+      
+      if (error) {
+        // Special handling for "User already registered" error
+        if (error.message.includes('already registered')) {
+          Swal.fire({
+            icon: 'info',
+            title: smartCapitalize(language === 'es' ? 'correo ya registrado' : 'email already registered', 'title', language),
+            text: smartCapitalize(language === 'es' 
+              ? 'Este correo ya está registrado pero no tiene una cuenta activa. Por favor, solicita un restablecimiento de contraseña para activar tu cuenta.' 
+              : 'This email is already registered but doesn\'t have an active account. Please request a password reset to activate your account.', 
+              'sentence', language),
+            confirmButtonText: smartCapitalize(language === 'es' ? 'ir a recuperar contraseña' : 'go to password recovery', 'sentence', language)
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate('/forgot-password');
+            }
+          });
+          setIsLoading(false);
+          return;
+        } else {
+          throw error;
+        }
       }
-    });
-    if (error) {
+      
+      if (data.user) {
+        // Show success message about email confirmation
+        Swal.fire({
+          icon: 'success',
+          title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
+          text: smartCapitalize(language === 'es' 
+            ? 'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada y confirma tu correo para continuar.' 
+            : 'We have sent you a confirmation email. Please check your inbox and confirm your email to continue.', 
+            'sentence', language),
+          confirmButtonText: smartCapitalize(language === 'es' ? 'entendido' : 'understood', 'sentence', language)
+        });
+        
+        // Redirect to login page
+        navigate('/login');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
       Swal.fire({
         icon: 'error',
         title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-        text: error.message,
+        text: error.message || (language === 'es' ? 'Ocurrió un error durante el registro.' : 'An error occurred during registration.'),
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-    if (data.user) {
-      const now = new Date().toISOString();
-      const insertResult = await supabase.from('users').insert([
-        {
-          id: data.user.id,
-          name: formData.fullName,
-          email: formData.email,
-          hashed_password: 'supabase_auth',
-          language: language,
-          literacy_level: 'basic',
-          uploaded_documents: [],
-          history: {},
-          created_at: now,
-          updated_at: now
-        }
-      ]);
-      if (insertResult.error) {
-        Swal.fire({
-          icon: 'error',
-          title: smartCapitalize(language === 'es' ? 'error' : 'error', 'title', language),
-          text: insertResult.error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
-      setUser({ id: data.user.id, name: formData.fullName });
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
-    Swal.fire({
-      icon: 'success',
-      title: smartCapitalize(language === 'es' ? '¡registro exitoso!' : 'registration successful!', 'title', language),
-      text: smartCapitalize(language === 'es' ? 'tu cuenta ha sido creada correctamente.' : 'your account has been created successfully.', 'sentence', language),
-      timer: 2000,
-      showConfirmButton: false
-    });
-    navigate('/dashboard');
   };
 
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';

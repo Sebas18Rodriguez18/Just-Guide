@@ -5,6 +5,7 @@ export interface DocumentParseResult {
   detected_language: 'es' | 'en';
   confidence: number;
   word_count: number;
+  criminal_procedure_location?: string; // Nueva propiedad para ubicación del procedimiento penal
 }
 
 // Función para capitalizar texto correctamente
@@ -102,6 +103,107 @@ function detectLanguage(text: string): 'es' | 'en' {
   
   // Determinar idioma basado en puntuación
   return spanishScore > englishScore ? 'es' : 'en';
+}
+
+// Detectar la ubicación del procedimiento penal
+function detectCriminalProcedureLocation(text: string): string | undefined {
+  const lowerText = text.toLowerCase();
+  
+  // Patrones para detectar ubicaciones de procedimientos penales en Colombia
+  if (lowerText.includes('fiscalía general de la nación') || 
+      lowerText.includes('código de procedimiento penal colombiano') ||
+      lowerText.includes('ley 906 de 2004')) {
+    
+    // Detectar ciudades específicas de Colombia
+    if (lowerText.includes('bogotá') || lowerText.includes('bogota')) {
+      return 'Bogotá, Colombia';
+    } else if (lowerText.includes('medellín') || lowerText.includes('medellin')) {
+      return 'Medellín, Colombia';
+    } else if (lowerText.includes('cali')) {
+      return 'Cali, Colombia';
+    } else if (lowerText.includes('barranquilla')) {
+      return 'Barranquilla, Colombia';
+    } else if (lowerText.includes('cartagena')) {
+      return 'Cartagena, Colombia';
+    } else if (lowerText.includes('bucaramanga')) {
+      return 'Bucaramanga, Colombia';
+    } else {
+      return 'Colombia';
+    }
+  }
+  
+  // Patrones para detectar ubicaciones de procedimientos penales en México
+  if (lowerText.includes('fiscalía general de la república') || 
+      lowerText.includes('código nacional de procedimientos penales') ||
+      lowerText.includes('procuraduría general de justicia')) {
+    
+    // Detectar ciudades específicas de México
+    if (lowerText.includes('ciudad de méxico') || lowerText.includes('cdmx') || lowerText.includes('df')) {
+      return 'Ciudad de México, México';
+    } else if (lowerText.includes('guadalajara')) {
+      return 'Guadalajara, México';
+    } else if (lowerText.includes('monterrey')) {
+      return 'Monterrey, México';
+    } else if (lowerText.includes('puebla')) {
+      return 'Puebla, México';
+    } else {
+      return 'México';
+    }
+  }
+  
+  // Patrones para detectar ubicaciones de procedimientos penales en España
+  if (lowerText.includes('audiencia nacional') || 
+      lowerText.includes('ley de enjuiciamiento criminal') ||
+      lowerText.includes('código penal español')) {
+    
+    // Detectar ciudades específicas de España
+    if (lowerText.includes('madrid')) {
+      return 'Madrid, España';
+    } else if (lowerText.includes('barcelona')) {
+      return 'Barcelona, España';
+    } else if (lowerText.includes('valencia')) {
+      return 'Valencia, España';
+    } else if (lowerText.includes('sevilla')) {
+      return 'Sevilla, España';
+    } else {
+      return 'España';
+    }
+  }
+  
+  // Patrones para detectar ubicaciones de procedimientos penales en Estados Unidos
+  if (lowerText.includes('district attorney') || 
+      lowerText.includes('criminal procedure') ||
+      lowerText.includes('federal rules of criminal procedure')) {
+    
+    // Detectar estados específicos de EE.UU.
+    if (lowerText.includes('new york') || lowerText.includes('ny')) {
+      return 'New York, USA';
+    } else if (lowerText.includes('california') || lowerText.includes('ca')) {
+      return 'California, USA';
+    } else if (lowerText.includes('texas') || lowerText.includes('tx')) {
+      return 'Texas, USA';
+    } else if (lowerText.includes('florida') || lowerText.includes('fl')) {
+      return 'Florida, USA';
+    } else {
+      return 'United States';
+    }
+  }
+  
+  // Si no se detecta una ubicación específica pero hay términos penales
+  if (lowerText.includes('procedimiento penal') || 
+      lowerText.includes('criminal procedure') ||
+      lowerText.includes('proceso penal') ||
+      lowerText.includes('delito') ||
+      lowerText.includes('crime') ||
+      lowerText.includes('acusado') ||
+      lowerText.includes('accused') ||
+      lowerText.includes('imputado') ||
+      lowerText.includes('defendant')) {
+    return 'Ubicación no especificada';
+  }
+  
+  // No se detectó procedimiento penal
+  return undefined;
 }
 
 // Limpiar y formatear texto extraído
@@ -263,6 +365,11 @@ export async function parseDocument(
     const detectedLanguage = detectLanguage(cleanedText);
     console.log(`🎯 Idioma detectado: ${detectedLanguage === 'es' ? 'Español' : 'English'}`);
     
+    // Detectar ubicación del procedimiento penal
+    console.log('🔍 Detectando ubicación del procedimiento penal...');
+    const criminalProcedureLocation = detectCriminalProcedureLocation(cleanedText);
+    console.log(`🌎 Ubicación del procedimiento penal: ${criminalProcedureLocation || 'No detectada'}`);
+    
     // Contar palabras
     const words = cleanedText.split(/\s+/).filter(word => word.length > 0);
     const wordCount = words.length;
@@ -316,7 +423,8 @@ export async function parseDocument(
       extracted_text: cleanedText,
       detected_language: detectedLanguage,
       confidence: Math.round(confidence * 100) / 100, // Redondear a 2 decimales
-      word_count: wordCount
+      word_count: wordCount,
+      criminal_procedure_location: criminalProcedureLocation // Agregar la ubicación del procedimiento penal
     };
     
     console.log(`🎉 ANÁLISIS DOCX COMPLETADO EXITOSAMENTE`);
@@ -327,6 +435,9 @@ export async function parseDocument(
     console.log(`   🎯 Confianza: ${Math.round(confidence * 100)}%`);
     console.log(`   ⚖️ Términos legales: ${totalLegalTerms}`);
     console.log(`   📋 Estructura: ${structureMatches} elementos`);
+    if (criminalProcedureLocation) {
+      console.log(`   🌎 Ubicación del procedimiento penal: ${criminalProcedureLocation}`);
+    }
     
     if (onProgress) onProgress(1.0);
     

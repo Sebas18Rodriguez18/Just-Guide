@@ -5,6 +5,7 @@ import { ArrowLeft, Home, BookOpen, MapPin, Scale, CheckCircle, Clock } from 'lu
 import { Language, getTranslations } from '../utils/i18n';
 import { smartCapitalize } from '../utils/textCapitalization';
 import VoicePlayer from './VoicePlayer';
+import Navbar from './Navbar';
 
 interface GuidePageProps {
   onNavigateBack: () => void;
@@ -184,15 +185,18 @@ export default function GuidePage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
-          <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
-          <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
-            {smartCapitalize(language === 'es' ? 'generando tu guía paso a paso' : 'generating your step-by-step guide', 'sentence', language)}
-          </h2>
-          <p className="text-just-gray dark:text-gray-400">
-            {smartCapitalize(language === 'es' ? 'analizando tu documento y detectando jurisdicción...' : 'analyzing your document and detecting jurisdiction...', 'sentence', language)}
-          </p>
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900">
+        <Navbar />
+        <div className="flex items-center justify-center p-8">
+          <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:p-8 text-center max-w-md w-full">
+            <BookOpen className="w-12 h-12 text-just-moss mx-auto mb-4 animate-pulse" />
+            <h2 className="text-xl font-semibold text-just-forest dark:text-just-white mb-2">
+              {smartCapitalize(language === 'es' ? 'generando tu guía paso a paso' : 'generating your step-by-step guide', 'sentence', language)}
+            </h2>
+            <p className="text-just-gray dark:text-gray-400">
+              {smartCapitalize(language === 'es' ? 'analizando tu documento y detectando jurisdicción...' : 'analyzing your document and detecting jurisdiction...', 'sentence', language)}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -200,11 +204,12 @@ export default function GuidePage({
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Header Mejorado con Botones Más Visibles */}
-      <div className="bg-just-white dark:bg-gray-800 shadow-sm border-b border-just-sand dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Botones de Navegación Prominentes */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+      <Navbar />
+      
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-start space-x-4">
             <button
               onClick={onNavigateBack}
               className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
@@ -213,34 +218,28 @@ export default function GuidePage({
               <span className="font-medium">{smartCapitalize(t.back, 'sentence', language)}</span>
             </button>
             
-            {/* BOTÓN PRINCIPAL: Volver al Panel - MUY VISIBLE */}
             <button
               onClick={onNavigateToDashboard}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-just-brown to-just-forest dark:from-just-moss dark:to-just-brown text-just-white rounded-xl font-semibold hover:from-just-forest hover:to-just-hunter dark:hover:from-just-brown dark:hover:to-just-forest transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center px-4 py-2 bg-just-sand dark:bg-gray-700 text-just-hunter dark:text-gray-300 rounded-xl hover:bg-just-moss/20 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105 shadow-md"
             >
-              <Home className="w-5 h-5 mr-2" />
-              <span className="text-lg">
-                {smartCapitalize(language === 'es' ? 'volver al panel' : 'back to dashboard', 'sentence', language)}
+              <Home className="w-4 h-4 mr-2" />
+              <span className="font-medium">
+                {smartCapitalize(language === 'es' ? 'panel' : 'dashboard', 'sentence', language)}
               </span>
             </button>
           </div>
-
-          {/* Título de la Página */}
-          <div className="text-center">
-            <h1 className="text-2xl lg:text-3xl font-bold text-just-forest dark:text-just-white mb-2 flex items-center justify-center">
-              <BookOpen className="w-7 h-7 mr-3 text-just-moss" />
-              {smartCapitalize(language === 'es' ? 'guía paso a paso' : 'step-by-step guide', 'sentence', language)}
-              {guide?.jurisdiction && (
-                <span className="ml-3 text-lg font-normal text-just-hunter dark:text-gray-300">
-                  - {guide.jurisdiction}
-                </span>
-              )}
-            </h1>
-          </div>
+          
+          <h1 className="text-2xl font-bold text-just-forest dark:text-just-white flex items-center">
+            <BookOpen className="w-6 h-6 mr-3 text-just-moss" />
+            {smartCapitalize(language === 'es' ? 'guía paso a paso' : 'step-by-step guide', 'sentence', language)}
+            {guide?.jurisdiction && (
+              <span className="ml-3 text-lg font-normal text-just-hunter dark:text-gray-300">
+                - {guide.jurisdiction}
+              </span>
+            )}
+          </h1>
         </div>
-      </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="bg-just-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
           {/* Jurisdiction Info */}
           {guide?.jurisdiction && (
