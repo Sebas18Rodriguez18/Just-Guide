@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Upload, FileText, Settings, User, Moon, Sun, TrendingUp, CheckCircle, Clock, Search, Filter, MoreVertical, BookOpen, Sparkles, Globe, ChevronDown, Menu, X, Users, Award, Zap
+  Upload, FileText, TrendingUp, CheckCircle, Clock, Search, Filter, MoreVertical, BookOpen, Sparkles, Users, Award, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
@@ -24,11 +24,10 @@ interface Document {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user, language, theme, setLanguage, setTheme, setUser, setIsAuthenticated } = useAppContext();
+  const { user, language } = useAppContext();
   const userName = user?.name || 'Usuario';
   const [activeTab, setActiveTab] = useState('overview');
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const t = getTranslations(language);
   const analytics = AnalyticsService.getInstance();
 
@@ -60,7 +59,7 @@ export default function DashboardPage() {
       bgColor: 'bg-just-moss/10 dark:bg-just-moss/20'
     },
     {
-      icon: Globe,
+      icon: Sparkles,
       value: '2',
       label: smartCapitalize(language === 'es' ? 'idiomas soportados' : 'languages supported', 'title', language),
       color: 'text-just-brown',
@@ -80,14 +79,6 @@ export default function DashboardPage() {
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900'
     }
-  ];
-
-  const sidebarItems = [
-    { id: 'overview', label: t.dashboard, icon: TrendingUp },
-    { id: 'upload', label: t.uploadDocument, icon: Upload },
-    { id: 'documents', label: t.myDocuments, icon: FileText },
-    { id: 'simplified', label: t.simplifiedGuides, icon: BookOpen },
-    { id: 'settings', label: t.settings, icon: Settings },
   ];
 
   const getStatusColor = (status: string) => {
@@ -117,40 +108,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Sidebar navigation using React Router
-  const handleSidebarClick = (itemId: string) => {
-    switch (itemId) {
-      case 'upload':
-        navigate('/upload');
-        analytics.trackUserEngagement('navigation', 'upload_page');
-        break;
-      case 'documents':
-        navigate('/documents');
-        analytics.trackUserEngagement('navigation', 'documents_page');
-        break;
-      case 'simplified':
-        navigate('/guides');
-        analytics.trackUserEngagement('navigation', 'guides_page');
-        break;
-      case 'settings':
-        navigate('/settings');
-        analytics.trackUserEngagement('navigation', 'settings_page');
-        break;
-      default:
-        setActiveTab(itemId);
-        analytics.trackUserEngagement('tab_change', itemId);
-    }
-  };
-
-  // Logout usando contexto
-  const handleLogout = async () => {
-    analytics.trackEvent('user_logout');
-    await supabase.auth.signOut();
-    setUser(null);
-    setIsAuthenticated(false);
-    navigate('/login');
-  };
-
   useEffect(() => {
     async function fetchDocuments() {
       if (user?.id) {
@@ -176,11 +133,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-just-beige dark:bg-gray-900">
-      {/* Hackathon Badge - Fixed position */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <HackathonBadge />
-      </div>
-
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="space-y-6 animate-fade-in">
