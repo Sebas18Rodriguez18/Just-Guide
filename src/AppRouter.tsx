@@ -50,7 +50,19 @@ function SummaryPageWrapper() {
 }
 
 function RoutedPages() {
-  const { isAuthenticated } = useAppContext();
+  const { isAuthenticated, isLoading } = useAppContext();
+  
+  // Si está cargando, mostrar una pantalla de carga
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-just-beige dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-pulse">
+          <div className="h-12 w-12 bg-just-moss rounded-full mx-auto mb-4"></div>
+          <div className="h-4 w-32 bg-just-sand dark:bg-gray-700 rounded mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
   
   // Protected route wrapper
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -81,8 +93,8 @@ function RoutedPages() {
         <Route path="/history" element={<ProtectedRoute><LegalHistoryPage /></ProtectedRoute>} />
       </Route>
       
-      {/* Fallback route */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Fallback route - redirige a login si no está autenticado */}
+      <Route path="*" element={isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} />
     </Routes>
   );
 }

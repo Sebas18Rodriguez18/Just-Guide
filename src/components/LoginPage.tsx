@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, Sparkles, Globe, Users, Award } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { getTranslations } from '../utils/i18n';
 import { smartCapitalize, capitalizeUI } from '../utils/textCapitalization';
@@ -10,12 +10,20 @@ import Swal from 'sweetalert2';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setUser, setIsAuthenticated, language } = useAppContext();
+  const location = useLocation();
+  const { setUser, setIsAuthenticated, language, isAuthenticated } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const t = getTranslations(language);
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

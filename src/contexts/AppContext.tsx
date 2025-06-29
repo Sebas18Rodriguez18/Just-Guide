@@ -19,6 +19,7 @@ interface AppContextProps {
   setLanguage: (lang: Language) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -102,13 +103,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setThemeInStorage(theme);
   };
 
-  if (isLoading) {
-    // You could return a loading spinner here if needed
-    return null;
-  }
-
   return (
-    <AppContext.Provider value={{ user, setUser, isAuthenticated, setIsAuthenticated, language, setLanguage, theme, setTheme }}>
+    <AppContext.Provider value={{ 
+      user, 
+      setUser, 
+      isAuthenticated, 
+      setIsAuthenticated, 
+      language, 
+      setLanguage, 
+      theme, 
+      setTheme,
+      isLoading 
+    }}>
       {children}
     </AppContext.Provider>
   );
