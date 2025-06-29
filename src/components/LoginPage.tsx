@@ -17,26 +17,19 @@ const languageNames: Record<string, string> = {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser, setIsAuthenticated, language } = useAppContext();
+  const { setUser, setIsAuthenticated, language, isAuthenticated } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const t = getTranslations(language);
 
-  // Check for URL parameters that might indicate auth status
+  // Redirigir si ya está autenticado
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const authMessage = searchParams.get('message');
-    
-    if (authMessage) {
-      Swal.fire({
-        icon: 'info',
-        title: smartCapitalize(language === 'es' ? 'información' : 'information', 'title', language),
-        text: decodeURIComponent(authMessage),
-      });
+    if (isAuthenticated) {
+      navigate('/dashboard');
     }
-  }, [location, language]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,7 +252,7 @@ export default function LoginPage() {
                   <div className="w-12 h-12 bg-just-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Icon className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold text-just-white">{stat.value}</div>
                   <div className="text-sm text-just-white/80">{stat.label}</div>
                 </div>
               );
@@ -334,6 +327,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-3 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                     placeholder={smartCapitalize(language === 'es' ? 'ingresa tu correo' : 'enter your email', 'sentence', language)}
                     required
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -354,6 +348,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-12 py-3 border border-just-sand dark:border-gray-600 rounded-xl text-just-forest dark:text-just-white dark:bg-gray-700 placeholder-just-gray dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-just-moss focus:border-transparent transition-colors duration-300"
                     placeholder={smartCapitalize(language === 'es' ? 'ingresa tu contraseña' : 'enter your password', 'sentence', language)}
                     required
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

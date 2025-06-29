@@ -15,29 +15,38 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Handle invalid session errors globally
+// Handle auth state changes more gracefully
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+  if (event === 'SIGNED_OUT') {
     // Clear any invalid session data
     localStorage.removeItem(`sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`);
     
-    // Redirect to login if we're not already there
-    if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+    // Only redirect to login if we're not already there
+    if (window.location.pathname !== '/login' && 
+        window.location.pathname !== '/register' && 
+        window.location.pathname !== '/forgot-password' && 
+        window.location.pathname !== '/reset-password') {
       window.location.href = '/login';
     }
   }
 });
 
-// Add a global error handler for Supabase requests
+// Modified fetch error handler to be less aggressive with redirects
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   try {
     const response = await originalFetch(...args);
     
-    // Check if this is a Supabase auth request that failed with session error
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('supabase.co/auth') && response.status === 403) {
+    // Only handle critical auth errors, not all 400-level errors
+    if (args[0] && 
+        typeof args[0] === 'string' && 
+        args[0].includes('supabase.co/auth') && 
+        response.status === 403) {
+      
       const responseText = await response.clone().text();
-      if (responseText.includes('session_not_found') || responseText.includes('Session from session_id claim in JWT does not exist')) {
+      if (responseText.includes('session_not_found') || 
+          responseText.includes('Session from session_id claim in JWT does not exist')) {
+        
         // Clear invalid session data
         const supabaseProjectId = supabaseUrl.split('//')[1].split('.')[0];
         localStorage.removeItem(`sb-${supabaseProjectId}-auth-token`);
@@ -45,8 +54,11 @@ window.fetch = async (...args) => {
         // Sign out the user to clear any remaining session state
         await supabase.auth.signOut();
         
-        // Redirect to login
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        // Only redirect if we're not already on an auth page
+        if (window.location.pathname !== '/login' && 
+            window.location.pathname !== '/register' && 
+            window.location.pathname !== '/forgot-password' && 
+            window.location.pathname !== '/reset-password') {
           window.location.href = '/login';
         }
       }

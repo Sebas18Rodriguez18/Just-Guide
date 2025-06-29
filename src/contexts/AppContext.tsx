@@ -6,6 +6,8 @@ import { Theme, getThemeFromStorage, setThemeInStorage, initializeTheme } from '
 interface User {
   id: string;
   name: string;
+  email?: string;
+  user_metadata?: Record<string, any>;
 }
 
 interface AppContextProps {
@@ -17,6 +19,7 @@ interface AppContextProps {
   setLanguage: (lang: Language) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -26,25 +29,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [language, setLanguageState] = useState<Language>(getLanguageFromStorage());
   const [theme, setThemeState] = useState<Theme>(getThemeFromStorage());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     initializeTheme();
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error) {
-        // Handle authentication errors (like invalid refresh token)
+    
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        // Check for existing session
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth session error:', error);
+          setUser(null);
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        if (data?.session) {
+          const userData = data.session.user;
+          setUser({ 
+            id: userData.id, 
+            name: userData.user_metadata?.full_name || userData.email || '',
+            email: userData.email,
+            user_metadata: userData.user_metadata
+          });
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         setUser(null);
         setIsAuthenticated(false);
-        return;
+      } finally {
+        setIsLoading(false);
       }
-      
-      if (data?.user) {
-        setUser({ id: data.user.id, name: data.user.user_metadata?.full_name || data.user.email });
+    };
+
+    initializeAuth();
+
+    // Set up auth state change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const userData = session.user;
+        setUser({ 
+          id: userData.id, 
+          name: userData.user_metadata?.full_name || userData.email || '',
+          email: userData.email,
+          user_metadata: userData.user_metadata
+        });
         setIsAuthenticated(true);
-      } else {
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         setUser(null);
         setIsAuthenticated(false);
       }
     });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const setLanguage = (lang: Language) => {
@@ -58,7 +104,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, setUser, isAuthenticated, setIsAuthenticated, language, setLanguage, theme, setTheme }}>
+    <AppContext.Provider value={{ 
+      user, 
+      setUser, 
+      isAuthenticated, 
+      setIsAuthenticated, 
+      language, 
+      setLanguage, 
+      theme, 
+      setTheme,
+      isLoading 
+    }}>
       {children}
     </AppContext.Provider>
   );
