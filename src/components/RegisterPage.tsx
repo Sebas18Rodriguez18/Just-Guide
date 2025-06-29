@@ -49,13 +49,18 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
+      // Get the site URL for redirects
+      const siteUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5173' 
+        : 'https://justguide.netlify.app';
+      
       // Try to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: { full_name: formData.fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=email_confirmation`
+          emailRedirectTo: `${siteUrl}/auth/callback?type=email_confirmation`
         }
       });
       
