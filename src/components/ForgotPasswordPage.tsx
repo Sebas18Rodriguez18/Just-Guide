@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     try {
       // Get the current origin for the redirect URL
       const origin = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
-      const redirectTo = "https://google.com";
+      const redirectTo = `${origin}/auth/callback?type=recovery`;
       
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo
