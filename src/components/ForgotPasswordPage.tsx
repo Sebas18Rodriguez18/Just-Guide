@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import { useAppContext } from '../contexts/AppContext';
 import { smartCapitalize } from '../utils/textCapitalization';
@@ -11,7 +11,6 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { language } = useAppContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,13 +22,10 @@ export default function ForgotPasswordPage() {
       const origin = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
       const redirectTo = `${origin}/auth/callback?type=recovery`;
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      await supabase.auth.resetPasswordForEmail(email, {
         redirectTo
       });
       
-      if (error) {
-        throw error;
-      }
       
       setEmailSent(true);
     } catch (error: any) {
