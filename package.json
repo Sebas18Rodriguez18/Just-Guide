@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp public/_redirects dist/",
     "lint": "eslint .",
     "preview": "vite preview"
   },
